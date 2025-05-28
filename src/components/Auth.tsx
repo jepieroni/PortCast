@@ -15,6 +15,7 @@ interface AuthProps {
 interface Organization {
   id: string;
   name: string;
+  trusted_agent_email?: string;
 }
 
 const Auth = ({ onSuccess }: AuthProps) => {
@@ -38,7 +39,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
     try {
       const { data, error } = await supabase
         .from('organizations')
-        .select('id, name')
+        .select('id, name, trusted_agent_email')
         .order('name');
 
       if (error) throw error;
@@ -57,6 +58,9 @@ const Auth = ({ onSuccess }: AuthProps) => {
         if (!formData.organizationId) {
           throw new Error('Please select an organization');
         }
+
+        // Get the selected organization to find the trusted agent
+        const selectedOrg = organizations.find(org => org.id === formData.organizationId);
 
         // Create a user request instead of directly creating a user
         const { error } = await supabase
@@ -85,9 +89,13 @@ const Auth = ({ onSuccess }: AuthProps) => {
           console.error('Failed to send approval email:', emailError);
         }
 
+        const trustedAgentInfo = selectedOrg?.trusted_agent_email 
+          ? `Your organization's Trusted Agent (${selectedOrg.trusted_agent_email}) has been notified.` 
+          : 'Your organization\'s Trusted Agent has been notified.';
+
         toast({
           title: "Request Submitted",
-          description: "Your signup request has been sent to your organization's trusted agent for approval. You'll receive an email when it's reviewed.",
+          description: `Your signup request has been sent for approval. ${trustedAgentInfo} Please remind them to check their junk/spam folder for the authorization email. You'll receive an email when your request is reviewed.`,
         });
 
         // Reset form and switch back to sign-in
