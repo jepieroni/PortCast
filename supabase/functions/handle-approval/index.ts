@@ -13,10 +13,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!token || !action) {
       return new Response(
-        `<html><body><h2>Invalid Request</h2><p>Missing required parameters.</p></body></html>`,
+        `<!DOCTYPE html>
+        <html>
+        <head>
+          <title>Invalid Request</title>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+            .error { color: #dc2626; font-size: 24px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>PortCast User Request</h1>
+          <div class="error">Invalid Request</div>
+          <p>Missing required parameters.</p>
+        </body>
+        </html>`,
         { 
           status: 400,
-          headers: { "Content-Type": "text/html" }
+          headers: { 
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-cache"
+          }
         }
       );
     }
@@ -33,10 +51,28 @@ const handler = async (req: Request): Promise<Response> => {
     if (error) {
       console.error('Error processing request:', error);
       return new Response(
-        `<html><body><h2>Error</h2><p>Failed to process request: ${error.message}</p></body></html>`,
+        `<!DOCTYPE html>
+        <html>
+        <head>
+          <title>Error</title>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+            .error { color: #dc2626; font-size: 24px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>PortCast User Request</h1>
+          <div class="error">Error</div>
+          <p>Failed to process request: ${error.message}</p>
+        </body>
+        </html>`,
         { 
           status: 500,
-          headers: { "Content-Type": "text/html" }
+          headers: { 
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-cache"
+          }
         }
       );
     }
@@ -45,10 +81,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!result.success) {
       return new Response(
-        `<html><body><h2>Request Processing Failed</h2><p>${result.message}</p></body></html>`,
+        `<!DOCTYPE html>
+        <html>
+        <head>
+          <title>Request Processing Failed</title>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+            .error { color: #dc2626; font-size: 24px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>PortCast User Request</h1>
+          <div class="error">Request Processing Failed</div>
+          <p>${result.message}</p>
+        </body>
+        </html>`,
         { 
           status: 400,
-          headers: { "Content-Type": "text/html" }
+          headers: { 
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-cache"
+          }
         }
       );
     }
@@ -57,35 +111,64 @@ const handler = async (req: Request): Promise<Response> => {
     const statusColor = isApproval ? '#16a34a' : '#dc2626';
 
     return new Response(
-      `<html>
-        <head>
-          <title>Request ${statusMessage.charAt(0).toUpperCase() + statusMessage.slice(1)}</title>
-          <style>
-            body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
-            .status { color: ${statusColor}; font-size: 24px; font-weight: bold; }
-            .message { margin: 20px 0; font-size: 16px; }
-          </style>
-        </head>
-        <body>
+      `<!DOCTYPE html>
+      <html>
+      <head>
+        <title>Request ${statusMessage.charAt(0).toUpperCase() + statusMessage.slice(1)}</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; text-align: center; background-color: #f9fafb; }
+          .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+          .status { color: ${statusColor}; font-size: 24px; font-weight: bold; margin: 20px 0; }
+          .message { margin: 20px 0; font-size: 16px; color: #374151; }
+          h1 { color: #1f2937; margin-bottom: 10px; }
+          .info { color: #6b7280; font-size: 14px; margin-top: 30px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
           <h1>PortCast User Request</h1>
           <div class="status">Request ${statusMessage.charAt(0).toUpperCase() + statusMessage.slice(1)}</div>
           <div class="message">${result.message}</div>
-          ${isApproval ? '<p>The user will be notified that their account has been approved and they can now sign in.</p>' : '<p>The user will be notified that their request was denied.</p>'}
-        </body>
+          ${isApproval ? '<p class="info">The user will be notified that their account has been approved and they can now sign in.</p>' : '<p class="info">The user will be notified that their request was denied.</p>'}
+        </div>
+      </body>
       </html>`,
       { 
         status: 200,
-        headers: { "Content-Type": "text/html" }
+        headers: { 
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache"
+        }
       }
     );
 
   } catch (error: any) {
     console.error("Error in handle-approval function:", error);
     return new Response(
-      `<html><body><h2>Error</h2><p>An unexpected error occurred: ${error.message}</p></body></html>`,
+      `<!DOCTYPE html>
+      <html>
+      <head>
+        <title>Error</title>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+          .error { color: #dc2626; font-size: 24px; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <h1>PortCast User Request</h1>
+        <div class="error">Error</div>
+        <p>An unexpected error occurred: ${error.message}</p>
+      </body>
+      </html>`,
       { 
         status: 500,
-        headers: { "Content-Type": "text/html" }
+        headers: { 
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache"
+        }
       }
     );
   }
