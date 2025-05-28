@@ -1,28 +1,33 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Ship, Plus, MessageSquare, ArrowLeft, LogOut } from 'lucide-react';
+import { Ship, Plus, MessageSquare, ArrowLeft, LogOut, Settings } from 'lucide-react';
 import ShipmentRegistration from '@/components/ShipmentRegistration';
 import ConsolidationCard from '@/components/ConsolidationCard';
+import AdminDashboard from '@/components/AdminDashboard';
 import Auth from '@/components/Auth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const { toast } = useToast();
-  const [currentView, setCurrentView] = useState<'main' | 'inbound' | 'outbound' | 'intertheater' | 'registration'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'inbound' | 'outbound' | 'intertheater' | 'registration' | 'admin'>('main');
   const [outlookDays, setOutlookDays] = useState([7]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      setLoading(false);
+      if (session?.user) {
+        checkUserRole(session.user.id);
+      } else {
+        setLoading(false);
+      }
     });
 
     // Listen for auth changes
@@ -30,10 +35,32 @@ const Index = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        checkUserRole(session.user.id);
+      } else {
+        setIsGlobalAdmin(false);
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const checkUserRole = async (userId: string) => {
+    try {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      setIsGlobalAdmin(roleData?.role === 'global_admin');
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      setIsGlobalAdmin(false);
+    }
+    setLoading(false);
+  };
 
   const handleSignOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -45,6 +72,7 @@ const Index = () => {
       });
     } else {
       setCurrentView('main');
+      setIsGlobalAdmin(false);
     }
   };
 
@@ -201,6 +229,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <Ship className="text-blue-600" size={32} />
               <span className="text-xl font-bold text-gray-900">PortCast</span>
+              {isGlobalAdmin && <Badge variant="destructive" className="ml-2">ADMIN</Badge>}
             </div>
             
             <div className="flex items-center gap-4">
@@ -215,6 +244,16 @@ const Index = () => {
                 <MessageSquare size={16} className="mr-2" />
                 Forum
               </Button>
+              {isGlobalAdmin && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setCurrentView('admin')}
+                  className="border-red-500 text-red-600 hover:bg-red-50"
+                >
+                  <Settings size={16} className="mr-2" />
+                  Admin
+                </Button>
+              )}
               <Button variant="outline" onClick={handleSignOut}>
                 <LogOut size={16} className="mr-2" />
                 Sign Out
@@ -227,6 +266,7 @@ const Index = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {currentView === 'main' && renderMainDashboard()}
         {currentView === 'registration' && <ShipmentRegistration onBack={() => setCurrentView('main')} />}
+        {currentView === 'admin' && <AdminDashboard onBack={() => setCurrentView('main')} />}
         {(currentView === 'inbound' || currentView === 'outbound' || currentView === 'intertheater') && 
           renderConsolidationDashboard(currentView)}
       </main>

@@ -326,6 +326,30 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -335,10 +359,26 @@ export type Database = {
         Args: { _approval_token: string; _approve: boolean }
         Returns: Json
       }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      has_role: {
+        Args: {
+          user_id: string
+          check_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
+      is_global_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       shipment_type: "inbound" | "outbound" | "intertheater"
       user_request_status: "pending" | "approved" | "denied"
+      user_role: "global_admin" | "org_admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -456,6 +496,7 @@ export const Constants = {
     Enums: {
       shipment_type: ["inbound", "outbound", "intertheater"],
       user_request_status: ["pending", "approved", "denied"],
+      user_role: ["global_admin", "org_admin", "user"],
     },
   },
 } as const
