@@ -1,16 +1,69 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Ship, Plus, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Ship, Plus, MessageSquare, ArrowLeft, LogOut } from 'lucide-react';
 import ShipmentRegistration from '@/components/ShipmentRegistration';
 import ConsolidationCard from '@/components/ConsolidationCard';
+import Auth from '@/components/Auth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
+  const { toast } = useToast();
   const [currentView, setCurrentView] = useState<'main' | 'inbound' | 'outbound' | 'intertheater' | 'registration'>('main');
   const [outlookDays, setOutlookDays] = useState([7]);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out",
+        variant: "destructive",
+      });
+    } else {
+      setCurrentView('main');
+    }
+  };
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <Ship className="mx-auto mb-4 text-blue-600" size={48} />
+          <p className="text-lg text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth form if not logged in
+  if (!user) {
+    return <Auth onSuccess={() => setCurrentView('main')} />;
+  }
 
   const mainDashboardCards = [
     { id: 'inbound', title: 'Inbound', description: 'OCONUS to CONUS shipments', color: 'bg-blue-600' },
@@ -161,6 +214,10 @@ const Index = () => {
               <Button variant="outline">
                 <MessageSquare size={16} className="mr-2" />
                 Forum
+              </Button>
+              <Button variant="outline" onClick={handleSignOut}>
+                <LogOut size={16} className="mr-2" />
+                Sign Out
               </Button>
             </div>
           </div>

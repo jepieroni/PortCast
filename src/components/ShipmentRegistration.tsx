@@ -1,10 +1,10 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -12,9 +12,29 @@ import { ArrowLeft, Upload, Save, Info, CalendarIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 interface ShipmentRegistrationProps {
   onBack: () => void;
+}
+
+interface Country {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Port {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface TSP {
+  id: string;
+  name: string;
+  scac_code: string;
 }
 
 const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
@@ -26,13 +46,58 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
     rdd: undefined as Date | undefined,
     shipmentType: '',
     originLocation: '',
-    destinationCountry: '',
-    poeChoice: '',
+    originCountryId: '',
+    destinationCountryId: '',
+    targetPoeId: '',
+    targetPodId: '',
+    tspId: '',
     estimatedPieces: '',
     estimatedCube: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch countries
+  const { data: countries = [] } = useQuery({
+    queryKey: ['countries'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('countries')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Country[];
+    }
+  });
+
+  // Fetch ports
+  const { data: ports = [] } = useQuery({
+    queryKey: ['ports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ports')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as Port[];
+    }
+  });
+
+  // Fetch TSPs
+  const { data: tsps = [] } = useQuery({
+    queryKey: ['tsps'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tsps')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data as TSP[];
+    }
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate required fields
@@ -53,12 +118,74 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
       });
       return;
     }
-    
-    toast({
-      title: "Shipment Registered",
-      description: "Your shipment has been successfully added to the system.",
-    });
-    onBack();
+
+    if (!formData.gblNumber || !formData.shipperLastName || !formData.shipmentType) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to register a shipment.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Insert shipment data
+      const shipmentData = {
+        user_id: user.id,
+        gbl_number: formData.gblNumber,
+        shipper_last_name: formData.shipperLastName,
+        pickup_date: format(formData.pickupDate, 'yyyy-MM-dd'),
+        rdd: format(formData.rdd, 'yyyy-MM-dd'),
+        shipment_type: formData.shipmentType as 'inbound' | 'outbound' | 'intertheater',
+        origin_location: formData.originLocation || null,
+        origin_country_id: formData.originCountryId || null,
+        destination_country_id: formData.destinationCountryId || null,
+        target_poe_id: formData.targetPoeId || null,
+        target_pod_id: formData.targetPodId || null,
+        tsp_id: formData.tspId || null,
+        estimated_pieces: formData.estimatedPieces ? parseFloat(formData.estimatedPieces) : null,
+        estimated_cube: formData.estimatedCube ? parseFloat(formData.estimatedCube) : null
+      };
+
+      const { error } = await supabase
+        .from('shipments')
+        .insert([shipmentData]);
+
+      if (error) {
+        console.error('Shipment registration error:', error);
+        toast({
+          title: "Error",
+          description: "Failed to register shipment. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Shipment Registered",
+        description: "Your shipment has been successfully added to the system.",
+      });
+      onBack();
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -194,37 +321,88 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="destinationCountry">Destination Country</Label>
-                      <Select value={formData.destinationCountry} onValueChange={(value) => handleInputChange('destinationCountry', value)}>
+                      <Label htmlFor="originCountryId">Origin Country</Label>
+                      <Select value={formData.originCountryId} onValueChange={(value) => handleInputChange('originCountryId', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select destination" />
+                          <SelectValue placeholder="Select origin country" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="japan">Japan</SelectItem>
-                          <SelectItem value="germany">Germany</SelectItem>
-                          <SelectItem value="south-korea">South Korea</SelectItem>
-                          <SelectItem value="italy">Italy</SelectItem>
-                          <SelectItem value="united-kingdom">United Kingdom</SelectItem>
-                          <SelectItem value="spain">Spain</SelectItem>
+                          {countries.map((country) => (
+                            <SelectItem key={country.id} value={country.id}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="poeChoice">POE/POD Choice</Label>
-                    <Select value={formData.poeChoice} onValueChange={(value) => handleInputChange('poeChoice', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select preferred port" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="norfolk">Norfolk</SelectItem>
-                        <SelectItem value="baltimore">Baltimore</SelectItem>
-                        <SelectItem value="savannah">Savannah</SelectItem>
-                        <SelectItem value="tacoma">Tacoma</SelectItem>
-                        <SelectItem value="jacksonville">Jacksonville</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="destinationCountryId">Destination Country</Label>
+                      <Select value={formData.destinationCountryId} onValueChange={(value) => handleInputChange('destinationCountryId', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select destination country" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country.id} value={country.id}>
+                              {country.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="tspId">TSP/SCAC</Label>
+                      <Select value={formData.tspId} onValueChange={(value) => handleInputChange('tspId', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select TSP" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tsps.map((tsp) => (
+                            <SelectItem key={tsp.id} value={tsp.id}>
+                              {tsp.scac_code} - {tsp.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="targetPoeId">POE (Port of Embarkation)</Label>
+                      <Select value={formData.targetPoeId} onValueChange={(value) => handleInputChange('targetPoeId', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select POE" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ports.map((port) => (
+                            <SelectItem key={port.id} value={port.id}>
+                              {port.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="targetPodId">POD (Port of Debarkation)</Label>
+                      <Select value={formData.targetPodId} onValueChange={(value) => handleInputChange('targetPodId', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select POD" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ports.map((port) => (
+                            <SelectItem key={port.id} value={port.id}>
+                              {port.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">

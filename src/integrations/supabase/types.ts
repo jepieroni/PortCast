@@ -9,7 +9,261 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      countries: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      organizations: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ports: {
+        Row: {
+          code: string
+          country_id: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ports_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          organization_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          organization_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          organization_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          created_at: string | null
+          destination_country_id: string | null
+          estimated_cube: number | null
+          estimated_pieces: number | null
+          gbl_number: string
+          id: string
+          origin_country_id: string | null
+          origin_location: string | null
+          pickup_date: string
+          rdd: string
+          remaining_cube: number | null
+          remaining_pieces: number | null
+          shipment_type: Database["public"]["Enums"]["shipment_type"]
+          shipper_last_name: string
+          target_pod_id: string | null
+          target_poe_id: string | null
+          total_cube: number | null
+          total_pieces: number | null
+          tsp_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          destination_country_id?: string | null
+          estimated_cube?: number | null
+          estimated_pieces?: number | null
+          gbl_number: string
+          id?: string
+          origin_country_id?: string | null
+          origin_location?: string | null
+          pickup_date: string
+          rdd: string
+          remaining_cube?: number | null
+          remaining_pieces?: number | null
+          shipment_type: Database["public"]["Enums"]["shipment_type"]
+          shipper_last_name: string
+          target_pod_id?: string | null
+          target_poe_id?: string | null
+          total_cube?: number | null
+          total_pieces?: number | null
+          tsp_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          destination_country_id?: string | null
+          estimated_cube?: number | null
+          estimated_pieces?: number | null
+          gbl_number?: string
+          id?: string
+          origin_country_id?: string | null
+          origin_location?: string | null
+          pickup_date?: string
+          rdd?: string
+          remaining_cube?: number | null
+          remaining_pieces?: number | null
+          shipment_type?: Database["public"]["Enums"]["shipment_type"]
+          shipper_last_name?: string
+          target_pod_id?: string | null
+          target_poe_id?: string | null
+          total_cube?: number | null
+          total_pieces?: number | null
+          tsp_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_destination_country_id_fkey"
+            columns: ["destination_country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_origin_country_id_fkey"
+            columns: ["origin_country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_target_pod_id_fkey"
+            columns: ["target_pod_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_target_poe_id_fkey"
+            columns: ["target_poe_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipments_tsp_id_fkey"
+            columns: ["tsp_id"]
+            isOneToOne: false
+            referencedRelation: "tsps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tsps: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          organization_id: string
+          scac_code: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          scac_code: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          scac_code?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tsps_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +272,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      shipment_type: "inbound" | "outbound" | "intertheater"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +387,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      shipment_type: ["inbound", "outbound", "intertheater"],
+    },
   },
 } as const
