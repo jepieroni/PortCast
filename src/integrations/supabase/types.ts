@@ -35,18 +35,24 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
+          trusted_agent_email: string | null
+          trusted_agent_id: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
+          trusted_agent_email?: string | null
+          trusted_agent_id?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
+          trusted_agent_email?: string | null
+          trusted_agent_id?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -264,15 +270,75 @@ export type Database = {
           },
         ]
       }
+      user_requests: {
+        Row: {
+          approval_token: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          organization_id: string
+          password_hash: string
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["user_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          approval_token?: string
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          organization_id: string
+          password_hash: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["user_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          approval_token?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          organization_id?: string
+          password_hash?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["user_request_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      approve_user_request: {
+        Args: { _approval_token: string; _approve: boolean }
+        Returns: Json
+      }
     }
     Enums: {
       shipment_type: "inbound" | "outbound" | "intertheater"
+      user_request_status: "pending" | "approved" | "denied"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -389,6 +455,7 @@ export const Constants = {
   public: {
     Enums: {
       shipment_type: ["inbound", "outbound", "intertheater"],
+      user_request_status: ["pending", "approved", "denied"],
     },
   },
 } as const
