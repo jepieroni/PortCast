@@ -52,7 +52,7 @@ const Index = () => {
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       setIsGlobalAdmin(roleData?.role === 'global_admin');
     } catch (error) {
@@ -63,16 +63,36 @@ const Index = () => {
   };
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign out",
-        variant: "destructive",
-      });
-    } else {
-      setCurrentView('main');
+    try {
+      // Clear local state first to provide immediate feedback
+      setUser(null);
       setIsGlobalAdmin(false);
+      setCurrentView('main');
+      
+      // Then attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Sign out error:', error);
+        // Even if there's an error, we've already cleared local state
+        // This handles cases where the session is already invalid on the server
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully",
+        });
+      } else {
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Unexpected sign out error:', error);
+      // Still show success since we've cleared local state
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully",
+      });
     }
   };
 
