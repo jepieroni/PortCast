@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, Building, Ship, ArrowLeft, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -20,7 +23,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [assignRoleEmail, setAssignRoleEmail] = useState('');
-  const [assignRole, setAssignRole] = useState('user');
+  const [assignRole, setAssignRole] = useState<UserRole>('user');
 
   useEffect(() => {
     checkAdminAccess();
@@ -82,7 +85,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
         .from('user_roles')
         .insert({
           user_id: currentUser.id,
-          role: 'global_admin',
+          role: 'global_admin' as UserRole,
           assigned_by: currentUser.id
         });
 
@@ -269,7 +272,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
               </div>
               <div>
                 <Label htmlFor="role">Role</Label>
-                <Select value={assignRole} onValueChange={setAssignRole}>
+                <Select value={assignRole} onValueChange={(value: UserRole) => setAssignRole(value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
