@@ -62,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
     const approvalUrl = `${supabaseUrl.replace('/rest/v1', '')}/functions/v1/handle-approval?token=${userRequest.approval_token}`;
 
     const emailResponse = await resend.emails.send({
-      from: "PortCast <onboarding@resend.dev>",
+      from: "PortCast <noreply@portcast.app>",
       to: [organization.trusted_agent_email],
       subject: `New User Access Request for ${organization.name}`,
       html: `

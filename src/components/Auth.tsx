@@ -90,7 +90,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
           description: "Your signup request has been sent to your organization's trusted agent for approval. You'll receive an email when it's reviewed.",
         });
 
-        // Reset form
+        // Reset form and switch back to sign-in
         setFormData({
           email: '',
           password: '',
@@ -98,6 +98,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
           lastName: '',
           organizationId: ''
         });
+        setIsSignUp(false);
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
