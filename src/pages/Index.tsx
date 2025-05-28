@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,43 +22,18 @@ const Index = () => {
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener first
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.id);
-      
-      if (!mounted) return;
-
-      if (event === 'SIGNED_OUT' || !session) {
-        // Clear all state when signed out
-        setUser(null);
-        setIsGlobalAdmin(false);
-        setCurrentView('main');
-        setLoading(false);
-        return;
-      }
-
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setUser(session.user);
-        if (session.user) {
-          await checkUserRole(session.user.id);
-        }
-      }
-    });
-
-    // Get initial session
-    const getInitialSession = async () => {
+    const initializeAuth = async () => {
       try {
+        // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
+        if (!mounted) return;
+
         if (error) {
           console.error('Error getting session:', error);
           setLoading(false);
           return;
         }
-
-        if (!mounted) return;
 
         if (session?.user) {
           setUser(session.user);
@@ -72,12 +46,38 @@ const Index = () => {
       } catch (error) {
         console.error('Unexpected error getting session:', error);
         if (mounted) {
+          setUser(null);
+          setIsGlobalAdmin(false);
           setLoading(false);
         }
       }
     };
 
-    getInitialSession();
+    // Set up auth state listener
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state change:', event, session?.user?.id);
+      
+      if (!mounted) return;
+
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+        setIsGlobalAdmin(false);
+        setCurrentView('main');
+        setLoading(false);
+        return;
+      }
+
+      if (event === 'SIGNED_IN') {
+        setUser(session.user);
+        if (session.user) {
+          await checkUserRole(session.user.id);
+        }
+      }
+    });
+
+    initializeAuth();
 
     return () => {
       mounted = false;
@@ -101,8 +101,9 @@ const Index = () => {
     } catch (error) {
       console.error('Error checking user role:', error);
       setIsGlobalAdmin(false);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSignOut = async () => {
@@ -114,14 +115,13 @@ const Index = () => {
       setIsGlobalAdmin(false);
       setCurrentView('main');
       
-      // Sign out from Supabase with proper scope
-      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Sign out error:', error);
       }
       
-      // Always show success message since we've cleared local state
       toast({
         title: "Signed out",
         description: "You have been signed out successfully",
