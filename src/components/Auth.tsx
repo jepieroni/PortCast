@@ -6,9 +6,11 @@ import { useToast } from '@/hooks/use-toast';
 import LoginForm from '@/components/auth/LoginForm';
 import UserRequestForm from '@/components/auth/UserRequestForm';
 import OrganizationRequestForm from '@/components/auth/OrganizationRequestForm';
+
 interface AuthProps {
   onSuccess: () => void;
 }
+
 const Auth = ({
   onSuccess
 }: AuthProps) => {
@@ -27,7 +29,12 @@ const Auth = ({
         const {
           data,
           error
-        } = await supabase.from('organizations').select('id, name').order('name');
+        } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .neq('name', 'Unclaimed TSPs') // Exclude the placeholder organization
+          .order('name');
+        
         if (error) {
           console.error('Error loading organizations:', error);
           throw error;
@@ -47,12 +54,15 @@ const Auth = ({
     };
     loadOrganizations();
   }, [toast]);
+
   const handleShowOrgRegistration = () => {
     setShowOrgRegistration(true);
   };
+
   const handleBackToUserRequest = () => {
     setShowOrgRegistration(false);
   };
+
   return <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
@@ -78,4 +88,5 @@ const Auth = ({
       </Card>
     </div>;
 };
+
 export default Auth;
