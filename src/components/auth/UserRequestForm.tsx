@@ -7,14 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { checkExistingUser } from '@/utils/organizationApi';
-import { Building2 } from 'lucide-react';
+import { Building2, Loader2 } from 'lucide-react';
 
 interface UserRequestFormProps {
   organizations: any[];
+  organizationsLoading: boolean;
   onShowOrgRegistration: () => void;
 }
 
-const UserRequestForm = ({ organizations, onShowOrgRegistration }: UserRequestFormProps) => {
+const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistration }: UserRequestFormProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -113,17 +114,34 @@ const UserRequestForm = ({ organizations, onShowOrgRegistration }: UserRequestFo
         <Select 
           value={selectedOrganization} 
           onValueChange={setSelectedOrganization}
-          disabled={loading}
+          disabled={loading || organizationsLoading}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select your organization" />
+            <SelectValue placeholder={
+              organizationsLoading 
+                ? "Loading organizations..." 
+                : "Select your organization"
+            } />
           </SelectTrigger>
           <SelectContent>
-            {organizations.map((org) => (
-              <SelectItem key={org.id} value={org.id}>
-                {org.name}
+            {organizationsLoading ? (
+              <SelectItem value="loading" disabled>
+                <div className="flex items-center">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading organizations...
+                </div>
               </SelectItem>
-            ))}
+            ) : organizations.length === 0 ? (
+              <SelectItem value="no-orgs" disabled>
+                No organizations available
+              </SelectItem>
+            ) : (
+              organizations.map((org) => (
+                <SelectItem key={org.id} value={org.id}>
+                  {org.name}
+                </SelectItem>
+              ))
+            )}
           </SelectContent>
         </Select>
         <div className="text-center mt-3">
@@ -139,7 +157,7 @@ const UserRequestForm = ({ organizations, onShowOrgRegistration }: UserRequestFo
           </Button>
         </div>
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type="submit" className="w-full" disabled={loading || organizationsLoading || !selectedOrganization}>
         {loading ? 'Submitting Request...' : 'Request Access'}
       </Button>
     </form>
