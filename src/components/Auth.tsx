@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import OrganizationRegistration from './OrganizationRegistration';
 
 interface AuthProps {
   onSuccess: () => void;
@@ -22,6 +22,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showOrgRegistration, setShowOrgRegistration] = useState(false);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [formData, setFormData] = useState({
     email: '',
@@ -168,6 +169,10 @@ const Auth = ({ onSuccess }: AuthProps) => {
     }
   };
 
+  if (showOrgRegistration) {
+    return <OrganizationRegistration onBack={() => setShowOrgRegistration(false)} />;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -198,6 +203,17 @@ const Auth = ({ onSuccess }: AuthProps) => {
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-gray-600">
+                    Don't see your organization?{' '}
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="p-0 h-auto text-sm"
+                      onClick={() => setShowOrgRegistration(true)}
+                    >
+                      Register a new organization
+                    </Button>
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

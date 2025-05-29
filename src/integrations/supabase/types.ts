@@ -30,29 +30,83 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_requests: {
+        Row: {
+          approval_token: string
+          city: string | null
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          organization_name: string
+          password_hash: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          state: string | null
+          status: Database["public"]["Enums"]["user_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          approval_token?: string
+          city?: string | null
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          organization_name: string
+          password_hash: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["user_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          approval_token?: string
+          city?: string | null
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          organization_name?: string
+          password_hash?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["user_request_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
+          city: string | null
           created_at: string | null
           id: string
           name: string
+          state: string | null
           trusted_agent_email: string | null
-          trusted_agent_id: string | null
           updated_at: string | null
         }
         Insert: {
+          city?: string | null
           created_at?: string | null
           id?: string
           name: string
+          state?: string | null
           trusted_agent_email?: string | null
-          trusted_agent_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          city?: string | null
           created_at?: string | null
           id?: string
           name?: string
+          state?: string | null
           trusted_agent_email?: string | null
-          trusted_agent_id?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -331,6 +385,7 @@ export type Database = {
           assigned_at: string | null
           assigned_by: string | null
           id: string
+          organization_id: string | null
           role: Database["public"]["Enums"]["user_role"]
           user_id: string
         }
@@ -338,6 +393,7 @@ export type Database = {
           assigned_at?: string | null
           assigned_by?: string | null
           id?: string
+          organization_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           user_id: string
         }
@@ -345,10 +401,19 @@ export type Database = {
           assigned_at?: string | null
           assigned_by?: string | null
           id?: string
+          organization_id?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
