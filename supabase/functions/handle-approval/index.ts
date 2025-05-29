@@ -45,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
     const result = data as { success: boolean; message: string; user_id?: string; organization_id?: string };
     console.log("Processed result:", result);
 
-    // If approval was successful and we have user_id and organization_id, update the profile
+    // If approval was successful and we have user_id and organization_id, update the profile and assign role
     if (result.success && isApproval && result.user_id && result.organization_id) {
       console.log("Updating profile with organization_id:", result.organization_id);
       
@@ -58,6 +58,22 @@ const handler = async (req: Request): Promise<Response> => {
         console.error('Error updating profile organization_id:', profileError);
       } else {
         console.log('Successfully updated profile with organization_id');
+      }
+
+      // Assign default 'user' role to the newly approved user
+      console.log("Assigning default 'user' role to user:", result.user_id);
+      
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: result.user_id,
+          role: 'user'
+        });
+
+      if (roleError) {
+        console.error('Error assigning user role:', roleError);
+      } else {
+        console.log('Successfully assigned default user role');
       }
     }
 
