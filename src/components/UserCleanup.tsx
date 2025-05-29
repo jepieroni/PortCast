@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,7 +77,7 @@ const UserCleanup = ({ onBack }: UserCleanupProps) => {
 
       console.log('Users data received:', data);
 
-      const response = data as CleanupResponse;
+      const response = data as unknown as CleanupResponse;
       if (response?.success) {
         setUsers(response.users || []);
       } else {
@@ -112,7 +111,7 @@ const UserCleanup = ({ onBack }: UserCleanupProps) => {
 
       console.log('Cleanup result:', data);
 
-      const response = data as DeleteResponse;
+      const response = data as unknown as DeleteResponse;
       if (response?.success) {
         toast({
           title: "User Deleted",
