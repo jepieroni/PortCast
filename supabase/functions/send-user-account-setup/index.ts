@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 import { Resend } from "npm:resend@2.0.0";
@@ -64,7 +63,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Use the appropriate base URL based on environment
     const appBaseUrl = isLocalhost 
       ? 'http://localhost:3000'
-      : 'https://drqsjwkzyiqldwcjwuey-portcast-login.lovable.app';
+      : 'https://portcast-voyage-builder.lovable.app';
     
     const setupUrl = `${appBaseUrl}/setup-account?token=${tokenData.token}`;
 
