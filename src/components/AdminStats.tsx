@@ -1,9 +1,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Building, Ship } from 'lucide-react';
+import { Users, Building, FileText } from 'lucide-react';
 
-const AdminStats = () => {
+interface AdminStatsProps {
+  onUserManagement: () => void;
+  onOrganizationManagement: () => void;
+  onAccessRequestManagement: () => void;
+}
+
+const AdminStats = ({ onUserManagement, onOrganizationManagement, onAccessRequestManagement }: AdminStatsProps) => {
   return (
     <div className="grid md:grid-cols-3 gap-6">
       <Card>
@@ -14,8 +20,8 @@ const AdminStats = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <p className="text-gray-600 mb-4">Manage user roles and permissions</p>
-          <Button className="w-full">Manage Users</Button>
+          <p className="text-gray-600 mb-4">Manage users, roles, and permissions</p>
+          <Button className="w-full" onClick={onUserManagement}>Manage Users</Button>
         </CardContent>
       </Card>
 
@@ -23,25 +29,25 @@ const AdminStats = () => {
         <CardHeader className="bg-emerald-600 text-white">
           <CardTitle className="flex items-center gap-2">
             <Building size={24} />
-            Organizations
+            Organizations & TSPs
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <p className="text-gray-600 mb-4">Manage organizations and trusted agents</p>
-          <Button className="w-full">Manage Organizations</Button>
+          <p className="text-gray-600 mb-4">Manage organizations and transportation service providers</p>
+          <Button className="w-full" onClick={onOrganizationManagement}>Manage Organizations</Button>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="bg-purple-600 text-white">
           <CardTitle className="flex items-center gap-2">
-            <Ship size={24} />
-            System Data
+            <FileText size={24} />
+            App Access Requests
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <p className="text-gray-600 mb-4">Manage ports, countries, and TSPs</p>
-          <Button className="w-full">Manage Data</Button>
+          <p className="text-gray-600 mb-4">Review and manage organization and user access requests</p>
+          <Button className="w-full" onClick={onAccessRequestManagement}>Manage Requests</Button>
         </CardContent>
       </Card>
     </div>
