@@ -57,9 +57,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Setup token has already been used');
     }
 
-    // Construct the account setup URL
-    const baseUrl = supabaseUrl.replace('/rest/v1', '');
-    const setupUrl = `${baseUrl}/setup-account?token=${tokenData.token}`;
+    // Construct the account setup URL using the request origin
+    const requestUrl = new URL(req.url);
+    const appBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+    const setupUrl = `${appBaseUrl}/setup-account?token=${tokenData.token}`;
 
     console.log('Account setup URL constructed:', setupUrl);
 
