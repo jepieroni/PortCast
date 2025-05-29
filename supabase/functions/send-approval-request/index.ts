@@ -79,21 +79,24 @@ const handler = async (req: Request): Promise<Response> => {
           <li><strong>Email:</strong> ${email}</li>
         </ul>
         
-        <p>Please review this request and take action by <strong>copying and pasting</strong> one of these links into a new browser tab:</p>
+        <p>Please review this request and take action:</p>
         
-        <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
-          <p><strong>To APPROVE this request:</strong></p>
-          <p style="font-family: monospace; background-color: #e9ecef; padding: 10px; border-radius: 4px; word-break: break-all;">
-            ${approvalUrl}&action=approve
-          </p>
-          
-          <p><strong>To DENY this request:</strong></p>
-          <p style="font-family: monospace; background-color: #e9ecef; padding: 10px; border-radius: 4px; word-break: break-all;">
-            ${approvalUrl}&action=deny
-          </p>
+        <div style="margin: 20px 0;">
+          <a href="${approvalUrl}&action=approve" 
+             style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 10px; display: inline-block;">
+            Approve Request
+          </a>
+          <a href="${approvalUrl}&action=deny" 
+             style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Deny Request
+          </a>
         </div>
         
-        <p><strong>Important:</strong> Copy and paste the entire link into a new browser tab for best results.</p>
+        <p><small><strong>Note:</strong> If the buttons don't work, you can copy and paste these links directly into your browser:</small></p>
+        <div style="margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 12px;">
+          <p><strong>Approve:</strong> ${approvalUrl}&action=approve</p>
+          <p><strong>Deny:</strong> ${approvalUrl}&action=deny</p>
+        </div>
         
         <p><small>This request was submitted through the PortCast system. If you did not expect this request, please contact your system administrator.</small></p>
       `,

@@ -50,12 +50,6 @@ const createHtmlResponse = (title: string, statusMessage: string, message: strin
       margin-top: 30px; 
     }
   </style>
-  <script>
-    // Force the page to be interpreted as HTML
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('Page loaded successfully');
-    });
-  </script>
 </head>
 <body>
   <div class="container">
@@ -75,8 +69,6 @@ const handler = async (req: Request): Promise<Response> => {
   console.log("Handle approval function called");
   console.log("Request URL:", req.url);
   console.log("Request method:", req.method);
-  console.log("User-Agent:", req.headers.get("user-agent"));
-  console.log("Accept header:", req.headers.get("accept"));
 
   try {
     const url = new URL(req.url);
@@ -98,10 +90,7 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 400,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
+          "Content-Type": "text/html; charset=utf-8"
         }
       });
     }
@@ -130,10 +119,7 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 500,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
+          "Content-Type": "text/html; charset=utf-8"
         }
       });
     }
@@ -152,10 +138,7 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 400,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
+          "Content-Type": "text/html; charset=utf-8"
         }
       });
     }
@@ -167,16 +150,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     const html = createHtmlResponse(title, statusMessage, result.message, true);
     
-    console.log("Returning HTML response with length:", html.length);
-    console.log("Setting Content-Type to text/html");
+    console.log("Returning HTML response");
 
     return new Response(html, { 
       status: 200,
       headers: { 
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
+        "Content-Type": "text/html; charset=utf-8"
       }
     });
 
@@ -192,10 +171,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(html, { 
       status: 500,
       headers: { 
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
+        "Content-Type": "text/html; charset=utf-8"
       }
     });
   }
