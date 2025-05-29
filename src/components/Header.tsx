@@ -1,7 +1,8 @@
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Ship, Plus, MessageSquare, LogOut, Settings } from 'lucide-react';
+import { Ship, Plus, MessageSquare, LogOut, Settings, Bell } from 'lucide-react';
+import { usePendingRequests } from '@/hooks/usePendingRequests';
 
 interface HeaderProps {
   isGlobalAdmin: boolean;
@@ -12,6 +13,8 @@ interface HeaderProps {
 }
 
 const Header = ({ isGlobalAdmin, loading, onAddShipment, onAdmin, onSignOut }: HeaderProps) => {
+  const { hasPendingRequests } = usePendingRequests();
+
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -38,10 +41,13 @@ const Header = ({ isGlobalAdmin, loading, onAddShipment, onAdmin, onSignOut }: H
               <Button 
                 variant="outline" 
                 onClick={onAdmin}
-                className="border-red-500 text-red-600 hover:bg-red-50"
+                className="border-red-500 text-red-600 hover:bg-red-50 relative"
               >
                 <Settings size={16} className="mr-2" />
                 Admin
+                {hasPendingRequests && (
+                  <Bell size={12} className="absolute -top-1 -right-1 text-red-600 fill-red-600" />
+                )}
               </Button>
             )}
             <Button variant="outline" onClick={onSignOut} disabled={loading}>
