@@ -1,48 +1,66 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UserCheck, Users } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface AdminAccessCheckProps {
-  userRole: string | null;
-  onAssignGlobalAdmin: () => void;
-  loading: boolean;
+  onBack: () => void;
+  children: React.ReactNode;
 }
 
-const AdminAccessCheck = ({ userRole, onAssignGlobalAdmin, loading }: AdminAccessCheckProps) => {
+const AdminAccessCheck = ({ onBack, children }: AdminAccessCheckProps) => {
+  const { currentUser, userRole, loading, assignGlobalAdminToSelf } = useAdminAccess(onBack);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <Users className="mx-auto mb-4 text-blue-600" size={48} />
-          <p className="text-lg text-gray-600">Checking admin access...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking admin access...</p>
         </div>
       </div>
     );
   }
 
+  // If user doesn't have global admin role, show the self-assignment option
   if (userRole !== 'global_admin') {
     return (
-      <Card className="border-orange-200 bg-orange-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-800">
-            <UserCheck size={20} />
-            Initial Setup Required
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-orange-700 mb-4">
-            You need to assign yourself the Global Admin role to access all admin features.
-          </p>
-          <Button onClick={onAssignGlobalAdmin} className="bg-orange-600 hover:bg-orange-700">
-            Assign Global Admin Role to Myself
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="text-amber-600" size={24} />
+              Admin Access Required
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-gray-700">
+              You need Global Admin privileges to access this area. If you're the first user of this system, 
+              you can assign yourself the Global Admin role.
+            </p>
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+              <p className="text-amber-800 text-sm">
+                <strong>Note:</strong> Only assign yourself Global Admin privileges if you are authorized 
+                to manage this PortCast system. This role grants full administrative access.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={assignGlobalAdminToSelf} variant="default">
+                Assign Global Admin to Myself
+              </Button>
+              <Button onClick={onBack} variant="outline">
+                Go Back
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  return null;
+  // User has global admin role, show the admin content
+  return <>{children}</>;
 };
 
 export default AdminAccessCheck;

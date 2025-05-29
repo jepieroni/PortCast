@@ -49,6 +49,39 @@ const Auth = ({ onSuccess }: AuthProps) => {
     }
   };
 
+  const checkExistingUser = async (email: string) => {
+    // Check if user already exists in profiles
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (profileError && profileError.code !== 'PGRST116') {
+      throw profileError;
+    }
+
+    if (profileData) {
+      throw new Error('An account with this email address already exists. Please sign in instead.');
+    }
+
+    // Check if there's a pending request
+    const { data: requestData, error: requestError } = await supabase
+      .from('user_requests')
+      .select('id, status')
+      .eq('email', email)
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (requestError && requestError.code !== 'PGRST116') {
+      throw requestError;
+    }
+
+    if (requestData) {
+      throw new Error('A signup request for this email address is already pending approval. Please wait for the current request to be reviewed.');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -58,6 +91,9 @@ const Auth = ({ onSuccess }: AuthProps) => {
         if (!formData.organizationId) {
           throw new Error('Please select an organization');
         }
+
+        // Check for existing user or pending request
+        await checkExistingUser(formData.email);
 
         // Get the selected organization to find the trusted agent
         const selectedOrg = organizations.find(org => org.id === formData.organizationId);
