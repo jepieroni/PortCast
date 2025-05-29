@@ -50,6 +50,12 @@ const createHtmlResponse = (title: string, statusMessage: string, message: strin
       margin-top: 30px; 
     }
   </style>
+  <script>
+    // Force the page to be interpreted as HTML
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Page loaded successfully');
+    });
+  </script>
 </head>
 <body>
   <div class="container">
@@ -95,8 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
-          "Expires": "0",
-          "X-Content-Type-Options": "nosniff"
+          "Expires": "0"
         }
       });
     }
@@ -128,8 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
-          "Expires": "0",
-          "X-Content-Type-Options": "nosniff"
+          "Expires": "0"
         }
       });
     }
@@ -151,8 +155,7 @@ const handler = async (req: Request): Promise<Response> => {
           "Content-Type": "text/html; charset=utf-8",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
-          "Expires": "0",
-          "X-Content-Type-Options": "nosniff"
+          "Expires": "0"
         }
       });
     }
@@ -173,8 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
-        "Expires": "0",
-        "X-Content-Type-Options": "nosniff"
+        "Expires": "0"
       }
     });
 
@@ -193,8 +195,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "Pragma": "no-cache",
-        "Expires": "0",
-        "X-Content-Type-Options": "nosniff"
+        "Expires": "0"
       }
     });
   }
