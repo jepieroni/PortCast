@@ -172,6 +172,28 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
         } else {
           console.log('Successfully assigned default user role');
         }
+
+        // Send confirmation email to the user
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-user-approval-notification', {
+            body: {
+              email: request.email,
+              firstName: request.first_name,
+              lastName: request.last_name,
+              approved: action === 'approve'
+            }
+          });
+
+          if (emailError) {
+            console.error('Failed to send confirmation email:', emailError);
+            // Don't throw here as the main approval was successful
+          } else {
+            console.log('Confirmation email sent successfully');
+          }
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // Don't throw here as the main approval was successful
+        }
       }
 
       toast({

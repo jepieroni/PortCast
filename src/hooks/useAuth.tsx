@@ -15,7 +15,40 @@ export const useAuth = () => {
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
-        // Get initial session
+        
+        // Set up auth state listener FIRST
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('Auth state change:', event, session?.user?.id || 'No session');
+          
+          if (!mounted) return;
+
+          if (event === 'SIGNED_OUT' || !session) {
+            console.log('User signed out, clearing state');
+            setUser(null);
+            setIsGlobalAdmin(false);
+            setLoading(false);
+            return;
+          }
+
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+            console.log('User signed in');
+            setUser(session.user);
+            if (session.user) {
+              // Use setTimeout to prevent blocking the auth state change
+              setTimeout(() => {
+                if (mounted) {
+                  checkUserRole(session.user.id);
+                }
+              }, 0);
+            } else {
+              setLoading(false);
+            }
+          }
+        });
+
+        // THEN check for existing session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (!mounted) return;
@@ -36,8 +69,12 @@ export const useAuth = () => {
           setIsGlobalAdmin(false);
           setLoading(false);
         }
+
+        return () => {
+          subscription.unsubscribe();
+        };
       } catch (error) {
-        console.error('Unexpected error getting session:', error);
+        console.error('Unexpected error during auth initialization:', error);
         if (mounted) {
           setUser(null);
           setIsGlobalAdmin(false);
@@ -46,36 +83,10 @@ export const useAuth = () => {
       }
     };
 
-    // Set up auth state listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.id || 'No session');
-      
-      if (!mounted) return;
-
-      if (event === 'SIGNED_OUT' || !session) {
-        console.log('User signed out, clearing state');
-        setUser(null);
-        setIsGlobalAdmin(false);
-        setLoading(false);
-        return;
-      }
-
-      if (event === 'SIGNED_IN') {
-        console.log('User signed in');
-        setUser(session.user);
-        if (session.user) {
-          await checkUserRole(session.user.id);
-        }
-      }
-    });
-
     initializeAuth();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
   }, []);
 
