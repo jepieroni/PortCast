@@ -468,9 +468,17 @@ export type Database = {
         Args: { _approval_token: string; _approve: boolean }
         Returns: Json
       }
+      cleanup_user_completely: {
+        Args: { _user_id: string }
+        Returns: Json
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      get_users_for_cleanup: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       has_role: {
         Args: {

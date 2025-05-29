@@ -8,13 +8,14 @@ import AdminStats from './AdminStats';
 import UserManagement from './UserManagement';
 import OrganizationManagement from './OrganizationManagement';
 import AccessRequestManagement from './AccessRequestManagement';
+import UserCleanup from './UserCleanup';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminView = 'dashboard' | 'users' | 'organizations' | 'requests';
+type AdminView = 'dashboard' | 'users' | 'organizations' | 'requests' | 'cleanup';
 
 const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
   const { currentUser } = useAdminAccess(onBack);
@@ -28,12 +29,15 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
         return <OrganizationManagement onBack={() => setCurrentView('dashboard')} />;
       case 'requests':
         return <AccessRequestManagement onBack={() => setCurrentView('dashboard')} />;
+      case 'cleanup':
+        return <UserCleanup onBack={() => setCurrentView('dashboard')} />;
       default:
         return (
           <AdminStats
             onUserManagement={() => setCurrentView('users')}
             onOrganizationManagement={() => setCurrentView('organizations')}
             onAccessRequestManagement={() => setCurrentView('requests')}
+            onUserCleanup={() => setCurrentView('cleanup')}
           />
         );
     }

@@ -1,17 +1,23 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Building, FileText } from 'lucide-react';
+import { Users, Building, FileText, Trash2 } from 'lucide-react';
 
 interface AdminStatsProps {
   onUserManagement: () => void;
   onOrganizationManagement: () => void;
   onAccessRequestManagement: () => void;
+  onUserCleanup: () => void;
 }
 
-const AdminStats = ({ onUserManagement, onOrganizationManagement, onAccessRequestManagement }: AdminStatsProps) => {
+const AdminStats = ({ 
+  onUserManagement, 
+  onOrganizationManagement, 
+  onAccessRequestManagement,
+  onUserCleanup 
+}: AdminStatsProps) => {
   return (
-    <div className="grid md:grid-cols-3 gap-6">
+    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card>
         <CardHeader className="bg-blue-600 text-white">
           <CardTitle className="flex items-center gap-2">
@@ -48,6 +54,24 @@ const AdminStats = ({ onUserManagement, onOrganizationManagement, onAccessReques
         <CardContent className="p-6">
           <p className="text-gray-600 mb-4">Review and manage organization and user access requests</p>
           <Button className="w-full" onClick={onAccessRequestManagement}>Manage Requests</Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="bg-red-600 text-white">
+          <CardTitle className="flex items-center gap-2">
+            <Trash2 size={24} />
+            User Cleanup
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <p className="text-gray-600 mb-4">Completely remove test users and all their data</p>
+          <Button 
+            className="w-full bg-red-600 hover:bg-red-700" 
+            onClick={onUserCleanup}
+          >
+            Cleanup Users
+          </Button>
         </CardContent>
       </Card>
     </div>
