@@ -28,6 +28,15 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { firstName, lastName, email, organizationName }: UserRequestAcknowledgmentBody = await req.json();
 
+    // Get the current request URL to determine the correct base URL
+    const requestUrl = new URL(req.url);
+    const isLocalhost = requestUrl.hostname === 'localhost';
+    
+    // Use the appropriate base URL based on environment
+    const appBaseUrl = isLocalhost 
+      ? 'http://localhost:3000'
+      : 'https://portcast-voyage-builder.lovable.app';
+
     const emailResponse = await resend.emails.send({
       from: "PortCast <admin@portcast.app>",
       to: [email],
@@ -49,6 +58,12 @@ const handler = async (req: Request): Promise<Response> => {
         
         <p>Thank you for your patience!</p>
         <p>The PortCast Team</p>
+        
+        <div style="margin: 20px 0;">
+          <p style="font-size: 12px; color: #666;">
+            You can check the status of your request by visiting: <a href="${appBaseUrl}">${appBaseUrl}</a>
+          </p>
+        </div>
         
         <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
         <p style="font-size: 12px; color: #666;">
