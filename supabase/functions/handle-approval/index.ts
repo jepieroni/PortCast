@@ -66,7 +66,8 @@ const createHtmlResponse = (title: string, statusMessage: string, message: strin
 };
 
 const handler = async (req: Request): Promise<Response> => {
-  console.log("Handle approval function called with URL:", req.url);
+  console.log("Handle approval function called");
+  console.log("Request URL:", req.url);
   console.log("Request method:", req.method);
   console.log("User-Agent:", req.headers.get("user-agent"));
 
@@ -75,8 +76,8 @@ const handler = async (req: Request): Promise<Response> => {
     const token = url.searchParams.get('token');
     const action = url.searchParams.get('action');
 
-    console.log("Token:", token);
-    console.log("Action:", action);
+    console.log("Extracted token:", token);
+    console.log("Extracted action:", action);
 
     if (!token || !action) {
       console.log("Missing required parameters");
@@ -90,10 +91,8 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 400,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
+          "Content-Type": "text/html",
+          "Cache-Control": "no-cache"
         }
       });
     }
@@ -101,17 +100,17 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const isApproval = action === 'approve';
 
-    console.log("Calling approve_user_request with token:", token, "approve:", isApproval);
+    console.log("Calling database function with token:", token);
 
     const { data, error } = await supabase.rpc('approve_user_request', {
       _approval_token: token,
       _approve: isApproval
     });
 
-    console.log("Database function result:", { data, error });
+    console.log("Database response - data:", data, "error:", error);
 
     if (error) {
-      console.error('Error processing request:', error);
+      console.error('Database error:', error);
       const html = createHtmlResponse(
         "Error", 
         "Error", 
@@ -122,16 +121,14 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 500,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
+          "Content-Type": "text/html",
+          "Cache-Control": "no-cache"
         }
       });
     }
 
     const result = data as { success: boolean; message: string };
-    console.log("Parsed result:", result);
+    console.log("Processed result:", result);
 
     if (!result.success) {
       const html = createHtmlResponse(
@@ -144,10 +141,8 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 400,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache",
-          "Expires": "0"
+          "Content-Type": "text/html",
+          "Cache-Control": "no-cache"
         }
       });
     }
@@ -155,26 +150,22 @@ const handler = async (req: Request): Promise<Response> => {
     const statusMessage = isApproval ? 'Request Approved' : 'Request Denied';
     const title = statusMessage;
 
-    console.log("Returning success response");
-    console.log("Response will be HTML with title:", title);
+    console.log("Creating success response with title:", title);
 
     const html = createHtmlResponse(title, statusMessage, result.message, true);
     
-    console.log("HTML length:", html.length);
-    console.log("HTML starts with:", html.substring(0, 100));
+    console.log("Returning HTML response with length:", html.length);
 
     return new Response(html, { 
       status: 200,
       headers: { 
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
+        "Content-Type": "text/html",
+        "Cache-Control": "no-cache"
       }
     });
 
   } catch (error: any) {
-    console.error("Error in handle-approval function:", error);
+    console.error("Unexpected error:", error);
     const html = createHtmlResponse(
       "Error", 
       "Error", 
@@ -185,10 +176,8 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(html, { 
       status: 500,
       headers: { 
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0"
+        "Content-Type": "text/html",
+        "Cache-Control": "no-cache"
       }
     });
   }
