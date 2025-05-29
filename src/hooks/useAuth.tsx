@@ -14,6 +14,7 @@ export const useAuth = () => {
 
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
         // Get initial session
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -24,6 +25,8 @@ export const useAuth = () => {
           setLoading(false);
           return;
         }
+
+        console.log('Initial session:', session?.user?.id || 'No session');
 
         if (session?.user) {
           setUser(session.user);
@@ -47,11 +50,12 @@ export const useAuth = () => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.id);
+      console.log('Auth state change:', event, session?.user?.id || 'No session');
       
       if (!mounted) return;
 
       if (event === 'SIGNED_OUT' || !session) {
+        console.log('User signed out, clearing state');
         setUser(null);
         setIsGlobalAdmin(false);
         setLoading(false);
@@ -59,6 +63,7 @@ export const useAuth = () => {
       }
 
       if (event === 'SIGNED_IN') {
+        console.log('User signed in');
         setUser(session.user);
         if (session.user) {
           await checkUserRole(session.user.id);
@@ -76,6 +81,7 @@ export const useAuth = () => {
 
   const checkUserRole = async (userId: string) => {
     try {
+      console.log('Checking user role for:', userId);
       const { data: roleData, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -86,7 +92,9 @@ export const useAuth = () => {
         console.error('Error checking user role:', error);
       }
 
-      setIsGlobalAdmin(roleData?.role === 'global_admin');
+      const isAdmin = roleData?.role === 'global_admin';
+      console.log('User is admin:', isAdmin);
+      setIsGlobalAdmin(isAdmin);
     } catch (error) {
       console.error('Error checking user role:', error);
       setIsGlobalAdmin(false);
@@ -97,18 +105,34 @@ export const useAuth = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log('Starting sign out process...');
       setLoading(true);
       
       // Clear local state immediately
       setUser(null);
       setIsGlobalAdmin(false);
       
+      // Set a timeout to prevent hanging
+      const signOutTimeout = setTimeout(() => {
+        console.warn('Sign out took too long, forcing completion');
+        setLoading(false);
+        toast({
+          title: "Signed out",
+          description: "You have been signed out successfully",
+        });
+      }, 5000); // 5 second timeout
+      
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
+      clearTimeout(signOutTimeout);
+      
       if (error) {
         console.error('Sign out error:', error);
+        // Don't treat this as a failure - user state is already cleared
       }
+      
+      console.log('Sign out completed');
       
       toast({
         title: "Signed out",
@@ -117,6 +141,7 @@ export const useAuth = () => {
       
     } catch (error) {
       console.error('Unexpected sign out error:', error);
+      // Still show success message since we cleared local state
       toast({
         title: "Signed out",
         description: "You have been signed out successfully",
