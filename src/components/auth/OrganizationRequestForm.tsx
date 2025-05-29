@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Captcha } from '@/components/ui/captcha';
 import { useToast } from '@/hooks/use-toast';
 import { 
   checkExistingUser, 
@@ -18,6 +19,7 @@ interface OrganizationRequestFormProps {
 const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFormProps) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [captchaValid, setCaptchaValid] = useState(false);
   const [orgFormData, setOrgFormData] = useState<OrganizationFormData>({
     organizationName: '',
     city: '',
@@ -30,6 +32,16 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
 
   const handleOrganizationRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!captchaValid) {
+      toast({
+        title: "Security Check Required",
+        description: "Please complete the security check before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -57,6 +69,7 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
         email: '',
         password: ''
       });
+      setCaptchaValid(false);
       onBackToUserRequest();
     } catch (error: any) {
       console.error('Organization request error:', error);
@@ -156,7 +169,16 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
         />
       </div>
       
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Captcha 
+        onValidationChange={setCaptchaValid}
+        className="space-y-2"
+      />
+      
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={loading || !captchaValid}
+      >
         {loading ? 'Submitting Request...' : 'Submit Organization Request'}
       </Button>
     </form>

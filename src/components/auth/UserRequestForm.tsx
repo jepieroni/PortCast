@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Captcha } from '@/components/ui/captcha';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { checkExistingUser } from '@/utils/organizationApi';
@@ -22,9 +23,20 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [selectedOrganization, setSelectedOrganization] = useState('');
+  const [captchaValid, setCaptchaValid] = useState(false);
 
   const handleRequestAccess = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!captchaValid) {
+      toast({
+        title: "Security Check Required",
+        description: "Please complete the security check before submitting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -106,6 +118,7 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
       setFirstName('');
       setLastName('');
       setSelectedOrganization('');
+      setCaptchaValid(false);
     } catch (error: any) {
       console.error('Request access error:', error);
       toast({
@@ -201,7 +214,17 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
           </Button>
         </div>
       </div>
-      <Button type="submit" className="w-full" disabled={loading || organizationsLoading || !selectedOrganization}>
+      
+      <Captcha 
+        onValidationChange={setCaptchaValid}
+        className="space-y-2"
+      />
+      
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={loading || organizationsLoading || !selectedOrganization || !captchaValid}
+      >
         {loading ? 'Submitting Request...' : 'Request Access'}
       </Button>
     </form>
