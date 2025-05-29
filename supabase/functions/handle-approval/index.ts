@@ -5,66 +5,6 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const createHtmlResponse = (title: string, statusMessage: string, message: string, isSuccess: boolean) => {
-  const statusColor = isSuccess ? '#16a34a' : '#dc2626';
-  
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
-  <style>
-    body { 
-      font-family: Arial, sans-serif; 
-      margin: 40px; 
-      text-align: center; 
-      background-color: #f9fafb; 
-    }
-    .container { 
-      max-width: 600px; 
-      margin: 0 auto; 
-      background: white; 
-      padding: 40px; 
-      border-radius: 8px; 
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); 
-    }
-    .status { 
-      color: ${statusColor}; 
-      font-size: 24px; 
-      font-weight: bold; 
-      margin: 20px 0; 
-    }
-    .message { 
-      margin: 20px 0; 
-      font-size: 16px; 
-      color: #374151; 
-    }
-    h1 { 
-      color: #1f2937; 
-      margin-bottom: 10px; 
-    }
-    .info { 
-      color: #6b7280; 
-      font-size: 14px; 
-      margin-top: 30px; 
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>PortCast User Request</h1>
-    <div class="status">${statusMessage}</div>
-    <div class="message">${message}</div>
-    ${isSuccess && statusMessage.includes('Approved') ? 
-      '<p class="info">The user will be notified that their account has been approved and they can now sign in.</p>' : 
-      '<p class="info">The user will be notified that their request was denied.</p>'
-    }
-  </div>
-</body>
-</html>`;
-};
-
 const handler = async (req: Request): Promise<Response> => {
   console.log("Handle approval function called");
   console.log("Request URL:", req.url);
@@ -80,19 +20,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (!token || !action) {
       console.log("Missing required parameters");
-      const html = createHtmlResponse(
-        "Invalid Request", 
-        "Invalid Request", 
-        "Missing required parameters.", 
-        false
-      );
-      
-      return new Response(html, { 
-        status: 400,
-        headers: { 
-          "Content-Type": "text/html; charset=utf-8"
-        }
-      });
+      const redirectUrl = `${supabaseUrl.replace('/rest/v1', '')}/approval-result?success=false&message=${encodeURIComponent('Missing required parameters')}&action=unknown`;
+      return Response.redirect(redirectUrl, 302);
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -109,71 +38,23 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (error) {
       console.error('Database error:', error);
-      const html = createHtmlResponse(
-        "Error", 
-        "Error", 
-        `Failed to process request: ${error.message}`, 
-        false
-      );
-      
-      return new Response(html, { 
-        status: 500,
-        headers: { 
-          "Content-Type": "text/html; charset=utf-8"
-        }
-      });
+      const redirectUrl = `${supabaseUrl.replace('/rest/v1', '')}/approval-result?success=false&message=${encodeURIComponent(`Failed to process request: ${error.message}`)}&action=${action}`;
+      return Response.redirect(redirectUrl, 302);
     }
 
     const result = data as { success: boolean; message: string };
     console.log("Processed result:", result);
 
-    if (!result.success) {
-      const html = createHtmlResponse(
-        "Request Processing Failed", 
-        "Request Processing Failed", 
-        result.message, 
-        false
-      );
-      
-      return new Response(html, { 
-        status: 400,
-        headers: { 
-          "Content-Type": "text/html; charset=utf-8"
-        }
-      });
-    }
+    // Redirect to the approval result page with the results
+    const redirectUrl = `${supabaseUrl.replace('/rest/v1', '')}/approval-result?success=${result.success}&message=${encodeURIComponent(result.message)}&action=${action}`;
+    console.log("Redirecting to:", redirectUrl);
 
-    const statusMessage = isApproval ? 'Request Approved' : 'Request Denied';
-    const title = statusMessage;
-
-    console.log("Creating success response with title:", title);
-
-    const html = createHtmlResponse(title, statusMessage, result.message, true);
-    
-    console.log("Returning HTML response");
-
-    return new Response(html, { 
-      status: 200,
-      headers: { 
-        "Content-Type": "text/html; charset=utf-8"
-      }
-    });
+    return Response.redirect(redirectUrl, 302);
 
   } catch (error: any) {
     console.error("Unexpected error:", error);
-    const html = createHtmlResponse(
-      "Error", 
-      "Error", 
-      `An unexpected error occurred: ${error.message}`, 
-      false
-    );
-    
-    return new Response(html, { 
-      status: 500,
-      headers: { 
-        "Content-Type": "text/html; charset=utf-8"
-      }
-    });
+    const redirectUrl = `${supabaseUrl.replace('/rest/v1', '')}/approval-result?success=false&message=${encodeURIComponent(`An unexpected error occurred: ${error.message}`)}&action=unknown`;
+    return Response.redirect(redirectUrl, 302);
   }
 };
 
