@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,19 @@ interface OrganizationRegistrationProps {
   onBack: () => void;
 }
 
+const VALID_STATE_CODES = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
+  'DC'
+];
+
 const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [stateError, setStateError] = useState('');
   const [formData, setFormData] = useState({
     organizationName: '',
     city: '',
@@ -23,6 +32,28 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
     email: '',
     password: ''
   });
+
+  const validateState = (stateValue: string) => {
+    if (!stateValue) {
+      setStateError('');
+      return true;
+    }
+    
+    const upperState = stateValue.toUpperCase();
+    if (!VALID_STATE_CODES.includes(upperState)) {
+      setStateError('Please enter a valid 2-letter US state code (e.g., CA, NY, TX)');
+      return false;
+    }
+    
+    setStateError('');
+    return true;
+  };
+
+  const handleStateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toUpperCase();
+    setFormData(prev => ({ ...prev, state: value }));
+    validateState(value);
+  };
 
   const checkExistingOrganization = async (name: string) => {
     const { data: orgData, error: orgError } = await supabase
@@ -114,6 +145,11 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
         throw new Error('Please fill in all required fields');
       }
 
+      // Validate state if provided
+      if (formData.state && !validateState(formData.state)) {
+        throw new Error('Please enter a valid 2-letter US state code');
+      }
+
       // Check for existing organization and user
       await checkExistingOrganization(formData.organizationName);
       await checkExistingUser(formData.email);
@@ -164,6 +200,7 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
         email: '',
         password: ''
       });
+      setStateError('');
       onBack();
     } catch (error: any) {
       toast({
@@ -210,8 +247,14 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
                 <Input
                   id="state"
                   value={formData.state}
-                  onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                  onChange={handleStateChange}
+                  placeholder="CA"
+                  maxLength={2}
+                  className={stateError ? 'border-red-500' : ''}
                 />
+                {stateError && (
+                  <p className="text-sm text-red-600">{stateError}</p>
+                )}
               </div>
             </div>
 
@@ -258,7 +301,7 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button type="submit" className="w-full" disabled={isLoading || !!stateError}>
               {isLoading ? 'Submitting...' : 'Submit Registration Request'}
             </Button>
 
