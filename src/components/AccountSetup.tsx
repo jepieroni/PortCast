@@ -34,21 +34,43 @@ const AccountSetup = () => {
 
   const validateToken = async () => {
     try {
+      console.log('Validating token:', token);
+      
       const { data, error } = await supabase
         .from('account_setup_tokens')
         .select('*')
         .eq('token', token)
-        .eq('used_at', null)
-        .gt('expires_at', new Date().toISOString())
         .single();
 
-      if (error || !data) {
+      console.log('Token validation result:', { data, error });
+
+      if (error) {
+        console.error('Token validation error:', error);
+        setTokenValid(false);
+      } else if (!data) {
+        console.error('No token data found');
         setTokenValid(false);
       } else {
-        setTokenValid(true);
-        setTokenData(data);
+        // Check if token is expired
+        const now = new Date();
+        const expiresAt = new Date(data.expires_at);
+        
+        console.log('Token expiry check:', { now, expiresAt, expired: expiresAt < now });
+        
+        if (expiresAt < now) {
+          console.error('Token has expired');
+          setTokenValid(false);
+        } else if (data.used_at) {
+          console.error('Token has already been used');
+          setTokenValid(false);
+        } else {
+          console.log('Token is valid');
+          setTokenValid(true);
+          setTokenData(data);
+        }
       }
     } catch (error) {
+      console.error('Unexpected error validating token:', error);
       setTokenValid(false);
     } finally {
       setValidatingToken(false);
@@ -79,10 +101,14 @@ const AccountSetup = () => {
     setLoading(true);
 
     try {
+      console.log('Setting up account with token:', token);
+      
       const { data, error } = await supabase.rpc('setup_user_account', {
         _token: token,
         _password: password
       });
+
+      console.log('Account setup result:', { data, error });
 
       if (error) throw error;
 
