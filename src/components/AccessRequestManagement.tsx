@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,7 @@ interface UserRequest {
   status: string;
   requested_at: string;
   reviewed_at?: string;
+  approval_token: string;
 }
 
 const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
@@ -115,26 +115,76 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
 
   const handleUserRequestAction = async (requestId: string, action: 'approve' | 'deny') => {
     try {
-      const { error } = await supabase
-        .from('user_requests')
-        .update({
-          status: action === 'approve' ? 'approved' : 'denied',
-          reviewed_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
+      // Find the request to get the approval token
+      const request = userRequests.find(req => req.id === requestId);
+      if (!request) {
+        throw new Error('Request not found');
+      }
 
-      if (error) throw error;
+      console.log(`${action === 'approve' ? 'Approving' : 'Denying'} user request with token:`, request.approval_token);
+
+      // Use the approve_user_request database function
+      const { data, error } = await supabase.rpc('approve_user_request', {
+        _approval_token: request.approval_token,
+        _approve: action === 'approve'
+      });
+
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Approval result:', data);
+
+      const result = data as { success: boolean; message: string; user_id?: string; organization_id?: string };
+
+      if (!result.success) {
+        throw new Error(result.message || `Failed to ${action} request`);
+      }
+
+      // If approval was successful and we have user_id and organization_id, update the profile and assign role
+      if (action === 'approve' && result.user_id && result.organization_id) {
+        console.log('Updating profile with organization_id:', result.organization_id);
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ organization_id: result.organization_id })
+          .eq('id', result.user_id);
+
+        if (profileError) {
+          console.error('Error updating profile organization_id:', profileError);
+        } else {
+          console.log('Successfully updated profile with organization_id');
+        }
+
+        // Assign default 'user' role to the newly approved user
+        console.log("Assigning default 'user' role to user:", result.user_id);
+        
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: result.user_id,
+            role: 'user'
+          });
+
+        if (roleError) {
+          console.error('Error assigning user role:', roleError);
+        } else {
+          console.log('Successfully assigned default user role');
+        }
+      }
 
       toast({
         title: "Success",
-        description: `User request ${action}d successfully`,
+        description: result.message,
       });
 
       fetchRequests();
     } catch (error: any) {
+      console.error('Error in handleUserRequestAction:', error);
       toast({
         title: "Error",
-        description: `Failed to ${action} user request`,
+        description: error.message || `Failed to ${action} user request`,
         variant: "destructive",
       });
     }
