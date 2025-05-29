@@ -46,7 +46,10 @@ const Header = ({ isGlobalAdmin, loading, onAddShipment, onAdmin, onSignOut }: H
                 <Settings size={16} className="mr-2" />
                 Admin
                 {hasPendingRequests && (
-                  <Bell size={12} className="absolute -top-1 -right-1 text-red-600 fill-red-600" />
+                  <Bell 
+                    size={16} 
+                    className="absolute -top-1 -right-1 text-red-600 fill-red-600 animate-[ring_4s_ease-in-out_infinite]" 
+                  />
                 )}
               </Button>
             )}
