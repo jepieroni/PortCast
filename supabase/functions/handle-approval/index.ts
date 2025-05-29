@@ -6,18 +6,27 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const handler = async (req: Request): Promise<Response> => {
+  console.log("Handle approval function called with URL:", req.url);
+  console.log("Request method:", req.method);
+  console.log("Request headers:", Object.fromEntries(req.headers.entries()));
+
   try {
     const url = new URL(req.url);
     const token = url.searchParams.get('token');
     const action = url.searchParams.get('action'); // 'approve' or 'deny'
 
+    console.log("Token:", token);
+    console.log("Action:", action);
+
     if (!token || !action) {
+      console.log("Missing required parameters");
       return new Response(
         `<!DOCTYPE html>
         <html>
         <head>
           <title>Invalid Request</title>
           <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
             .error { color: #dc2626; font-size: 24px; font-weight: bold; }
@@ -32,8 +41,7 @@ const handler = async (req: Request): Promise<Response> => {
         { 
           status: 400,
           headers: { 
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-cache"
+            "Content-Type": "text/html; charset=utf-8"
           }
         }
       );
@@ -42,11 +50,15 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const isApproval = action === 'approve';
 
+    console.log("Calling approve_user_request with token:", token, "approve:", isApproval);
+
     // Use the database function to handle the approval
     const { data, error } = await supabase.rpc('approve_user_request', {
       _approval_token: token,
       _approve: isApproval
     });
+
+    console.log("Database function result:", { data, error });
 
     if (error) {
       console.error('Error processing request:', error);
@@ -56,6 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
         <head>
           <title>Error</title>
           <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
             .error { color: #dc2626; font-size: 24px; font-weight: bold; }
@@ -70,14 +83,14 @@ const handler = async (req: Request): Promise<Response> => {
         { 
           status: 500,
           headers: { 
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-cache"
+            "Content-Type": "text/html; charset=utf-8"
           }
         }
       );
     }
 
     const result = data as { success: boolean; message: string };
+    console.log("Parsed result:", result);
 
     if (!result.success) {
       return new Response(
@@ -86,6 +99,7 @@ const handler = async (req: Request): Promise<Response> => {
         <head>
           <title>Request Processing Failed</title>
           <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
             .error { color: #dc2626; font-size: 24px; font-weight: bold; }
@@ -100,8 +114,7 @@ const handler = async (req: Request): Promise<Response> => {
         { 
           status: 400,
           headers: { 
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-cache"
+            "Content-Type": "text/html; charset=utf-8"
           }
         }
       );
@@ -109,6 +122,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     const statusMessage = isApproval ? 'approved' : 'denied';
     const statusColor = isApproval ? '#16a34a' : '#dc2626';
+
+    console.log("Returning success response");
 
     return new Response(
       `<!DOCTYPE html>
@@ -138,8 +153,7 @@ const handler = async (req: Request): Promise<Response> => {
       { 
         status: 200,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache"
+          "Content-Type": "text/html; charset=utf-8"
         }
       }
     );
@@ -152,6 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
       <head>
         <title>Error</title>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
           body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
           .error { color: #dc2626; font-size: 24px; font-weight: bold; }
@@ -166,8 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
       { 
         status: 500,
         headers: { 
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-cache"
+          "Content-Type": "text/html; charset=utf-8"
         }
       }
     );
