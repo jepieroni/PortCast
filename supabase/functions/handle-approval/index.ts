@@ -42,8 +42,24 @@ const handler = async (req: Request): Promise<Response> => {
       return Response.redirect(redirectUrl, 302);
     }
 
-    const result = data as { success: boolean; message: string };
+    const result = data as { success: boolean; message: string; user_id?: string; organization_id?: string };
     console.log("Processed result:", result);
+
+    // If approval was successful and we have user_id and organization_id, update the profile
+    if (result.success && isApproval && result.user_id && result.organization_id) {
+      console.log("Updating profile with organization_id:", result.organization_id);
+      
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ organization_id: result.organization_id })
+        .eq('id', result.user_id);
+
+      if (profileError) {
+        console.error('Error updating profile organization_id:', profileError);
+      } else {
+        console.log('Successfully updated profile with organization_id');
+      }
+    }
 
     // Redirect to the approval result page with the results
     const redirectUrl = `${supabaseUrl.replace('/rest/v1', '')}/approval-result?success=${result.success}&message=${encodeURIComponent(result.message)}&action=${action}`;
