@@ -44,26 +44,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('No trusted agent email configured for this organization');
     }
 
-    // Get the user request for the approval token
-    const { data: userRequest, error: requestError } = await supabase
-      .from('user_requests')
-      .select('approval_token')
-      .eq('email', email)
-      .eq('organization_id', organizationId)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (requestError || !userRequest) {
-      throw new Error('User request not found');
-    }
-
-    // Construct the proper Edge Function URL
+    // Construct the PortCast application URL (using the base URL without the API path)
     const baseUrl = supabaseUrl.replace('/rest/v1', '');
-    const approvalUrl = `${baseUrl}/functions/v1/handle-approval?token=${userRequest.approval_token}`;
+    const portcastUrl = baseUrl.replace('drqsjwkzyiqldwcjwuey.supabase.co', 'portcast.app');
 
-    console.log('Approval URL constructed:', approvalUrl);
+    console.log('PortCast URL constructed:', portcastUrl);
 
     const emailResponse = await resend.emails.send({
       from: "PortCast <admin@portcast.app>",
@@ -79,30 +64,33 @@ const handler = async (req: Request): Promise<Response> => {
           <li><strong>Email:</strong> ${email}</li>
         </ul>
         
-        <p>Please review this request and take action:</p>
+        <h3>Next Steps:</h3>
+        <ol>
+          <li>Log into your PortCast account</li>
+          <li>Navigate to your Organization Admin Dashboard</li>
+          <li>Review and approve or deny this access request</li>
+        </ol>
         
-        <div style="margin: 20px 0;">
-          <a href="${approvalUrl}&action=approve" 
-             style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 10px; display: inline-block;">
-            Approve Request
-          </a>
-          <a href="${approvalUrl}&action=deny" 
-             style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Deny Request
-          </a>
+        <div style="margin: 20px 0; padding: 15px; background-color: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 4px;">
+          <p style="margin: 0; font-weight: 600;">🔗 Access your PortCast account:</p>
+          <p style="margin: 5px 0 0 0;">
+            <a href="${portcastUrl}" 
+               style="color: #0ea5e9; text-decoration: none; font-weight: 500;">
+              Login to PortCast →
+            </a>
+          </p>
         </div>
         
-        <p><small><strong>Note:</strong> If the buttons don't work, you can copy and paste these links directly into your browser:</small></p>
-        <div style="margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 12px;">
-          <p><strong>Approve:</strong> ${approvalUrl}&action=approve</p>
-          <p><strong>Deny:</strong> ${approvalUrl}&action=deny</p>
-        </div>
+        <p><strong>Note:</strong> As the designated trusted agent for ${organization.name}, you are responsible for reviewing and approving access requests for your organization. This request will remain pending until you take action.</p>
         
-        <p><small>This request was submitted through the PortCast system. If you did not expect this request, please contact your system administrator.</small></p>
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+        <p style="font-size: 12px; color: #666;">
+          This is an automated notification from the PortCast system. If you believe you received this email in error, please contact your system administrator.
+        </p>
       `,
     });
 
-    console.log("Approval email sent successfully:", emailResponse);
+    console.log("Trusted agent notification sent successfully:", emailResponse);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
