@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,7 +33,7 @@ const Auth = ({
         } = await supabase
           .from('organizations')
           .select('id, name')
-          .neq('name', 'Unclaimed TSPs') // Exclude the placeholder organization
+          .neq('name', 'Unclaimed TSPs Placeholder Org') // Exclude the placeholder organization
           .order('name');
         
         if (error) {
