@@ -57,9 +57,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Setup token has already been used');
     }
 
-    // Construct the account setup URL using the request origin
-    const requestUrl = new URL(req.url);
-    const appBaseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+    // Use Lovable preview URL for testing (this should be updated to your production domain when deployed)
+    const appBaseUrl = 'https://lovable.dev/projects/drqsjwkzyiqldwcjwuey-portcast-login/editor';
     const setupUrl = `${appBaseUrl}/setup-account?token=${tokenData.token}`;
 
     console.log('Account setup URL constructed:', setupUrl);
