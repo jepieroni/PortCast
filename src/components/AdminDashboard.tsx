@@ -2,17 +2,17 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-react';
-import { useAdminAccess } from '@/hooks/useAdminAccess';
 import AdminAccessCheck from './AdminAccessCheck';
 import AdminStats from './AdminStats';
 import RoleAssignment from './RoleAssignment';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
 const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
-  const { currentUser, userRole, loading, assignGlobalAdminToSelf } = useAdminAccess(onBack);
+  const { currentUser } = useAdminAccess(onBack);
 
   return (
     <div className="space-y-6">
@@ -25,18 +25,10 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
         <Badge variant="destructive">ADMIN ACCESS</Badge>
       </div>
 
-      <AdminAccessCheck 
-        userRole={userRole}
-        onAssignGlobalAdmin={assignGlobalAdminToSelf}
-        loading={loading}
-      />
-
-      {userRole === 'global_admin' && (
-        <>
-          <AdminStats />
-          <RoleAssignment currentUser={currentUser} />
-        </>
-      )}
+      <AdminAccessCheck onBack={onBack}>
+        <AdminStats />
+        <RoleAssignment currentUser={currentUser} />
+      </AdminAccessCheck>
     </div>
   );
 };
