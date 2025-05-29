@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -218,7 +219,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">First Name *</Label>
                     <Input
                       id="firstName"
                       value={formData.firstName}
@@ -227,7 +228,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">Last Name *</Label>
                     <Input
                       id="lastName"
                       value={formData.lastName}
@@ -240,7 +241,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email{isSignUp ? ' *' : ''}</Label>
               <Input
                 id="email"
                 type="email"
@@ -251,7 +252,7 @@ const Auth = ({ onSuccess }: AuthProps) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Password{isSignUp ? ' *' : ''}</Label>
               <Input
                 id="password"
                 type="password"

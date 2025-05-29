@@ -97,8 +97,8 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     .from('organization_requests')
     .insert({
       organization_name: formData.organizationName,
-      city: formData.city || null,
-      state: formData.state || null,
+      city: formData.city,
+      state: formData.state,
       first_name: formData.firstName,
       last_name: formData.lastName,
       email: formData.email,

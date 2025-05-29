@@ -3,7 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useOrganizationForm } from '@/hooks/useOrganizationForm';
+import { STATE_OPTIONS } from '@/constants/stateOptions';
 
 interface OrganizationRegistrationProps {
   onBack: () => void;
@@ -13,7 +15,6 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
   const {
     formData,
     setFormData,
-    stateError,
     isLoading,
     handleStateChange,
     handleSubmit
@@ -41,26 +42,32 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="city">City *</Label>
                 <Input
                   id="city"
                   value={formData.city}
                   onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
+                <Label htmlFor="state">State *</Label>
+                <Select
                   value={formData.state}
-                  onChange={handleStateChange}
-                  placeholder="CA"
-                  maxLength={2}
-                  className={stateError ? 'border-red-500' : ''}
-                />
-                {stateError && (
-                  <p className="text-sm text-red-600">{stateError}</p>
-                )}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, state: value }))}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATE_OPTIONS.map((state) => (
+                      <SelectItem key={state.value} value={state.value}>
+                        {state.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -107,7 +114,7 @@ const OrganizationRegistration = ({ onBack }: OrganizationRegistrationProps) => 
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading || !!stateError}>
+            <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Submitting...' : 'Submit Registration Request'}
             </Button>
 

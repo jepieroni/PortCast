@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { validateState } from '@/utils/organizationValidation';
 import { 
   checkExistingOrganization, 
   checkExistingUser, 
@@ -12,7 +11,6 @@ import {
 export const useOrganizationForm = (onBack: () => void) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [stateError, setStateError] = useState('');
   const [formData, setFormData] = useState<OrganizationFormData>({
     organizationName: '',
     city: '',
@@ -23,12 +21,8 @@ export const useOrganizationForm = (onBack: () => void) => {
     password: ''
   });
 
-  const handleStateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase();
+  const handleStateChange = (value: string) => {
     setFormData(prev => ({ ...prev, state: value }));
-    
-    const { error } = validateState(value);
-    setStateError(error);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,16 +30,8 @@ export const useOrganizationForm = (onBack: () => void) => {
     setIsLoading(true);
 
     try {
-      if (!formData.organizationName || !formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      if (!formData.organizationName || !formData.city || !formData.state || !formData.firstName || !formData.lastName || !formData.email || !formData.password) {
         throw new Error('Please fill in all required fields');
-      }
-
-      // Validate state if provided
-      if (formData.state) {
-        const { isValid } = validateState(formData.state);
-        if (!isValid) {
-          throw new Error('Please enter a valid 2-letter US state code');
-        }
       }
 
       // Check for existing organization and user
@@ -70,7 +56,6 @@ export const useOrganizationForm = (onBack: () => void) => {
         email: '',
         password: ''
       });
-      setStateError('');
       onBack();
     } catch (error: any) {
       toast({
@@ -86,7 +71,6 @@ export const useOrganizationForm = (onBack: () => void) => {
   return {
     formData,
     setFormData,
-    stateError,
     isLoading,
     handleStateChange,
     handleSubmit
