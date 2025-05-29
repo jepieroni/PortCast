@@ -59,7 +59,11 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('User request not found');
     }
 
-    const approvalUrl = `${supabaseUrl.replace('/rest/v1', '')}/functions/v1/handle-approval?token=${userRequest.approval_token}`;
+    // Construct the proper Edge Function URL
+    const baseUrl = supabaseUrl.replace('/rest/v1', '');
+    const approvalUrl = `${baseUrl}/functions/v1/handle-approval?token=${userRequest.approval_token}`;
+
+    console.log('Approval URL constructed:', approvalUrl);
 
     const emailResponse = await resend.emails.send({
       from: "PortCast <admin@portcast.app>",

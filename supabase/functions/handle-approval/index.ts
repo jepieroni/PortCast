@@ -70,6 +70,7 @@ const handler = async (req: Request): Promise<Response> => {
   console.log("Request URL:", req.url);
   console.log("Request method:", req.method);
   console.log("User-Agent:", req.headers.get("user-agent"));
+  console.log("Accept header:", req.headers.get("accept"));
 
   try {
     const url = new URL(req.url);
@@ -91,8 +92,11 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 400,
         headers: { 
-          "Content-Type": "text/html",
-          "Cache-Control": "no-cache"
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
+          "X-Content-Type-Options": "nosniff"
         }
       });
     }
@@ -121,8 +125,11 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 500,
         headers: { 
-          "Content-Type": "text/html",
-          "Cache-Control": "no-cache"
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
+          "X-Content-Type-Options": "nosniff"
         }
       });
     }
@@ -141,8 +148,11 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(html, { 
         status: 400,
         headers: { 
-          "Content-Type": "text/html",
-          "Cache-Control": "no-cache"
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0",
+          "X-Content-Type-Options": "nosniff"
         }
       });
     }
@@ -155,12 +165,16 @@ const handler = async (req: Request): Promise<Response> => {
     const html = createHtmlResponse(title, statusMessage, result.message, true);
     
     console.log("Returning HTML response with length:", html.length);
+    console.log("Setting Content-Type to text/html");
 
     return new Response(html, { 
       status: 200,
       headers: { 
-        "Content-Type": "text/html",
-        "Cache-Control": "no-cache"
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+        "X-Content-Type-Options": "nosniff"
       }
     });
 
@@ -176,8 +190,11 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(html, { 
       status: 500,
       headers: { 
-        "Content-Type": "text/html",
-        "Cache-Control": "no-cache"
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+        "X-Content-Type-Options": "nosniff"
       }
     });
   }
