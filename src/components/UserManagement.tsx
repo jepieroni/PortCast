@@ -36,32 +36,63 @@ const UserManagement = ({ onBack }: UserManagementProps) => {
 
   const fetchUsers = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('Fetching users...');
+      
+      // First fetch all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          email,
-          first_name,
-          last_name,
-          organizations (name),
-          user_roles (role)
-        `);
+        .select('*');
 
-      if (error) throw error;
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
 
-      const formattedUsers = data?.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        organization_name: user.organizations?.name,
-        role: Array.isArray(user.user_roles) && user.user_roles.length > 0 
-          ? user.user_roles[0].role 
-          : undefined
-      })) || [];
+      console.log('Profiles fetched:', profiles);
 
+      // Then fetch organizations separately
+      const { data: organizations, error: orgsError } = await supabase
+        .from('organizations')
+        .select('id, name');
+
+      if (orgsError) {
+        console.error('Error fetching organizations:', orgsError);
+        throw orgsError;
+      }
+
+      console.log('Organizations fetched:', organizations);
+
+      // Then fetch user roles separately
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) {
+        console.error('Error fetching user roles:', rolesError);
+        throw rolesError;
+      }
+
+      console.log('User roles fetched:', userRoles);
+
+      // Combine the data
+      const formattedUsers = profiles?.map(profile => {
+        const organization = organizations?.find(org => org.id === profile.organization_id);
+        const userRole = userRoles?.find(role => role.user_id === profile.id);
+
+        return {
+          id: profile.id,
+          email: profile.email || '',
+          first_name: profile.first_name || '',
+          last_name: profile.last_name || '',
+          organization_name: organization?.name,
+          role: userRole?.role
+        };
+      }) || [];
+
+      console.log('Formatted users:', formattedUsers);
       setUsers(formattedUsers);
     } catch (error: any) {
+      console.error('Error in fetchUsers:', error);
       toast({
         title: "Error",
         description: "Failed to fetch users",
