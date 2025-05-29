@@ -34,6 +34,27 @@ interface UserForCleanup {
   shipments_count: number;
 }
 
+interface CleanupResponse {
+  success: boolean;
+  users?: UserForCleanup[];
+  message?: string;
+}
+
+interface DeleteResponse {
+  success: boolean;
+  message?: string;
+  user_email?: string;
+  records_cleaned?: {
+    shipments: number;
+    account_setup_tokens: number;
+    organization_requests_reviewed: number;
+    user_requests_reviewed: number;
+    user_roles: number;
+    profiles: number;
+    auth_users: number;
+  };
+}
+
 const UserCleanup = ({ onBack }: UserCleanupProps) => {
   const { toast } = useToast();
   const [users, setUsers] = useState<UserForCleanup[]>([]);
@@ -57,10 +78,11 @@ const UserCleanup = ({ onBack }: UserCleanupProps) => {
 
       console.log('Users data received:', data);
 
-      if (data?.success) {
-        setUsers(data.users || []);
+      const response = data as CleanupResponse;
+      if (response?.success) {
+        setUsers(response.users || []);
       } else {
-        throw new Error(data?.message || 'Failed to fetch users');
+        throw new Error(response?.message || 'Failed to fetch users');
       }
     } catch (error: any) {
       console.error('Error in fetchUsers:', error);
@@ -90,7 +112,8 @@ const UserCleanup = ({ onBack }: UserCleanupProps) => {
 
       console.log('Cleanup result:', data);
 
-      if (data?.success) {
+      const response = data as DeleteResponse;
+      if (response?.success) {
         toast({
           title: "User Deleted",
           description: `${userEmail} and all associated data have been completely removed from the system.`,
@@ -99,7 +122,7 @@ const UserCleanup = ({ onBack }: UserCleanupProps) => {
         // Remove user from local state
         setUsers(users.filter(user => user.id !== userId));
       } else {
-        throw new Error(data?.message || 'Failed to delete user');
+        throw new Error(response?.message || 'Failed to delete user');
       }
     } catch (error: any) {
       console.error('Error in deleteUser:', error);
