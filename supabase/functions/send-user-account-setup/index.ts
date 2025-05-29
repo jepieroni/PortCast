@@ -26,16 +26,35 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { setupTokenId }: AccountSetupRequestBody = await req.json();
 
-    // Get the setup token details
+    console.log('Looking for setup token with ID:', setupTokenId);
+
+    // Get the setup token details - remove the used_at IS NULL filter since we just created it
     const { data: tokenData, error: tokenError } = await supabase
       .from('account_setup_tokens')
       .select('*')
       .eq('id', setupTokenId)
-      .eq('used_at', null)
       .single();
 
-    if (tokenError || !tokenData) {
+    if (tokenError) {
+      console.error('Database error fetching token:', tokenError);
+      throw tokenError;
+    }
+
+    if (!tokenData) {
+      console.error('No token data found for ID:', setupTokenId);
       throw new Error('Setup token not found');
+    }
+
+    console.log('Found token data:', tokenData);
+
+    // Check if token is expired
+    if (new Date(tokenData.expires_at) < new Date()) {
+      throw new Error('Setup token has expired');
+    }
+
+    // Check if token is already used
+    if (tokenData.used_at) {
+      throw new Error('Setup token has already been used');
     }
 
     // Construct the account setup URL
