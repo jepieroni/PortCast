@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Building, FileText, Trash2, Bell } from 'lucide-react';
@@ -26,13 +25,13 @@ const AdminStats = ({
           <CardTitle className="flex items-center gap-2">
             <FileText size={24} />
             App Access Requests
-            {hasPendingRequests && (
-              <Bell 
-                size={16} 
-                className="text-white fill-white animate-[ring_4s_ease-in-out_infinite] ml-auto" 
-              />
-            )}
           </CardTitle>
+          {hasPendingRequests && (
+            <Bell 
+              size={32} 
+              className="absolute top-4 right-4 text-white fill-white animate-[ring_4s_ease-in-out_infinite]" 
+            />
+          )}
         </CardHeader>
         <CardContent className="p-6">
           <p className="text-gray-600 mb-4">Review and manage organization and user access requests</p>
