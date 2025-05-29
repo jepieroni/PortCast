@@ -52,9 +52,53 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
         throw error;
       }
 
+      // Get organization name for emails
+      const selectedOrg = organizations.find(org => org.id === selectedOrganization);
+      const organizationName = selectedOrg?.name || 'Unknown Organization';
+
+      // Send trusted agent notification email
+      try {
+        const { error: trustedAgentEmailError } = await supabase.functions.invoke('send-approval-request', {
+          body: {
+            organizationId: selectedOrganization,
+            firstName,
+            lastName,
+            email
+          }
+        });
+
+        if (trustedAgentEmailError) {
+          console.error('Failed to send trusted agent notification:', trustedAgentEmailError);
+        } else {
+          console.log('Trusted agent notification sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Error sending trusted agent notification:', emailError);
+      }
+
+      // Send user acknowledgment email
+      try {
+        const { error: userAckEmailError } = await supabase.functions.invoke('send-user-request-acknowledgment', {
+          body: {
+            firstName,
+            lastName,
+            email,
+            organizationName
+          }
+        });
+
+        if (userAckEmailError) {
+          console.error('Failed to send user acknowledgment email:', userAckEmailError);
+        } else {
+          console.log('User acknowledgment email sent successfully');
+        }
+      } catch (emailError) {
+        console.error('Error sending user acknowledgment email:', emailError);
+      }
+
       toast({
         title: "Request Submitted",
-        description: "Your access request has been submitted. You will receive an email with account setup instructions once approved.",
+        description: "Your access request has been submitted. You will receive an email confirmation shortly, and another email with account setup instructions once approved.",
       });
 
       // Reset form
