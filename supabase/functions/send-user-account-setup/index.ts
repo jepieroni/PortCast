@@ -57,8 +57,15 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error('Setup token has already been used');
     }
 
-    // Use localhost for development testing
-    const appBaseUrl = 'http://localhost:3000';
+    // Get the current request URL to determine the correct base URL
+    const requestUrl = new URL(req.url);
+    const isLocalhost = requestUrl.hostname === 'localhost';
+    
+    // Use the appropriate base URL based on environment
+    const appBaseUrl = isLocalhost 
+      ? 'http://localhost:3000'
+      : 'https://drqsjwkzyiqldwcjwuey-portcast-login.lovable.app';
+    
     const setupUrl = `${appBaseUrl}/setup-account?token=${tokenData.token}`;
 
     console.log('Account setup URL constructed:', setupUrl);
