@@ -8,17 +8,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, Users, FileText, Check, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
 interface OrgAdminDashboardProps {
   onBack: () => void;
 }
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 interface OrgUser {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
-  role?: string;
+  role?: UserRole;
 }
 
 interface OrgUserRequest {
@@ -94,7 +97,9 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         email: user.email || '',
         first_name: user.first_name || '',
         last_name: user.last_name || '',
-        role: user.user_roles?.[0]?.role
+        role: Array.isArray(user.user_roles) && user.user_roles.length > 0 
+          ? user.user_roles[0].role 
+          : undefined
       })) || [];
 
       setOrgUsers(formattedUsers);
@@ -143,7 +148,7 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         .from('user_roles')
         .upsert({
           user_id: userId,
-          role: newRole,
+          role: newRole as UserRole,
           organization_id: organizationId,
           assigned_by: (await supabase.auth.getUser()).data.user?.id
         });

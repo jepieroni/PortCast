@@ -8,10 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, UserCog } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { Database } from '@/integrations/supabase/types';
 
 interface UserManagementProps {
   onBack: () => void;
 }
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 interface User {
   id: string;
@@ -19,7 +22,7 @@ interface User {
   first_name: string;
   last_name: string;
   organization_name?: string;
-  role?: string;
+  role?: UserRole;
 }
 
 const UserManagement = ({ onBack }: UserManagementProps) => {
@@ -52,7 +55,9 @@ const UserManagement = ({ onBack }: UserManagementProps) => {
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         organization_name: user.organizations?.name,
-        role: user.user_roles?.[0]?.role
+        role: Array.isArray(user.user_roles) && user.user_roles.length > 0 
+          ? user.user_roles[0].role 
+          : undefined
       })) || [];
 
       setUsers(formattedUsers);
@@ -73,7 +78,7 @@ const UserManagement = ({ onBack }: UserManagementProps) => {
         .from('user_roles')
         .upsert({
           user_id: userId,
-          role: newRole,
+          role: newRole as UserRole,
           assigned_by: (await supabase.auth.getUser()).data.user?.id
         });
 
