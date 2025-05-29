@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Building2 } from 'lucide-react';
+import { checkExistingUser, checkExistingOrganization, submitOrganizationRequest, OrganizationFormData } from '@/utils/organizationApi';
 
 interface AuthProps {
   onSuccess: () => void;
@@ -20,28 +21,45 @@ const Auth = ({ onSuccess }: AuthProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [organizationsLoaded, setOrganizationsLoaded] = useState(false);
+  const [showOrgRegistration, setShowOrgRegistration] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
 
-  // Registration form state
+  // User request form state (removed password)
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [selectedOrganization, setSelectedOrganization] = useState('');
+
+  // Organization registration form state (removed password)
+  const [orgFormData, setOrgFormData] = useState<OrganizationFormData>({
+    organizationName: '',
+    city: '',
+    state: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '' // Keep for compatibility but won't be used
+  });
 
   const loadOrganizations = async () => {
     if (organizationsLoaded) return;
     
     try {
+      console.log('Loading organizations...');
       const { data, error } = await supabase
         .from('organizations')
         .select('id, name')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading organizations:', error);
+        throw error;
+      }
+      
+      console.log('Organizations loaded:', data);
       setOrganizations(data || []);
       setOrganizationsLoaded(true);
     } catch (error: any) {
@@ -99,12 +117,14 @@ const Auth = ({ onSuccess }: AuthProps) => {
         throw new Error('Please select an organization');
       }
 
-      // Store password as plain text temporarily - it will be encrypted when the account is created
+      // Check for existing user/request
+      await checkExistingUser(email);
+
+      // Submit request without password
       const { error } = await supabase
         .from('user_requests')
         .insert({
           email,
-          password_hash: password, // Store as plain text for now
           first_name: firstName,
           last_name: lastName,
           organization_id: selectedOrganization,
@@ -119,12 +139,11 @@ const Auth = ({ onSuccess }: AuthProps) => {
 
       toast({
         title: "Request Submitted",
-        description: "Your access request has been submitted and is pending approval from an administrator.",
+        description: "Your access request has been submitted. You will receive an email with account setup instructions once approved.",
       });
 
       // Reset form
       setEmail('');
-      setPassword('');
       setFirstName('');
       setLastName('');
       setSelectedOrganization('');
@@ -138,6 +157,52 @@ const Auth = ({ onSuccess }: AuthProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOrganizationRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Validate organization name
+      await checkExistingOrganization(orgFormData.organizationName);
+      
+      // Check for existing user/request
+      await checkExistingUser(orgFormData.email);
+
+      // Submit organization request without password
+      await submitOrganizationRequest(orgFormData);
+
+      toast({
+        title: "Request Submitted",
+        description: "Your organization registration request has been submitted. You will receive an email with account setup instructions once approved.",
+      });
+
+      // Reset form and go back to user request
+      setOrgFormData({
+        organizationName: '',
+        city: '',
+        state: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: ''
+      });
+      setShowOrgRegistration(false);
+    } catch (error: any) {
+      console.error('Organization request error:', error);
+      toast({
+        title: "Request Failed",
+        description: error.message || "Failed to submit organization request",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOrgFormChange = (field: keyof OrganizationFormData, value: string) => {
+    setOrgFormData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -201,91 +266,163 @@ const Auth = ({ onSuccess }: AuthProps) => {
             </TabsContent>
 
             <TabsContent value="register">
-              <form onSubmit={handleRequestAccess} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              {!showOrgRegistration ? (
+                <form onSubmit={handleRequestAccess} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="email">Email</Label>
                     <Input
-                      id="firstName"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       required
                       disabled={loading}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input
-                      id="lastName"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      disabled={loading}
-                      minLength={6}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
+                    <Label htmlFor="organization">Organization</Label>
+                    <Select 
+                      value={selectedOrganization} 
+                      onValueChange={setSelectedOrganization}
                       disabled={loading}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {organizations.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {org.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="text-center mt-3">
+                      <Button
+                        type="button"
+                        variant="link"
+                        onClick={() => setShowOrgRegistration(true)}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                        disabled={loading}
+                      >
+                        <Building2 className="h-4 w-4 mr-1" />
+                        Don't see your organization? Register it here
+                      </Button>
+                    </div>
+                  </div>
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Submitting Request...' : 'Request Access'}
+                  </Button>
+                </form>
+              ) : (
+                <form onSubmit={handleOrganizationRequest} className="space-y-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Register Organization</h3>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowOrgRegistration(false)}
+                      disabled={loading}
+                    >
+                      Back to User Request
                     </Button>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="organization">Organization</Label>
-                  <Select 
-                    value={selectedOrganization} 
-                    onValueChange={setSelectedOrganization}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your organization" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {organizations.map((org) => (
-                        <SelectItem key={org.id} value={org.id}>
-                          {org.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Submitting Request...' : 'Request Access'}
-                </Button>
-              </form>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="orgName">Organization Name</Label>
+                    <Input
+                      id="orgName"
+                      value={orgFormData.organizationName}
+                      onChange={(e) => handleOrgFormChange('organizationName', e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="orgCity">City</Label>
+                      <Input
+                        id="orgCity"
+                        value={orgFormData.city}
+                        onChange={(e) => handleOrgFormChange('city', e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="orgState">State</Label>
+                      <Input
+                        id="orgState"
+                        value={orgFormData.state}
+                        onChange={(e) => handleOrgFormChange('state', e.target.value)}
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="orgFirstName">First Name</Label>
+                      <Input
+                        id="orgFirstName"
+                        value={orgFormData.firstName}
+                        onChange={(e) => handleOrgFormChange('firstName', e.target.value)}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="orgLastName">Last Name</Label>
+                      <Input
+                        id="orgLastName"
+                        value={orgFormData.lastName}
+                        onChange={(e) => handleOrgFormChange('lastName', e.target.value)}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="orgEmail">Email</Label>
+                    <Input
+                      id="orgEmail"
+                      type="email"
+                      value={orgFormData.email}
+                      onChange={(e) => handleOrgFormChange('email', e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+                  
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Submitting Request...' : 'Submit Organization Request'}
+                  </Button>
+                </form>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>

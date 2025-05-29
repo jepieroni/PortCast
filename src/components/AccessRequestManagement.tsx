@@ -136,62 +136,31 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
 
       console.log('Approval result:', data);
 
-      const result = data as { success: boolean; message: string; user_id?: string; organization_id?: string };
+      const result = data as { success: boolean; message: string; setup_token_id?: string; organization_id?: string };
 
       if (!result.success) {
         throw new Error(result.message || `Failed to ${action} request`);
       }
 
-      // If approval was successful and we have user_id and organization_id, update the profile and assign role
-      if (action === 'approve' && result.user_id && result.organization_id) {
-        console.log('Updating profile with organization_id:', result.organization_id);
+      // If approval was successful and we have setup_token_id, send the account setup email
+      if (action === 'approve' && result.setup_token_id) {
+        console.log('Sending account setup email for token:', result.setup_token_id);
         
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ organization_id: result.organization_id })
-          .eq('id', result.user_id);
-
-        if (profileError) {
-          console.error('Error updating profile organization_id:', profileError);
-        } else {
-          console.log('Successfully updated profile with organization_id');
-        }
-
-        // Assign default 'user' role to the newly approved user
-        console.log("Assigning default 'user' role to user:", result.user_id);
-        
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: result.user_id,
-            role: 'user'
-          });
-
-        if (roleError) {
-          console.error('Error assigning user role:', roleError);
-        } else {
-          console.log('Successfully assigned default user role');
-        }
-
-        // Send confirmation email to the user
         try {
-          const { error: emailError } = await supabase.functions.invoke('send-user-approval-notification', {
+          const { error: emailError } = await supabase.functions.invoke('send-user-account-setup', {
             body: {
-              email: request.email,
-              firstName: request.first_name,
-              lastName: request.last_name,
-              approved: action === 'approve'
+              setupTokenId: result.setup_token_id
             }
           });
 
           if (emailError) {
-            console.error('Failed to send confirmation email:', emailError);
+            console.error('Failed to send account setup email:', emailError);
             // Don't throw here as the main approval was successful
           } else {
-            console.log('Confirmation email sent successfully');
+            console.log('Account setup email sent successfully');
           }
         } catch (emailError) {
-          console.error('Error sending confirmation email:', emailError);
+          console.error('Error sending account setup email:', emailError);
           // Don't throw here as the main approval was successful
         }
       }

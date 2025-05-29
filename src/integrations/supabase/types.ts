@@ -9,6 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_setup_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          first_name: string
+          id: string
+          last_name: string
+          organization_id: string | null
+          organization_name: string | null
+          token: string
+          token_type: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at?: string
+          first_name: string
+          id?: string
+          last_name: string
+          organization_id?: string | null
+          organization_name?: string | null
+          token?: string
+          token_type: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          organization_id?: string | null
+          organization_name?: string | null
+          token?: string
+          token_type?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_setup_tokens_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       countries: {
         Row: {
           code: string
@@ -40,7 +90,6 @@ export type Database = {
           id: string
           last_name: string
           organization_name: string
-          password_hash: string
           reviewed_at: string | null
           reviewed_by: string | null
           state: string | null
@@ -56,7 +105,6 @@ export type Database = {
           id?: string
           last_name: string
           organization_name: string
-          password_hash: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           state?: string | null
@@ -72,7 +120,6 @@ export type Database = {
           id?: string
           last_name?: string
           organization_name?: string
-          password_hash?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           state?: string | null
@@ -333,7 +380,6 @@ export type Database = {
           id: string
           last_name: string
           organization_id: string
-          password_hash: string
           requested_at: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -348,7 +394,6 @@ export type Database = {
           id?: string
           last_name: string
           organization_id: string
-          password_hash: string
           requested_at?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -363,7 +408,6 @@ export type Database = {
           id?: string
           last_name?: string
           organization_id?: string
-          password_hash?: string
           requested_at?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -438,6 +482,10 @@ export type Database = {
       is_global_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      setup_user_account: {
+        Args: { _token: string; _password: string }
+        Returns: Json
       }
     }
     Enums: {

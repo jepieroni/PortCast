@@ -69,32 +69,22 @@ const handler = async (req: Request): Promise<Response> => {
         throw orgError;
       }
 
-      // Create the user account
-      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-        email: orgRequest.email,
-        password: orgRequest.password_hash,
-        email_confirm: true,
-        user_metadata: {
-          first_name: orgRequest.first_name,
-          last_name: orgRequest.last_name
-        }
-      });
-
-      if (userError) {
-        throw userError;
-      }
-
-      // Assign organization admin role
-      const { error: roleError } = await supabase
-        .from('user_roles')
+      // Create account setup token for organization admin instead of immediate account creation
+      const { data: setupToken, error: setupTokenError } = await supabase
+        .from('account_setup_tokens')
         .insert({
-          user_id: userData.user.id,
-          role: 'org_admin',
-          organization_id: organization.id
-        });
+          email: orgRequest.email,
+          first_name: orgRequest.first_name,
+          last_name: orgRequest.last_name,
+          organization_id: organization.id,
+          organization_name: orgRequest.organization_name,
+          token_type: 'organization_admin'
+        })
+        .select()
+        .single();
 
-      if (roleError) {
-        throw roleError;
+      if (setupTokenError) {
+        throw setupTokenError;
       }
 
       // Update the request status
@@ -110,22 +100,28 @@ const handler = async (req: Request): Promise<Response> => {
         throw updateError;
       }
 
-      // Send approval email to the requester
+      // Send account setup email to the organization admin
+      const baseUrl = supabaseUrl.replace('/rest/v1', '');
+      const setupUrl = `${baseUrl}/setup-account?token=${setupToken.token}`;
+
       await resend.emails.send({
         from: "PortCast <admin@portcast.app>",
         to: [orgRequest.email],
-        subject: "Organization Registration Approved - Welcome to PortCast!",
+        subject: "Organization Registration Approved - Set Up Your Account",
         html: `
           <h2>Congratulations! Your Organization Registration Has Been Approved</h2>
           <p>Dear ${orgRequest.first_name} ${orgRequest.last_name},</p>
           
           <p>Your registration request for <strong>${orgRequest.organization_name}</strong> has been approved!</p>
           
-          <p>You can now sign in to PortCast using:</p>
-          <ul>
-            <li><strong>Email:</strong> ${orgRequest.email}</li>
-            <li><strong>Password:</strong> The password you provided during registration</li>
-          </ul>
+          <p>Please complete your account setup by clicking the button below:</p>
+          
+          <div style="margin: 20px 0;">
+            <a href="${setupUrl}" 
+               style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Set Up Your Account
+            </a>
+          </div>
           
           <p>As the organization administrator, you will have the ability to:</p>
           <ul>
@@ -134,7 +130,12 @@ const handler = async (req: Request): Promise<Response> => {
             <li>Access consolidation dashboards</li>
           </ul>
           
-          <p><a href="/" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Sign In to PortCast</a></p>
+          <p><small><strong>Note:</strong> This link will expire in 48 hours for security purposes.</small></p>
+          
+          <p><small>If the button doesn't work, you can copy and paste this link directly into your browser:</small></p>
+          <div style="margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 12px;">
+            <p>${setupUrl}</p>
+          </div>
           
           <p>Welcome to PortCast!</p>
         `,
@@ -145,7 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
           <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px;">
             <h2 style="color: #16a34a;">✓ Organization Registration Approved</h2>
             <p>The organization registration for <strong>${orgRequest.organization_name}</strong> has been approved successfully.</p>
-            <p>The organization administrator (${orgRequest.email}) has been notified and can now sign in to PortCast.</p>
+            <p>The organization administrator (${orgRequest.email}) has been sent an email with account setup instructions.</p>
             <p><a href="/">Return to PortCast</a></p>
           </body>
         </html>

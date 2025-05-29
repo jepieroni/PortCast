@@ -89,7 +89,7 @@ export interface OrganizationFormData {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
+  password: string; // Keep for compatibility but won't be used
 }
 
 export const submitOrganizationRequest = async (formData: OrganizationFormData) => {
@@ -101,8 +101,8 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
       state: formData.state,
       first_name: formData.firstName,
       last_name: formData.lastName,
-      email: formData.email,
-      password_hash: formData.password // In production, this should be properly hashed
+      email: formData.email
+      // Removed password_hash field
     });
 
   if (error) throw error;
