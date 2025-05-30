@@ -3,17 +3,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Ship, Plus, LogOut, Settings, Bell } from 'lucide-react';
 import { usePendingRequests } from '@/hooks/usePendingRequests';
+import UserDisplay from '@/components/UserDisplay';
 
 interface HeaderProps {
   isGlobalAdmin: boolean;
   isOrgAdmin: boolean;
   loading: boolean;
+  user: any;
   onAddShipment: () => void;
   onAdmin: () => void;
   onSignOut: () => void;
 }
 
-const Header = ({ isGlobalAdmin, isOrgAdmin, loading, onAddShipment, onAdmin, onSignOut }: HeaderProps) => {
+const Header = ({ isGlobalAdmin, isOrgAdmin, loading, user, onAddShipment, onAdmin, onSignOut }: HeaderProps) => {
   const { hasPendingRequests } = usePendingRequests();
   const isAnyAdmin = isGlobalAdmin || isOrgAdmin;
 
@@ -21,11 +23,18 @@ const Header = ({ isGlobalAdmin, isOrgAdmin, loading, onAddShipment, onAdmin, on
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center gap-2">
-            <Ship className="text-blue-600" size={32} />
-            <span className="text-xl font-bold text-gray-900">PortCast</span>
-            {isGlobalAdmin && <Badge variant="destructive" className="ml-2">GLOBAL ADMIN</Badge>}
-            {isOrgAdmin && !isGlobalAdmin && <Badge variant="default" className="ml-2">ORG ADMIN</Badge>}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Ship className="text-blue-600" size={32} />
+              <span className="text-xl font-bold text-gray-900">PortCast</span>
+            </div>
+            
+            {user && <UserDisplay user={user} />}
+            
+            <div className="flex items-center gap-2">
+              {isGlobalAdmin && <Badge variant="destructive">GLOBAL ADMIN</Badge>}
+              {isOrgAdmin && !isGlobalAdmin && <Badge variant="default">ORG ADMIN</Badge>}
+            </div>
           </div>
           
           <div className="flex items-center gap-4">

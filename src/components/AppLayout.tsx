@@ -7,6 +7,7 @@ interface AppLayoutProps {
   isGlobalAdmin: boolean;
   isOrgAdmin: boolean;
   loading: boolean;
+  user: any;
   onAddShipment: () => void;
   onAdmin: () => void;
   onSignOut: () => void;
@@ -17,6 +18,7 @@ const AppLayout = ({
   isGlobalAdmin,
   isOrgAdmin,
   loading,
+  user,
   onAddShipment,
   onAdmin,
   onSignOut,
@@ -27,6 +29,7 @@ const AppLayout = ({
         isGlobalAdmin={isGlobalAdmin}
         isOrgAdmin={isOrgAdmin}
         loading={loading}
+        user={user}
         onAddShipment={onAddShipment}
         onAdmin={onAdmin}
         onSignOut={onSignOut}

@@ -38,6 +38,7 @@ const Index = () => {
       isGlobalAdmin={isGlobalAdmin}
       isOrgAdmin={isOrgAdmin}
       loading={loading}
+      user={user}
       onAddShipment={goToRegistration}
       onAdmin={goToAdmin}
       onSignOut={handleSignOutAndReset}
