@@ -48,8 +48,14 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
 
   const fetchOrganizationData = async () => {
     try {
+      console.log('Fetching organization data...');
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.error('No authenticated user found');
+        return;
+      }
+
+      console.log('Current user ID:', user.id);
 
       // Get user's organization
       const { data: profile, error: profileError } = await supabase
@@ -58,8 +64,13 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         .eq('id', user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        throw profileError;
+      }
+      
       if (!profile?.organization_id) {
+        console.error('No organization_id found for user');
         toast({
           title: "Error",
           description: "You are not associated with an organization",
@@ -68,21 +79,45 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         return;
       }
 
+      console.log('Organization ID:', profile.organization_id);
       setOrganizationId(profile.organization_id);
 
-      // Fetch organization users
+      // Fetch organization users with their roles
       const { data: usersData, error: usersError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          email,
-          first_name,
-          last_name,
-          user_roles (role)
-        `)
+        .select('id, email, first_name, last_name')
         .eq('organization_id', profile.organization_id);
 
-      if (usersError) throw usersError;
+      if (usersError) {
+        console.error('Users fetch error:', usersError);
+        throw usersError;
+      }
+
+      console.log('Users data:', usersData);
+
+      // Fetch user roles separately
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+        .eq('organization_id', profile.organization_id);
+
+      if (rolesError) {
+        console.error('Roles fetch error:', rolesError);
+        throw rolesError;
+      }
+
+      console.log('Roles data:', rolesData);
+
+      // Combine users with their roles
+      const formattedUsers = usersData?.map(user => ({
+        id: user.id,
+        email: user.email || '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        role: rolesData?.find(role => role.user_id === user.id)?.role
+      })) || [];
+
+      console.log('Formatted users:', formattedUsers);
 
       // Fetch user requests for this organization only
       const { data: requestsData, error: requestsError } = await supabase
@@ -91,24 +126,20 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         .eq('organization_id', profile.organization_id)
         .order('requested_at', { ascending: false });
 
-      if (requestsError) throw requestsError;
+      if (requestsError) {
+        console.error('Requests fetch error:', requestsError);
+        throw requestsError;
+      }
 
-      const formattedUsers = usersData?.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        role: Array.isArray(user.user_roles) && user.user_roles.length > 0 
-          ? user.user_roles[0].role 
-          : undefined
-      })) || [];
+      console.log('Requests data:', requestsData);
 
       setOrgUsers(formattedUsers);
       setUserRequests(requestsData || []);
     } catch (error: any) {
+      console.error('Error in fetchOrganizationData:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch organization data",
+        description: "Failed to fetch organization data: " + (error.message || 'Unknown error'),
         variant: "destructive",
       });
     } finally {
