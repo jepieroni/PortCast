@@ -32,6 +32,7 @@ interface OrgUserRequest {
   status: string;
   requested_at: string;
   reviewed_at?: string;
+  approval_token: string;
 }
 
 const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
@@ -83,7 +84,7 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
 
       if (usersError) throw usersError;
 
-      // Fetch user requests for this organization
+      // Fetch user requests for this organization only
       const { data: requestsData, error: requestsError } = await supabase
         .from('user_requests')
         .select('*')
@@ -117,26 +118,67 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
 
   const handleUserRequestAction = async (requestId: string, action: 'approve' | 'deny') => {
     try {
-      const { error } = await supabase
-        .from('user_requests')
-        .update({
-          status: action === 'approve' ? 'approved' : 'denied',
-          reviewed_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
+      // Find the request to get the approval token
+      const request = userRequests.find(req => req.id === requestId);
+      if (!request) {
+        throw new Error('Request not found');
+      }
 
-      if (error) throw error;
+      console.log(`${action === 'approve' ? 'Approving' : 'Denying'} user request with token:`, request.approval_token);
+
+      // Use the approve_user_request database function
+      const { data, error } = await supabase.rpc('approve_user_request', {
+        _approval_token: request.approval_token,
+        _approve: action === 'approve'
+      });
+
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Approval result:', data);
+
+      const result = data as { success: boolean; message: string; setup_token_id?: string; organization_id?: string };
+
+      if (!result.success) {
+        throw new Error(result.message || `Failed to ${action} request`);
+      }
+
+      // If approval was successful and we have setup_token_id, send the account setup email
+      if (action === 'approve' && result.setup_token_id) {
+        console.log('Sending account setup email for token:', result.setup_token_id);
+        
+        try {
+          const { error: emailError } = await supabase.functions.invoke('send-user-account-setup', {
+            body: {
+              setupTokenId: result.setup_token_id
+            }
+          });
+
+          if (emailError) {
+            console.error('Failed to send account setup email:', emailError);
+            // Don't throw here as the main approval was successful
+          } else {
+            console.log('Account setup email sent successfully');
+          }
+        } catch (emailError) {
+          console.error('Error sending account setup email:', emailError);
+          // Don't throw here as the main approval was successful
+        }
+      }
 
       toast({
         title: "Success",
-        description: `User request ${action}d successfully`,
+        description: result.message,
       });
 
       fetchOrganizationData();
     } catch (error: any) {
+      console.error('Error in handleUserRequestAction:', error);
       toast({
         title: "Error",
-        description: `Failed to ${action} user request`,
+        description: error.message || `Failed to ${action} user request`,
         variant: "destructive",
       });
     }
