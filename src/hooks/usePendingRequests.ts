@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 export const usePendingRequests = () => {
-  const { user, isGlobalAdmin } = useAuth();
+  const { user, isGlobalAdmin, isOrgAdmin } = useAuth();
   const [hasPendingRequests, setHasPendingRequests] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -16,7 +16,7 @@ export const usePendingRequests = () => {
     }
 
     checkPendingRequests();
-  }, [user, isGlobalAdmin]);
+  }, [user, isGlobalAdmin, isOrgAdmin]);
 
   const checkPendingRequests = async () => {
     try {
@@ -76,6 +76,22 @@ export const usePendingRequests = () => {
             hasPending = true;
           }
         }
+
+        // For org admins, also check for pending SCAC claims for their organization
+        if (isOrgAdmin && !hasPending) {
+          const { data: scacClaims, error: scacError } = await supabase
+            .from('scac_claims')
+            .select('id')
+            .eq('status', 'pending')
+            .eq('organization_id', profile.organization_id)
+            .limit(1);
+
+          if (scacError) {
+            console.error('Error checking SCAC claims:', scacError);
+          } else if (scacClaims && scacClaims.length > 0) {
+            hasPending = true;
+          }
+        }
       }
 
       // Global admins can also approve user requests
@@ -89,6 +105,21 @@ export const usePendingRequests = () => {
         if (allUserRequestError) {
           console.error('Error checking all user requests:', allUserRequestError);
         } else if (allUserRequests && allUserRequests.length > 0) {
+          hasPending = true;
+        }
+      }
+
+      // Global admins can also see pending SCAC claims
+      if (isGlobalAdmin && !hasPending) {
+        const { data: allScacClaims, error: allScacError } = await supabase
+          .from('scac_claims')
+          .select('id')
+          .eq('status', 'pending')
+          .limit(1);
+
+        if (allScacError) {
+          console.error('Error checking all SCAC claims:', allScacError);
+        } else if (allScacClaims && allScacClaims.length > 0) {
           hasPending = true;
         }
       }

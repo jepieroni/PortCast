@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-react';
-import ScacManagement from './ScacManagement';
 import { useOrgAdminData } from '@/hooks/useOrgAdminData';
+import { useScacManagement } from '@/hooks/useScacManagement';
 import { OrganizationUsersTable } from './org-admin/OrganizationUsersTable';
 import { UserRequestsTable } from './org-admin/UserRequestsTable';
 import { OrgAdminNavigation } from './org-admin/OrgAdminNavigation';
+import { TspTable } from './scac/TspTable';
 
 interface OrgAdminDashboardProps {
   onBack: () => void;
@@ -20,32 +21,78 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
   const {
     orgUsers,
     userRequests,
-    loading,
+    loading: orgDataLoading,
     fetchOrganizationData,
     updateUserRole,
     handleUserRequestAction
   } = useOrgAdminData();
 
+  const {
+    tsps,
+    selectedTsps,
+    loading: scacLoading,
+    submitting,
+    organizationId,
+    fetchData: fetchScacData,
+    handleTspSelection,
+    submitClaim,
+    isClaimable
+  } = useScacManagement(false); // false because this is org admin, not global admin
+
   useEffect(() => {
     if (currentView === 'dashboard') {
       fetchOrganizationData();
+    } else if (currentView === 'scac') {
+      fetchScacData();
     }
   }, [currentView]);
 
-  if (currentView === 'scac') {
-    return <ScacManagement onBack={() => setCurrentView('dashboard')} isGlobalAdmin={false} />;
-  }
+  const loading = currentView === 'dashboard' ? orgDataLoading : scacLoading;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading organization data...</p>
+          <p className="text-gray-600">
+            {currentView === 'dashboard' ? 'Loading organization data...' : 'Loading SCAC data...'}
+          </p>
         </div>
       </div>
     );
   }
+
+  const renderContent = () => {
+    if (currentView === 'scac') {
+      return (
+        <div className="space-y-6">
+          <TspTable
+            tsps={tsps}
+            selectedTsps={selectedTsps}
+            organizationId={organizationId}
+            isGlobalAdmin={false}
+            submitting={submitting}
+            onTspSelection={handleTspSelection}
+            onSubmitClaim={submitClaim}
+            isClaimable={isClaimable}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid md:grid-cols-2 gap-6">
+        <OrganizationUsersTable 
+          orgUsers={orgUsers} 
+          onUpdateUserRole={updateUserRole} 
+        />
+        <UserRequestsTable 
+          userRequests={userRequests} 
+          onHandleUserRequestAction={handleUserRequestAction} 
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -63,16 +110,7 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         onViewChange={setCurrentView} 
       />
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <OrganizationUsersTable 
-          orgUsers={orgUsers} 
-          onUpdateUserRole={updateUserRole} 
-        />
-        <UserRequestsTable 
-          userRequests={userRequests} 
-          onHandleUserRequestAction={handleUserRequestAction} 
-        />
-      </div>
+      {renderContent()}
     </div>
   );
 };
