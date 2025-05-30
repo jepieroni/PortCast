@@ -34,7 +34,7 @@ export const useAccountSetup = () => {
     try {
       console.log('Setting up account with token:', token);
       
-      // Call the new edge function instead of the database function
+      // Call the edge function to create the account
       const { data, error } = await supabase.functions.invoke('setup-user-account', {
         body: {
           token: token,
@@ -53,13 +53,13 @@ export const useAccountSetup = () => {
       setAccountCreated(true);
       toast({
         title: "Account Created",
-        description: "Your account has been created successfully! You can now sign in.",
+        description: "Your account has been created successfully! Redirecting to sign in...",
       });
 
-      // Redirect to sign in after 3 seconds
+      // Redirect to sign in page after 2 seconds to allow user to see the success message
       setTimeout(() => {
-        navigate('/');
-      }, 3000);
+        navigate('/', { replace: true });
+      }, 2000);
 
     } catch (error: any) {
       console.error('Account setup error:', error);
