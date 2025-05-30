@@ -33,7 +33,7 @@ const Auth = ({
         } = await supabase
           .from('organizations')
           .select('id, name')
-          .neq('name', 'Unclaimed TSPs Placeholder Org') // Exclude the placeholder organization
+          .neq('name', 'Unclaimed') // Exclude the placeholder organization
           .order('name');
         
         if (error) {
