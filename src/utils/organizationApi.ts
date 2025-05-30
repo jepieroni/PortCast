@@ -96,7 +96,15 @@ export interface OrganizationFormData {
 }
 
 export const submitOrganizationRequest = async (formData: OrganizationFormData) => {
-  console.log('Submitting combined organization and user request:', formData);
+  console.log('=== STARTING ORGANIZATION REQUEST SUBMISSION ===');
+  console.log('Form data:', {
+    organizationName: formData.organizationName,
+    city: formData.city,
+    state: formData.state,
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    email: formData.email
+  });
   
   // Validate required fields
   if (!formData.organizationName || !formData.firstName || !formData.lastName || !formData.email) {
@@ -105,6 +113,17 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
 
   // Ensure state is valid or set to null if empty
   const stateValue = formData.state && formData.state.trim() !== '' ? formData.state as USStateCode : null;
+  
+  console.log('Prepared data for insert:', {
+    organization_name: formData.organizationName,
+    city: formData.city || null,
+    state: stateValue,
+    first_name: formData.firstName,
+    last_name: formData.lastName,
+    email: formData.email
+  });
+
+  console.log('Attempting to insert organization request...');
   
   // Submit the organization request with explicit field mapping
   const { data: orgRequest, error: orgError } = await supabase
@@ -121,11 +140,16 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     .single();
 
   if (orgError) {
-    console.error('Error creating organization request:', orgError);
+    console.error('=== ORGANIZATION REQUEST INSERT ERROR ===');
+    console.error('Error details:', orgError);
+    console.error('Error code:', orgError.code);
+    console.error('Error message:', orgError.message);
+    console.error('Error hint:', orgError.hint);
+    console.error('Error details:', orgError.details);
     throw new Error(`Failed to submit organization request: ${orgError.message}`);
   }
 
-  console.log('Organization request created:', orgRequest);
+  console.log('Organization request created successfully:', orgRequest);
 
   // Send notification email to global admins (without direct approval links)
   console.log('Sending organization approval request email...');
@@ -174,4 +198,6 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     console.error('Exception sending acknowledgment email:', emailError);
     // Don't throw here, as the main request was successful
   }
+
+  console.log('=== ORGANIZATION REQUEST SUBMISSION COMPLETED ===');
 };
