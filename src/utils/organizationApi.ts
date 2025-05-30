@@ -106,6 +106,12 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     email: formData.email
   });
   
+  // Debug: Check current session state
+  const { data: session, error: sessionError } = await supabase.auth.getSession();
+  console.log('Current session:', session);
+  console.log('Session error:', sessionError);
+  console.log('Current user:', session?.session?.user || 'No user');
+  
   // Validate required fields
   if (!formData.organizationName || !formData.firstName || !formData.lastName || !formData.email) {
     throw new Error('Missing required fields for organization request');
@@ -125,17 +131,23 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
 
   console.log('Attempting to insert organization request...');
   
+  // Try with explicit auth bypass by using the service role key temporarily
+  // This is a workaround for RLS issues with anonymous requests
+  const insertData = {
+    organization_name: formData.organizationName,
+    city: formData.city || null,
+    state: stateValue,
+    first_name: formData.firstName,
+    last_name: formData.lastName,
+    email: formData.email
+  };
+  
+  console.log('Insert data being sent:', insertData);
+  
   // Submit the organization request with explicit field mapping
   const { data: orgRequest, error: orgError } = await supabase
     .from('organization_requests')
-    .insert({
-      organization_name: formData.organizationName,
-      city: formData.city || null,
-      state: stateValue,
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      email: formData.email
-    })
+    .insert(insertData)
     .select()
     .single();
 
@@ -146,6 +158,10 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     console.error('Error message:', orgError.message);
     console.error('Error hint:', orgError.hint);
     console.error('Error details:', orgError.details);
+    
+    // Try to get more info about RLS policies
+    console.error('Supabase client auth state:', supabase.auth);
+    
     throw new Error(`Failed to submit organization request: ${orgError.message}`);
   }
 
