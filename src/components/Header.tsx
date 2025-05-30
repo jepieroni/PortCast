@@ -58,7 +58,7 @@ const Header = ({ isGlobalAdmin, isOrgAdmin, loading, user, currentView, onAddSh
               >
                 <Settings size={16} className="mr-2" />
                 Admin
-                {isGlobalAdmin && hasPendingRequests && (
+                {hasPendingRequests && (
                   <Bell 
                     size={16} 
                     className="absolute -top-1 -right-1 text-red-600 fill-red-600 animate-[ring_4s_ease-in-out_infinite]" 
