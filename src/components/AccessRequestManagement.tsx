@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -88,26 +87,82 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
 
   const handleOrgRequestAction = async (requestId: string, action: 'approve' | 'deny') => {
     try {
-      const { error } = await supabase
-        .from('organization_requests')
-        .update({
-          status: action === 'approve' ? 'approved' : 'denied',
-          reviewed_at: new Date().toISOString()
-        })
-        .eq('id', requestId);
+      if (action === 'approve') {
+        // Get the organization request details
+        const orgRequest = orgRequests.find(req => req.id === requestId);
+        if (!orgRequest) {
+          throw new Error('Organization request not found');
+        }
 
-      if (error) throw error;
+        console.log('Processing organization approval for:', orgRequest.organization_name);
 
-      toast({
-        title: "Success",
-        description: `Organization request ${action}d successfully`,
-      });
+        // Call the new organization approval edge function
+        const { data, error } = await supabase.functions.invoke('approve-organization-request', {
+          body: {
+            requestId: requestId,
+            action: 'approve',
+            organizationName: orgRequest.organization_name,
+            city: orgRequest.city,
+            state: orgRequest.state,
+            firstName: orgRequest.first_name,
+            lastName: orgRequest.last_name,
+            email: orgRequest.email
+          }
+        });
+
+        if (error) {
+          console.error('Organization approval error:', error);
+          throw error;
+        }
+
+        console.log('Organization approval result:', data);
+
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to approve organization');
+        }
+
+        toast({
+          title: "Success",
+          description: `Organization "${orgRequest.organization_name}" approved successfully. Account setup email sent to ${orgRequest.email}.`,
+        });
+      } else {
+        // For denial, call the same function
+        const orgRequest = orgRequests.find(req => req.id === requestId);
+        if (!orgRequest) {
+          throw new Error('Organization request not found');
+        }
+
+        const { data, error } = await supabase.functions.invoke('approve-organization-request', {
+          body: {
+            requestId: requestId,
+            action: 'deny',
+            organizationName: orgRequest.organization_name,
+            city: orgRequest.city,
+            state: orgRequest.state,
+            firstName: orgRequest.first_name,
+            lastName: orgRequest.last_name,
+            email: orgRequest.email
+          }
+        });
+
+        if (error) throw error;
+
+        if (!data.success) {
+          throw new Error(data.message || 'Failed to deny organization');
+        }
+
+        toast({
+          title: "Success",
+          description: `Organization request denied successfully`,
+        });
+      }
 
       fetchRequests();
     } catch (error: any) {
+      console.error('Error in handleOrgRequestAction:', error);
       toast({
         title: "Error",
-        description: `Failed to ${action} organization request`,
+        description: `Failed to ${action} organization request: ${error.message}`,
         variant: "destructive",
       });
     }
