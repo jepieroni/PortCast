@@ -128,32 +128,29 @@ export const useAuth = () => {
       console.log('Starting sign out process...');
       setLoading(true);
       
-      // Clear local state immediately
+      // Clear local state immediately to prevent any UI flickering
       setUser(null);
       setIsGlobalAdmin(false);
       setIsOrgAdmin(false);
       
-      // Set a timeout to prevent hanging
-      const signOutTimeout = setTimeout(() => {
-        console.warn('Sign out took too long, forcing completion');
-        setLoading(false);
-        toast({
-          title: "Signed out",
-          description: "You have been signed out successfully",
-        });
-      }, 5000); // 5 second timeout
-      
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      clearTimeout(signOutTimeout);
+      // Sign out from Supabase - this will trigger the auth state change listener
+      const { error } = await supabase.auth.signOut({
+        scope: 'local' // This ensures we clear the local session
+      });
       
       if (error) {
         console.error('Sign out error:', error);
-        // Don't treat this as a failure - user state is already cleared
+        // Even if there's an error, we've already cleared local state
+        // This handles cases where the session is already expired
       }
       
       console.log('Sign out completed');
+      
+      // Force a page reload to ensure all state is completely cleared
+      // This prevents any cached state from persisting
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
       
       toast({
         title: "Signed out",
@@ -162,7 +159,11 @@ export const useAuth = () => {
       
     } catch (error) {
       console.error('Unexpected sign out error:', error);
-      // Still show success message since we cleared local state
+      // Force reload even on error to ensure clean state
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      
       toast({
         title: "Signed out",
         description: "You have been signed out successfully",
