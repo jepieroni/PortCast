@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users } from 'lucide-react';
-import type { OrgUser } from '@/hooks/useOrgAdminData';
+import type { OrgUser } from '@/types/orgAdmin';
 
 interface OrganizationUsersTableProps {
   orgUsers: OrgUser[];

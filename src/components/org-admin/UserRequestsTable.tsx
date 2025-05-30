@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileText, Check, X } from 'lucide-react';
-import type { OrgUserRequest } from '@/hooks/useOrgAdminData';
+import type { OrgUserRequest } from '@/types/orgAdmin';
 
 interface UserRequestsTableProps {
   userRequests: OrgUserRequest[];
