@@ -82,6 +82,47 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Get the token type to determine what role to assign
+    const { data: setupTokenData, error: setupTokenError } = await supabase
+      .from('account_setup_tokens')
+      .select('token_type')
+      .eq('token', token)
+      .single();
+
+    if (setupTokenError) {
+      console.error('Error fetching token type:', setupTokenError);
+    } else {
+      console.log('Token type:', setupTokenData.token_type);
+      
+      // Assign role based on token type
+      let roleToAssign = 'user'; // default role
+      
+      if (setupTokenData.token_type === 'organization_admin') {
+        roleToAssign = 'org_admin';
+      } else if (setupTokenData.token_type === 'user') {
+        roleToAssign = 'user';
+      }
+
+      console.log('Assigning role:', roleToAssign);
+
+      // Insert the user role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: authResult.user.id,
+          role: roleToAssign,
+          organization_id: tokenResult.organization_id,
+          assigned_by: authResult.user.id // Self-assigned during setup
+        });
+
+      if (roleError) {
+        console.error('Role assignment error:', roleError);
+        // Don't fail the whole operation, but log it
+      } else {
+        console.log('Role assigned successfully:', roleToAssign);
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Account created successfully',
