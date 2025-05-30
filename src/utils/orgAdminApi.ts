@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import type { OrgUser, OrgUserRequest } from '@/types/orgAdmin';
@@ -63,7 +64,7 @@ export const fetchOrganizationUsers = async (organizationId: string): Promise<Or
     email: user.email || '',
     first_name: user.first_name || '',
     last_name: user.last_name || '',
-    role: roleMap.get(user.id) || undefined
+    role: roleMap.get(user.id) || 'user' // Default to 'user' if no role is found
   }));
 };
 
