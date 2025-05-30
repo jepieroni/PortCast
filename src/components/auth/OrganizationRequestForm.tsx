@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Captcha } from '@/components/ui/captcha';
+import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { STATE_OPTIONS } from '@/constants/stateOptions';
 import { 
@@ -13,6 +14,7 @@ import {
   submitOrganizationRequest, 
   OrganizationFormData 
 } from '@/utils/organizationApi';
+import { Loader2 } from 'lucide-react';
 
 interface OrganizationRequestFormProps {
   onBackToUserRequest: () => void;
@@ -22,6 +24,7 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [captchaValid, setCaptchaValid] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [orgFormData, setOrgFormData] = useState<OrganizationFormData>({
     organizationName: '',
     city: '',
@@ -45,16 +48,29 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
     }
 
     setLoading(true);
+    setProgress(0);
 
     try {
+      // Progress: Starting validation
+      setProgress(15);
+
       // Validate organization name
       await checkExistingOrganization(orgFormData.organizationName);
       
+      // Progress: Organization validation complete
+      setProgress(30);
+
       // Check for existing user/request
       await checkExistingUser(orgFormData.email);
 
+      // Progress: User validation complete, submitting request
+      setProgress(50);
+
       // Submit organization request without password
       await submitOrganizationRequest(orgFormData);
+
+      // Progress: Complete
+      setProgress(100);
 
       toast({
         title: "Request Submitted",
@@ -82,6 +98,7 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
       });
     } finally {
       setLoading(false);
+      setProgress(0);
     }
   };
 
@@ -103,6 +120,22 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
           Back to User Request
         </Button>
       </div>
+
+      {loading && (
+        <div className="space-y-3 p-4 bg-blue-50 rounded-lg border">
+          <div className="flex items-center justify-center space-x-2">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <span className="text-blue-700 font-medium">Processing your organization request...</span>
+          </div>
+          <Progress value={progress} className="w-full" />
+          <p className="text-sm text-blue-600 text-center">
+            {progress < 25 && "Validating organization name..."}
+            {progress >= 25 && progress < 45 && "Checking user information..."}
+            {progress >= 45 && progress < 80 && "Submitting request and sending notifications..."}
+            {progress >= 80 && "Finalizing..."}
+          </p>
+        </div>
+      )}
       
       <div className="space-y-2">
         <Label htmlFor="orgName">Organization Name</Label>

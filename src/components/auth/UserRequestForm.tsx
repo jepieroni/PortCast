@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Captcha } from '@/components/ui/captcha';
+import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { checkExistingUser } from '@/utils/organizationApi';
@@ -24,6 +25,7 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
   const [lastName, setLastName] = useState('');
   const [selectedOrganization, setSelectedOrganization] = useState('');
   const [captchaValid, setCaptchaValid] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const handleRequestAccess = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,14 +40,21 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
     }
 
     setLoading(true);
+    setProgress(0);
 
     try {
       if (!selectedOrganization) {
         throw new Error('Please select an organization');
       }
 
+      // Progress: Starting validation
+      setProgress(20);
+
       // Check for existing user/request
       await checkExistingUser(email);
+
+      // Progress: Validation complete, submitting request
+      setProgress(40);
 
       // Submit request without password
       const { error } = await supabase
@@ -63,6 +72,9 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
         }
         throw error;
       }
+
+      // Progress: Request submitted, sending notifications
+      setProgress(60);
 
       // Get organization name for emails
       const selectedOrg = organizations.find(org => org.id === selectedOrganization);
@@ -88,6 +100,9 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
         console.error('Error sending trusted agent notification:', emailError);
       }
 
+      // Progress: First email sent
+      setProgress(80);
+
       // Send user acknowledgment email
       try {
         const { error: userAckEmailError } = await supabase.functions.invoke('send-user-request-acknowledgment', {
@@ -107,6 +122,9 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
       } catch (emailError) {
         console.error('Error sending user acknowledgment email:', emailError);
       }
+
+      // Progress: Complete
+      setProgress(100);
 
       toast({
         title: "Request Submitted",
@@ -128,11 +146,28 @@ const UserRequestForm = ({ organizations, organizationsLoading, onShowOrgRegistr
       });
     } finally {
       setLoading(false);
+      setProgress(0);
     }
   };
 
   return (
     <form onSubmit={handleRequestAccess} className="space-y-4">
+      {loading && (
+        <div className="space-y-3 p-4 bg-blue-50 rounded-lg border">
+          <div className="flex items-center justify-center space-x-2">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            <span className="text-blue-700 font-medium">Processing your request...</span>
+          </div>
+          <Progress value={progress} className="w-full" />
+          <p className="text-sm text-blue-600 text-center">
+            {progress < 30 && "Validating your information..."}
+            {progress >= 30 && progress < 50 && "Submitting your request..."}
+            {progress >= 50 && progress < 90 && "Sending notifications..."}
+            {progress >= 90 && "Finalizing..."}
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name</Label>
