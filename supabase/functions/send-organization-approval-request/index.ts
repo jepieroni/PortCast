@@ -33,17 +33,10 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Processing organization approval request for:', organizationName);
 
-    // Get all global admins
+    // Get all global admins - First get the user IDs with global_admin role
     const { data: globalAdminRoles, error: adminRoleError } = await supabase
       .from('user_roles')
-      .select(`
-        user_id,
-        profiles!inner (
-          email,
-          first_name,
-          last_name
-        )
-      `)
+      .select('user_id')
       .eq('role', 'global_admin');
 
     console.log('Global admin roles query result:', { globalAdminRoles, adminRoleError });
@@ -69,7 +62,39 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log('Sending to global admins:', globalAdminRoles);
+    // Now get the profile information for these users
+    const userIds = globalAdminRoles.map(role => role.user_id);
+    console.log('Global admin user IDs:', userIds);
+
+    const { data: adminProfiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, email, first_name, last_name')
+      .in('id', userIds);
+
+    console.log('Admin profiles query result:', { adminProfiles, profileError });
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    if (!adminProfiles || adminProfiles.length === 0) {
+      console.log('No admin profiles found - cannot send approval emails');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No global administrator profiles found to send approval request to' 
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    console.log('Sending to admin profiles:', adminProfiles);
 
     // Get the current request URL to determine the correct base URL
     const requestUrl = new URL(req.url);
@@ -81,19 +106,19 @@ const handler = async (req: Request): Promise<Response> => {
       : 'https://portcast-voyage-builder.lovable.app';
 
     // Send email to all global admins
-    const emailPromises = globalAdminRoles.map(async (admin) => {
-      if (!admin.profiles?.email) {
+    const emailPromises = adminProfiles.map(async (admin) => {
+      if (!admin.email) {
         console.log('Skipping admin with no email:', admin);
         return;
       }
 
       const locationString = city && state ? `${city}, ${state}` : city || state || 'Not specified';
 
-      console.log('Sending email to admin:', admin.profiles.email);
+      console.log('Sending email to admin:', admin.email);
 
       return resend.emails.send({
         from: "PortCast <admin@portcast.app>",
-        to: [admin.profiles.email],
+        to: [admin.email],
         subject: `New Organization Registration Request: ${organizationName}`,
         html: `
           <h2>New Organization Registration Request</h2>
