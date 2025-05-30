@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -313,9 +314,9 @@ export const useScacManagement = (isGlobalAdmin: boolean) => {
       return true;
     }
     
-    // For org admins, they can claim TSPs that are "Unassigned" (organization_name === "Unassigned")
+    // For org admins, they can claim TSPs that are "Unclaimed" (organization_name === "Unclaimed")
     // OR TSPs already assigned to their organization
-    const canClaim = tsp.organization_name === "Unassigned" || tsp.organization_id === organizationId;
+    const canClaim = tsp.organization_name === "Unclaimed" || tsp.organization_id === organizationId;
     console.log('Org admin claimability result:', canClaim);
     return canClaim;
   };
