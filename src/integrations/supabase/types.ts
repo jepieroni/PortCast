@@ -92,7 +92,7 @@ export type Database = {
           organization_name: string
           reviewed_at: string | null
           reviewed_by: string | null
-          state: string | null
+          state: Database["public"]["Enums"]["us_state_code"] | null
           status: Database["public"]["Enums"]["user_request_status"]
           updated_at: string
         }
@@ -107,7 +107,7 @@ export type Database = {
           organization_name: string
           reviewed_at?: string | null
           reviewed_by?: string | null
-          state?: string | null
+          state?: Database["public"]["Enums"]["us_state_code"] | null
           status?: Database["public"]["Enums"]["user_request_status"]
           updated_at?: string
         }
@@ -122,7 +122,7 @@ export type Database = {
           organization_name?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
-          state?: string | null
+          state?: Database["public"]["Enums"]["us_state_code"] | null
           status?: Database["public"]["Enums"]["user_request_status"]
           updated_at?: string
         }
@@ -134,7 +134,7 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
-          state: string | null
+          state: Database["public"]["Enums"]["us_state_code"] | null
           trusted_agent_email: string | null
           updated_at: string | null
         }
@@ -143,7 +143,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
-          state?: string | null
+          state?: Database["public"]["Enums"]["us_state_code"] | null
           trusted_agent_email?: string | null
           updated_at?: string | null
         }
@@ -152,7 +152,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
-          state?: string | null
+          state?: Database["public"]["Enums"]["us_state_code"] | null
           trusted_agent_email?: string | null
           updated_at?: string | null
         }
@@ -498,6 +498,59 @@ export type Database = {
     }
     Enums: {
       shipment_type: "inbound" | "outbound" | "intertheater"
+      us_state_code:
+        | "AL"
+        | "AK"
+        | "AZ"
+        | "AR"
+        | "CA"
+        | "CO"
+        | "CT"
+        | "DE"
+        | "FL"
+        | "GA"
+        | "HI"
+        | "ID"
+        | "IL"
+        | "IN"
+        | "IA"
+        | "KS"
+        | "KY"
+        | "LA"
+        | "ME"
+        | "MD"
+        | "MA"
+        | "MI"
+        | "MN"
+        | "MS"
+        | "MO"
+        | "MT"
+        | "NE"
+        | "NV"
+        | "NH"
+        | "NJ"
+        | "NM"
+        | "NY"
+        | "NC"
+        | "ND"
+        | "OH"
+        | "OK"
+        | "OR"
+        | "PA"
+        | "RI"
+        | "SC"
+        | "SD"
+        | "TN"
+        | "TX"
+        | "UT"
+        | "VT"
+        | "VA"
+        | "WA"
+        | "WV"
+        | "WI"
+        | "WY"
+        | "DC"
+        | "GU"
       user_request_status: "pending" | "approved" | "denied"
       user_role: "global_admin" | "org_admin" | "user"
     }
@@ -616,6 +669,60 @@ export const Constants = {
   public: {
     Enums: {
       shipment_type: ["inbound", "outbound", "intertheater"],
+      us_state_code: [
+        "AL",
+        "AK",
+        "AZ",
+        "AR",
+        "CA",
+        "CO",
+        "CT",
+        "DE",
+        "FL",
+        "GA",
+        "HI",
+        "ID",
+        "IL",
+        "IN",
+        "IA",
+        "KS",
+        "KY",
+        "LA",
+        "ME",
+        "MD",
+        "MA",
+        "MI",
+        "MN",
+        "MS",
+        "MO",
+        "MT",
+        "NE",
+        "NV",
+        "NH",
+        "NJ",
+        "NM",
+        "NY",
+        "NC",
+        "ND",
+        "OH",
+        "OK",
+        "OR",
+        "PA",
+        "RI",
+        "SC",
+        "SD",
+        "TN",
+        "TX",
+        "UT",
+        "VT",
+        "VA",
+        "WA",
+        "WV",
+        "WI",
+        "WY",
+        "DC",
+        "GU",
+      ],
       user_request_status: ["pending", "approved", "denied"],
       user_role: ["global_admin", "org_admin", "user"],
     },

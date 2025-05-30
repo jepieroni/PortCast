@@ -31,6 +31,8 @@ const handler = async (req: Request): Promise<Response> => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const { organizationName, city, state, firstName, lastName, email }: OrganizationApprovalRequestBody = await req.json();
 
+    console.log('Processing organization approval request for:', organizationName);
+
     // Get the organization request for the approval token
     const { data: orgRequest, error: requestError } = await supabase
       .from('organization_requests')
@@ -43,15 +45,18 @@ const handler = async (req: Request): Promise<Response> => {
       .single();
 
     if (requestError || !orgRequest) {
+      console.error('Organization request not found:', requestError);
       throw new Error('Organization request not found');
     }
 
-    // Get all global admins
-    const { data: globalAdmins, error: adminError } = await supabase
+    console.log('Found organization request with token:', orgRequest.approval_token);
+
+    // Get all global admins - First try to get users with global_admin role
+    const { data: globalAdminRoles, error: adminRoleError } = await supabase
       .from('user_roles')
       .select(`
         user_id,
-        profiles (
+        profiles!inner (
           email,
           first_name,
           last_name
@@ -59,13 +64,23 @@ const handler = async (req: Request): Promise<Response> => {
       `)
       .eq('role', 'global_admin');
 
-    if (adminError) {
-      throw new Error('Failed to fetch global admins');
+    console.log('Global admin roles query result:', { globalAdminRoles, adminRoleError });
+
+    let globalAdmins = globalAdminRoles || [];
+
+    // If no global admins found via roles, send to a fallback admin email
+    if (!globalAdmins || globalAdmins.length === 0) {
+      console.log('No global admins found in user_roles, using fallback admin email');
+      globalAdmins = [{
+        profiles: {
+          email: 'admin@portcast.app',
+          first_name: 'System',
+          last_name: 'Administrator'
+        }
+      }];
     }
 
-    if (!globalAdmins || globalAdmins.length === 0) {
-      throw new Error('No global administrators found');
-    }
+    console.log('Sending to global admins:', globalAdmins);
 
     // Construct the proper Edge Function URL
     const baseUrl = supabaseUrl.replace('/rest/v1', '');
@@ -75,9 +90,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email to all global admins
     const emailPromises = globalAdmins.map(async (admin) => {
-      if (!admin.profiles?.email) return;
+      if (!admin.profiles?.email) {
+        console.log('Skipping admin with no email:', admin);
+        return;
+      }
 
       const locationString = city && state ? `${city}, ${state}` : city || state || 'Not specified';
+
+      console.log('Sending email to admin:', admin.profiles.email);
 
       return resend.emails.send({
         from: "PortCast <admin@portcast.app>",
@@ -123,9 +143,17 @@ const handler = async (req: Request): Promise<Response> => {
       });
     });
 
-    await Promise.all(emailPromises);
+    const emailResults = await Promise.allSettled(emailPromises);
+    
+    emailResults.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        console.log(`Email ${index + 1} sent successfully:`, result.value);
+      } else {
+        console.error(`Email ${index + 1} failed:`, result.reason);
+      }
+    });
 
-    console.log("Organization approval emails sent successfully to global admins");
+    console.log("Organization approval emails processing completed");
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

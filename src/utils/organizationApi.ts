@@ -93,7 +93,10 @@ export interface OrganizationFormData {
 }
 
 export const submitOrganizationRequest = async (formData: OrganizationFormData) => {
-  const { error } = await supabase
+  console.log('Submitting organization request:', formData);
+  
+  // Submit the organization request
+  const { data: orgRequest, error: orgError } = await supabase
     .from('organization_requests')
     .insert({
       organization_name: formData.organizationName,
@@ -102,13 +105,20 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
       first_name: formData.firstName,
       last_name: formData.lastName,
       email: formData.email
-      // Removed password_hash field
-    });
+    })
+    .select()
+    .single();
 
-  if (error) throw error;
+  if (orgError) {
+    console.error('Error creating organization request:', orgError);
+    throw orgError;
+  }
+
+  console.log('Organization request created:', orgRequest);
 
   // Send notification email to global admins
-  const { error: emailError } = await supabase.functions.invoke('send-organization-approval-request', {
+  console.log('Sending organization approval request email...');
+  const { data: emailData, error: emailError } = await supabase.functions.invoke('send-organization-approval-request', {
     body: {
       organizationName: formData.organizationName,
       city: formData.city,
@@ -121,5 +131,26 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
 
   if (emailError) {
     console.error('Failed to send approval email:', emailError);
+    throw new Error(`Failed to send approval notification: ${emailError.message}`);
+  } else {
+    console.log('Organization approval notification sent successfully:', emailData);
+  }
+
+  // Send acknowledgment email to the applicant
+  console.log('Sending applicant acknowledgment email...');
+  const { data: ackEmailData, error: ackEmailError } = await supabase.functions.invoke('send-organization-request-acknowledgment', {
+    body: {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      organizationName: formData.organizationName
+    }
+  });
+
+  if (ackEmailError) {
+    console.error('Failed to send acknowledgment email:', ackEmailError);
+    // Don't throw here, as the main request was successful
+  } else {
+    console.log('Organization request acknowledgment sent successfully:', ackEmailData);
   }
 };
