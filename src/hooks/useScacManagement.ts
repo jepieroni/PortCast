@@ -303,7 +303,8 @@ export const useScacManagement = (isGlobalAdmin: boolean) => {
       scac: tsp.scac_code,
       tspOrgId: tsp.organization_id,
       userOrgId: organizationId,
-      isGlobalAdmin
+      isGlobalAdmin,
+      orgName: tsp.organization_name
     });
     
     // For global admins, they can claim any TSP
@@ -312,9 +313,9 @@ export const useScacManagement = (isGlobalAdmin: boolean) => {
       return true;
     }
     
-    // For org admins, they can only claim unassigned TSPs (organization_id is null)
+    // For org admins, they can claim TSPs that are "Unassigned" (organization_name === "Unassigned")
     // OR TSPs already assigned to their organization
-    const canClaim = tsp.organization_id === null || tsp.organization_id === organizationId;
+    const canClaim = tsp.organization_name === "Unassigned" || tsp.organization_id === organizationId;
     console.log('Org admin claimability result:', canClaim);
     return canClaim;
   };
