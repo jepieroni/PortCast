@@ -33,24 +33,6 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Processing organization approval request for:', organizationName);
 
-    // Get the organization request for the approval token
-    const { data: orgRequest, error: requestError } = await supabase
-      .from('organization_requests')
-      .select('approval_token')
-      .eq('email', email)
-      .eq('organization_name', organizationName)
-      .eq('status', 'pending')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (requestError || !orgRequest) {
-      console.error('Organization request not found:', requestError);
-      throw new Error('Organization request not found');
-    }
-
-    console.log('Found organization request with token:', orgRequest.approval_token);
-
     // Get all global admins - First try to get users with global_admin role
     const { data: globalAdminRoles, error: adminRoleError } = await supabase
       .from('user_roles')
@@ -82,11 +64,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Sending to global admins:', globalAdmins);
 
-    // Construct the proper Edge Function URL
-    const baseUrl = supabaseUrl.replace('/rest/v1', '');
-    const approvalUrl = `${baseUrl}/functions/v1/handle-organization-approval?token=${orgRequest.approval_token}`;
-
-    console.log('Organization approval URL constructed:', approvalUrl);
+    // Get the current request URL to determine the correct base URL
+    const requestUrl = new URL(req.url);
+    const isLocalhost = requestUrl.hostname === 'localhost';
+    
+    // Use the appropriate base URL based on environment
+    const appBaseUrl = isLocalhost 
+      ? 'http://localhost:3000'
+      : 'https://portcast-voyage-builder.lovable.app';
 
     // Send email to all global admins
     const emailPromises = globalAdmins.map(async (admin) => {
@@ -119,26 +104,21 @@ const handler = async (req: Request): Promise<Response> => {
             <li><strong>Email:</strong> ${email}</li>
           </ul>
           
-          <p>Please review this request and take action:</p>
+          <p><strong>Action Required:</strong> Please log into the PortCast Admin Dashboard to review and approve or deny this organization registration request.</p>
           
           <div style="margin: 20px 0;">
-            <a href="${approvalUrl}&action=approve" 
-               style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-right: 10px; display: inline-block;">
-              Approve Request
+            <a href="${appBaseUrl}" 
+               style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+              Go to Admin Dashboard
             </a>
-            <a href="${approvalUrl}&action=deny" 
-               style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-              Deny Request
-            </a>
-          </div>
-          
-          <p><small><strong>Note:</strong> If the buttons don't work, you can copy and paste these links directly into your browser:</small></p>
-          <div style="margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 4px; font-size: 12px;">
-            <p><strong>Approve:</strong> ${approvalUrl}&action=approve</p>
-            <p><strong>Deny:</strong> ${approvalUrl}&action=deny</p>
           </div>
           
           <p><small>This request was submitted through the PortCast system. If you did not expect this request, please contact your system administrator.</small></p>
+          
+          <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+          <p style="font-size: 12px; color: #666;">
+            This is an automated message. Please do not reply to this email.
+          </p>
         `,
       });
     });

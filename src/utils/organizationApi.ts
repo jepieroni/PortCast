@@ -96,7 +96,7 @@ export interface OrganizationFormData {
 }
 
 export const submitOrganizationRequest = async (formData: OrganizationFormData) => {
-  console.log('Submitting organization request:', formData);
+  console.log('Submitting combined organization and user request:', formData);
   
   // Validate required fields
   if (!formData.organizationName || !formData.firstName || !formData.lastName || !formData.email) {
@@ -127,7 +127,7 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
 
   console.log('Organization request created:', orgRequest);
 
-  // Send notification email to global admins
+  // Send notification email to global admins (without direct approval links)
   console.log('Sending organization approval request email...');
   try {
     const { data: emailData, error: emailError } = await supabase.functions.invoke('send-organization-approval-request', {

@@ -69,7 +69,7 @@ const handler = async (req: Request): Promise<Response> => {
         throw orgError;
       }
 
-      // Create account setup token for organization admin instead of immediate account creation
+      // Create account setup token for organization admin
       const { data: setupToken, error: setupTokenError } = await supabase
         .from('account_setup_tokens')
         .insert({
@@ -87,7 +87,25 @@ const handler = async (req: Request): Promise<Response> => {
         throw setupTokenError;
       }
 
-      // Update the request status
+      // Create a user request for the organization admin
+      const { data: userRequest, error: userRequestError } = await supabase
+        .from('user_requests')
+        .insert({
+          email: orgRequest.email,
+          first_name: orgRequest.first_name,
+          last_name: orgRequest.last_name,
+          organization_id: organization.id,
+          status: 'approved'
+        })
+        .select()
+        .single();
+
+      if (userRequestError) {
+        console.error('Failed to create user request:', userRequestError);
+        // Continue anyway, we can create the user request manually later
+      }
+
+      // Update the organization request status
       const { error: updateError } = await supabase
         .from('organization_requests')
         .update({
@@ -128,6 +146,7 @@ const handler = async (req: Request): Promise<Response> => {
             <li>Manage user access requests for your organization</li>
             <li>Register and manage shipments</li>
             <li>Access consolidation dashboards</li>
+            <li>Serve as the trusted agent for your organization</li>
           </ul>
           
           <p><small><strong>Note:</strong> This link will expire in 48 hours for security purposes.</small></p>
@@ -147,6 +166,7 @@ const handler = async (req: Request): Promise<Response> => {
             <h2 style="color: #16a34a;">✓ Organization Registration Approved</h2>
             <p>The organization registration for <strong>${orgRequest.organization_name}</strong> has been approved successfully.</p>
             <p>The organization administrator (${orgRequest.email}) has been sent an email with account setup instructions.</p>
+            <p>The organization has been created with the trusted agent set to the administrator's email.</p>
             <p><a href="/">Return to PortCast</a></p>
           </body>
         </html>
