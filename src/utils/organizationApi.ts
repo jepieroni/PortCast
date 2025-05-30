@@ -36,7 +36,7 @@ export const checkExistingOrganization = async (name: string) => {
 };
 
 export const checkExistingUser = async (email: string) => {
-  // Check if user already exists in profiles
+  // Check if user already exists in profiles (which represents actual users)
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
     .select('id')
@@ -56,7 +56,7 @@ export const checkExistingUser = async (email: string) => {
     .from('user_requests')
     .select('id, status')
     .eq('email', email)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'approved'])
     .maybeSingle();
 
   if (userRequestError && userRequestError.code !== 'PGRST116') {
@@ -64,7 +64,11 @@ export const checkExistingUser = async (email: string) => {
   }
 
   if (userRequestData) {
-    throw new Error('A signup request for this email address is already pending approval.');
+    if (userRequestData.status === 'pending') {
+      throw new Error('A signup request for this email address is already pending approval.');
+    } else if (userRequestData.status === 'approved') {
+      throw new Error('A signup request for this email address has already been approved. Please check for account setup instructions.');
+    }
   }
 
   // Check if there's a pending organization request with the same email
@@ -72,7 +76,7 @@ export const checkExistingUser = async (email: string) => {
     .from('organization_requests')
     .select('id, status')
     .eq('email', email)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'approved'])
     .maybeSingle();
 
   if (orgRequestError && orgRequestError.code !== 'PGRST116') {
@@ -80,7 +84,28 @@ export const checkExistingUser = async (email: string) => {
   }
 
   if (orgRequestData) {
-    throw new Error('An organization registration request for this email address is already pending approval.');
+    if (orgRequestData.status === 'pending') {
+      throw new Error('An organization registration request for this email address is already pending approval.');
+    } else if (orgRequestData.status === 'approved') {
+      throw new Error('An organization registration request for this email address has already been approved. Please check for account setup instructions.');
+    }
+  }
+
+  // Check if there's an unused account setup token for this email
+  const { data: tokenData, error: tokenError } = await supabase
+    .from('account_setup_tokens')
+    .select('id, used_at, expires_at')
+    .eq('email', email)
+    .is('used_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+
+  if (tokenError && tokenError.code !== 'PGRST116') {
+    throw tokenError;
+  }
+
+  if (tokenData) {
+    throw new Error('An account setup invitation for this email address is already pending. Please check your email for setup instructions.');
   }
 };
 
