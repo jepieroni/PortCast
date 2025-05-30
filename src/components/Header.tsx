@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Ship, Plus, MessageSquare, LogOut, Settings, Bell } from 'lucide-react';
+import { Ship, Plus, LogOut, Settings, Bell } from 'lucide-react';
 import { usePendingRequests } from '@/hooks/usePendingRequests';
 
 interface HeaderProps {
@@ -35,10 +35,6 @@ const Header = ({ isGlobalAdmin, isOrgAdmin, loading, onAddShipment, onAdmin, on
             >
               <Plus size={16} className="mr-2" />
               Add Shipment
-            </Button>
-            <Button variant="outline">
-              <MessageSquare size={16} className="mr-2" />
-              Forum
             </Button>
             {isAnyAdmin && (
               <Button 
