@@ -29,7 +29,12 @@ interface ScacClaim {
   requested_by: string;
   requester_name: string;
   tsp_ids: string[];
-  tsp_details: TSP[];
+  tsp_details: {
+    id: string;
+    scac_code: string;
+    name: string;
+    organization_id: string | null;
+  }[];
   status: string;
   requested_at: string;
   approval_token: string;
@@ -115,32 +120,47 @@ const ScacManagement = ({ onBack, isGlobalAdmin }: ScacManagementProps) => {
           status,
           requested_at,
           approval_token,
-          organizations (name),
-          profiles!scac_claims_requested_by_fkey (first_name, last_name)
+          organizations (name)
         `)
         .eq('status', 'pending')
         .order('requested_at', { ascending: false });
 
       if (claimsError) throw claimsError;
 
+      // Get requester profiles separately
+      const requesterIds = claimsData?.map(claim => claim.requested_by) || [];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', requesterIds);
+
+      if (profilesError) throw profilesError;
+
       // Fetch TSP details for each claim
       const formattedClaims = await Promise.all(
         (claimsData || []).map(async (claim) => {
           const { data: tspDetails, error: tspError } = await supabase
             .from('tsps')
-            .select('id, scac_code, name')
+            .select('id, scac_code, name, organization_id')
             .in('id', claim.tsp_ids);
 
           if (tspError) console.error('Error fetching TSP details:', tspError);
+
+          const requesterProfile = profiles?.find(p => p.id === claim.requested_by);
 
           return {
             id: claim.id,
             organization_id: claim.organization_id,
             organization_name: claim.organizations?.name || 'Unknown',
             requested_by: claim.requested_by,
-            requester_name: `${claim.profiles?.first_name || ''} ${claim.profiles?.last_name || ''}`.trim(),
+            requester_name: `${requesterProfile?.first_name || ''} ${requesterProfile?.last_name || ''}`.trim(),
             tsp_ids: claim.tsp_ids,
-            tsp_details: tspDetails || [],
+            tsp_details: tspDetails?.map(tsp => ({
+              id: tsp.id,
+              scac_code: tsp.scac_code,
+              name: tsp.name,
+              organization_id: tsp.organization_id
+            })) || [],
             status: claim.status,
             requested_at: claim.requested_at,
             approval_token: claim.approval_token
@@ -397,7 +417,7 @@ const ScacManagement = ({ onBack, isGlobalAdmin }: ScacManagementProps) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead width="50px">Select</TableHead>
+                <TableHead className="w-[50px]">Select</TableHead>
                 <TableHead>SCAC</TableHead>
                 <TableHead>TSP Name</TableHead>
                 <TableHead>Current Owner</TableHead>
