@@ -545,6 +545,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_org_admin_for_organization: {
+        Args: { check_organization_id: string }
+        Returns: boolean
+      }
       validate_and_consume_setup_token: {
         Args: { _token: string }
         Returns: Json
