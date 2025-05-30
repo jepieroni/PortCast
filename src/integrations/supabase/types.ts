@@ -228,6 +228,56 @@ export type Database = {
           },
         ]
       }
+      scac_claims: {
+        Row: {
+          approval_token: string
+          created_at: string
+          id: string
+          organization_id: string
+          requested_at: string
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["scac_claim_status"]
+          tsp_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          approval_token?: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          requested_at?: string
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["scac_claim_status"]
+          tsp_ids: string[]
+          updated_at?: string
+        }
+        Update: {
+          approval_token?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          requested_at?: string
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["scac_claim_status"]
+          tsp_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scac_claims_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shipments: {
         Row: {
           created_at: string | null
@@ -464,6 +514,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_scac_claim: {
+        Args: { _approval_token: string; _approve: boolean }
+        Returns: Json
+      }
       approve_user_request: {
         Args: { _approval_token: string; _approve: boolean }
         Returns: Json
@@ -497,6 +551,7 @@ export type Database = {
       }
     }
     Enums: {
+      scac_claim_status: "pending" | "approved" | "denied"
       shipment_type: "inbound" | "outbound" | "intertheater"
       us_state_code:
         | "AL"
@@ -668,6 +723,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      scac_claim_status: ["pending", "approved", "denied"],
       shipment_type: ["inbound", "outbound", "intertheater"],
       us_state_code: [
         "AL",

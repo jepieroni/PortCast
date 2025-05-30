@@ -9,13 +9,14 @@ import UserManagement from './UserManagement';
 import OrganizationManagement from './OrganizationManagement';
 import AccessRequestManagement from './AccessRequestManagement';
 import UserCleanup from './UserCleanup';
+import ScacManagement from './ScacManagement';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminView = 'dashboard' | 'users' | 'organizations' | 'requests' | 'cleanup';
+type AdminView = 'dashboard' | 'users' | 'organizations' | 'requests' | 'cleanup' | 'scac';
 
 const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
   const { currentUser } = useAdminAccess(onBack);
@@ -31,6 +32,8 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
         return <AccessRequestManagement onBack={() => setCurrentView('dashboard')} />;
       case 'cleanup':
         return <UserCleanup onBack={() => setCurrentView('dashboard')} />;
+      case 'scac':
+        return <ScacManagement onBack={() => setCurrentView('dashboard')} isGlobalAdmin={true} />;
       default:
         return (
           <AdminStats
@@ -38,6 +41,7 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
             onOrganizationManagement={() => setCurrentView('organizations')}
             onAccessRequestManagement={() => setCurrentView('requests')}
             onUserCleanup={() => setCurrentView('cleanup')}
+            onScacManagement={() => setCurrentView('scac')}
           />
         );
     }

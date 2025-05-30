@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Users, FileText, Check, X } from 'lucide-react';
+import { ArrowLeft, Users, FileText, Check, X, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import ScacManagement from './ScacManagement';
 import type { Database } from '@/integrations/supabase/types';
 
 interface OrgAdminDashboardProps {
@@ -15,6 +16,7 @@ interface OrgAdminDashboardProps {
 }
 
 type UserRole = Database['public']['Enums']['user_role'];
+type OrgAdminView = 'dashboard' | 'scac';
 
 interface OrgUser {
   id: string;
@@ -41,10 +43,13 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
   const [userRequests, setUserRequests] = useState<OrgUserRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<OrgAdminView>('dashboard');
 
   useEffect(() => {
-    fetchOrganizationData();
-  }, []);
+    if (currentView === 'dashboard') {
+      fetchOrganizationData();
+    }
+  }, [currentView]);
 
   const fetchOrganizationData = async () => {
     try {
@@ -256,6 +261,10 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
     }
   };
 
+  if (currentView === 'scac') {
+    return <ScacManagement onBack={() => setCurrentView('dashboard')} isGlobalAdmin={false} />;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -276,6 +285,23 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         </Button>
         <h2 className="text-2xl font-bold">Organization Admin Dashboard</h2>
         <Badge variant="default">ORG ADMIN</Badge>
+      </div>
+
+      <div className="flex gap-2 mb-6">
+        <Button 
+          variant={currentView === 'dashboard' ? 'default' : 'outline'}
+          onClick={() => setCurrentView('dashboard')}
+        >
+          <Users size={16} className="mr-2" />
+          Users & Requests
+        </Button>
+        <Button 
+          variant={currentView === 'scac' ? 'default' : 'outline'}
+          onClick={() => setCurrentView('scac')}
+        >
+          <Building2 size={16} className="mr-2" />
+          SCAC Management
+        </Button>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
