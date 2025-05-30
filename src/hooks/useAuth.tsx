@@ -126,31 +126,15 @@ export const useAuth = () => {
   const handleSignOut = async () => {
     try {
       console.log('Starting sign out process...');
-      setLoading(true);
       
-      // Clear local state immediately to prevent any UI flickering
-      setUser(null);
-      setIsGlobalAdmin(false);
-      setIsOrgAdmin(false);
-      
-      // Sign out from Supabase - this will trigger the auth state change listener
-      const { error } = await supabase.auth.signOut({
-        scope: 'local' // This ensures we clear the local session
-      });
+      const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error('Sign out error:', error);
-        // Even if there's an error, we've already cleared local state
-        // This handles cases where the session is already expired
+        throw error;
       }
       
-      console.log('Sign out completed');
-      
-      // Force a page reload to ensure all state is completely cleared
-      // This prevents any cached state from persisting
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      console.log('Sign out completed successfully');
       
       toast({
         title: "Signed out",
@@ -159,17 +143,11 @@ export const useAuth = () => {
       
     } catch (error) {
       console.error('Unexpected sign out error:', error);
-      // Force reload even on error to ensure clean state
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
-      
       toast({
-        title: "Signed out",
-        description: "You have been signed out successfully",
+        title: "Error",
+        description: "There was an error signing out. Please try again.",
+        variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
 
