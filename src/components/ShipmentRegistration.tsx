@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -83,14 +82,29 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
     }
   });
 
-  // Fetch TSPs
+  // Fetch TSPs for user's organization only, sorted by SCAC code
   const { data: tsps = [] } = useQuery({
-    queryKey: ['tsps'],
+    queryKey: ['tsps-user-org'],
     queryFn: async () => {
+      // First get the current user's organization
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) throw new Error('User not authenticated');
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) throw profileError;
+      if (!profile?.organization_id) throw new Error('User organization not found');
+
+      // Then fetch TSPs for that organization, ordered by SCAC code
       const { data, error } = await supabase
         .from('tsps')
         .select('*')
-        .order('name');
+        .eq('organization_id', profile.organization_id)
+        .order('scac_code');
       
       if (error) throw error;
       return data as TSP[];
