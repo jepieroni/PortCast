@@ -37,7 +37,7 @@ export const TspTable = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Available TSPs ({tsps.length})</CardTitle>
+        <CardTitle>Select the SCAC(s) belonging to your organization then click Submit Claim</CardTitle>
         {selectedTsps.length > 0 && (
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">
