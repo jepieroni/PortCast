@@ -33,7 +33,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Processing organization approval request for:', organizationName);
 
-    // Get all global admins - First try to get users with global_admin role
+    // Get all global admins
     const { data: globalAdminRoles, error: adminRoleError } = await supabase
       .from('user_roles')
       .select(`
@@ -48,21 +48,28 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Global admin roles query result:', { globalAdminRoles, adminRoleError });
 
-    let globalAdmins = globalAdminRoles || [];
-
-    // If no global admins found via roles, send to a fallback admin email
-    if (!globalAdmins || globalAdmins.length === 0) {
-      console.log('No global admins found in user_roles, using fallback admin email');
-      globalAdmins = [{
-        profiles: {
-          email: 'admin@portcast.app',
-          first_name: 'System',
-          last_name: 'Administrator'
-        }
-      }];
+    if (adminRoleError) {
+      throw adminRoleError;
     }
 
-    console.log('Sending to global admins:', globalAdmins);
+    if (!globalAdminRoles || globalAdminRoles.length === 0) {
+      console.log('No global admins found - cannot send approval emails');
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No global administrators found to send approval request to' 
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+            ...corsHeaders,
+          },
+        }
+      );
+    }
+
+    console.log('Sending to global admins:', globalAdminRoles);
 
     // Get the current request URL to determine the correct base URL
     const requestUrl = new URL(req.url);
@@ -74,7 +81,7 @@ const handler = async (req: Request): Promise<Response> => {
       : 'https://portcast-voyage-builder.lovable.app';
 
     // Send email to all global admins
-    const emailPromises = globalAdmins.map(async (admin) => {
+    const emailPromises = globalAdminRoles.map(async (admin) => {
       if (!admin.profiles?.email) {
         console.log('Skipping admin with no email:', admin);
         return;
