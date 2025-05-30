@@ -11,6 +11,7 @@ export const STATE_OPTIONS = [
   { value: 'DC', label: 'District of Columbia' },
   { value: 'FL', label: 'Florida' },
   { value: 'GA', label: 'Georgia' },
+  { value: 'GU', label: 'Guam' },
   { value: 'HI', label: 'Hawaii' },
   { value: 'ID', label: 'Idaho' },
   { value: 'IL', label: 'Illinois' },

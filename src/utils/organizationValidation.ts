@@ -10,7 +10,7 @@ export const validateState = (stateValue: string): { isValid: boolean; error: st
   if (!VALID_STATE_CODES.includes(upperState)) {
     return { 
       isValid: false, 
-      error: 'Please enter a valid 2-letter US state code (e.g., CA, NY, TX)' 
+      error: 'Please enter a valid 2-letter US state code (e.g., CA, NY, TX, GU)' 
     };
   }
   

@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Captcha } from '@/components/ui/captcha';
 import { useToast } from '@/hooks/use-toast';
+import { STATE_OPTIONS } from '@/constants/stateOptions';
 import { 
   checkExistingUser, 
   checkExistingOrganization, 
@@ -125,12 +127,22 @@ const OrganizationRequestForm = ({ onBackToUserRequest }: OrganizationRequestFor
         </div>
         <div className="space-y-2">
           <Label htmlFor="orgState">State</Label>
-          <Input
-            id="orgState"
+          <Select
             value={orgFormData.state}
-            onChange={(e) => handleOrgFormChange('state', e.target.value)}
+            onValueChange={(value) => handleOrgFormChange('state', value)}
             disabled={loading}
-          />
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select state" />
+            </SelectTrigger>
+            <SelectContent>
+              {STATE_OPTIONS.map((state) => (
+                <SelectItem key={state.value} value={state.value}>
+                  {state.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
