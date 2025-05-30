@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import type { OrgUser, OrgUserRequest } from '@/types/orgAdmin';
@@ -24,33 +23,29 @@ export const fetchUserOrganization = async (userId: string) => {
 };
 
 export const fetchOrganizationUsers = async (organizationId: string): Promise<OrgUser[]> => {
-  // Fetch organization users with their roles
+  // Fetch organization users with their roles using a LEFT JOIN
   const { data: usersData, error: usersError } = await supabase
     .from('profiles')
-    .select('id, email, first_name, last_name')
+    .select(`
+      id, 
+      email, 
+      first_name, 
+      last_name,
+      user_roles!left(role)
+    `)
     .eq('organization_id', organizationId);
 
   if (usersError) {
     throw usersError;
   }
 
-  // Fetch user roles separately
-  const { data: rolesData, error: rolesError } = await supabase
-    .from('user_roles')
-    .select('user_id, role')
-    .eq('organization_id', organizationId);
-
-  if (rolesError) {
-    throw rolesError;
-  }
-
-  // Combine users with their roles
+  // Transform the data to match our OrgUser interface
   return usersData?.map(user => ({
     id: user.id,
     email: user.email || '',
     first_name: user.first_name || '',
     last_name: user.last_name || '',
-    role: rolesData?.find(role => role.user_id === user.id)?.role
+    role: user.user_roles?.[0]?.role || undefined
   })) || [];
 };
 
