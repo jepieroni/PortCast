@@ -236,6 +236,7 @@ export type Database = {
           country_id: string
           created_at: string | null
           id: string
+          name: string | null
           rate_area: string
           updated_at: string | null
         }
@@ -243,6 +244,7 @@ export type Database = {
           country_id: string
           created_at?: string | null
           id?: string
+          name?: string | null
           rate_area: string
           updated_at?: string | null
         }
@@ -250,6 +252,7 @@ export type Database = {
           country_id?: string
           created_at?: string | null
           id?: string
+          name?: string | null
           rate_area?: string
           updated_at?: string | null
         }

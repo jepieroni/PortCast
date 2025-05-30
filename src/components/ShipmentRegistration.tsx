@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ interface ShipmentRegistrationProps {
 interface RateArea {
   id: string;
   rate_area: string;
+  name: string;
   country_id: string;
   countries: {
     name: string;
@@ -424,7 +424,7 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                         <SelectContent>
                           {rateAreas.map((rateArea) => (
                             <SelectItem key={rateArea.id} value={rateArea.rate_area}>
-                              {rateArea.rate_area} - {rateArea.countries.name}
+                              {rateArea.rate_area} - {rateArea.name || rateArea.countries.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -440,7 +440,7 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                         <SelectContent>
                           {rateAreas.map((rateArea) => (
                             <SelectItem key={rateArea.id} value={rateArea.rate_area}>
-                              {rateArea.rate_area} - {rateArea.countries.name}
+                              {rateArea.rate_area} - {rateArea.name || rateArea.countries.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
