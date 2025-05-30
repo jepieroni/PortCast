@@ -58,20 +58,21 @@ export const TspTable = ({
           </div>
         )}
         
-        {selectedTsps.length > 0 && (
-          <div className="flex items-center gap-4">
+        {/* Submit button and selection count */}
+        <div className="flex items-center gap-4">
+          {selectedTsps.length > 0 && (
             <span className="text-sm text-gray-600">
               {selectedTsps.length} TSP(s) selected
             </span>
-            <Button 
-              onClick={onSubmitClaim} 
-              disabled={submitting}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {submitting ? 'Submitting...' : (isGlobalAdmin ? 'Claim TSPs' : 'Submit Claim')}
-            </Button>
-          </div>
-        )}
+          )}
+          <Button 
+            onClick={onSubmitClaim} 
+            disabled={submitting || selectedTsps.length === 0}
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+          >
+            {submitting ? 'Submitting...' : (isGlobalAdmin ? 'Claim TSPs' : 'Submit Claim')}
+          </Button>
+        </div>
       </CardHeader>
       
       {/* Scrollable content area */}
