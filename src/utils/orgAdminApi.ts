@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import type { OrgUser, OrgUserRequest } from '@/types/orgAdmin';
@@ -24,30 +23,48 @@ export const fetchUserOrganization = async (userId: string) => {
 };
 
 export const fetchOrganizationUsers = async (organizationId: string): Promise<OrgUser[]> => {
-  // Fetch organization users with their roles using a LEFT JOIN
+  // First, fetch all users in the organization
   const { data: usersData, error: usersError } = await supabase
     .from('profiles')
-    .select(`
-      id, 
-      email, 
-      first_name, 
-      last_name,
-      user_roles!left(role)
-    `)
+    .select('id, email, first_name, last_name')
     .eq('organization_id', organizationId);
 
   if (usersError) {
     throw usersError;
   }
 
+  if (!usersData || usersData.length === 0) {
+    return [];
+  }
+
+  // Get all user IDs for this organization
+  const userIds = usersData.map(user => user.id);
+
+  // Separately fetch user roles for these users
+  const { data: rolesData, error: rolesError } = await supabase
+    .from('user_roles')
+    .select('user_id, role')
+    .in('user_id', userIds);
+
+  if (rolesError) {
+    console.error('Error fetching roles:', rolesError);
+    // Don't throw here, just continue without roles
+  }
+
+  // Create a map of user roles for easy lookup
+  const roleMap = new Map<string, UserRole>();
+  rolesData?.forEach(roleRecord => {
+    roleMap.set(roleRecord.user_id, roleRecord.role);
+  });
+
   // Transform the data to match our OrgUser interface
-  return usersData?.map(user => ({
+  return usersData.map(user => ({
     id: user.id,
     email: user.email || '',
     first_name: user.first_name || '',
     last_name: user.last_name || '',
-    role: (user.user_roles as any)?.[0]?.role || undefined
-  })) || [];
+    role: roleMap.get(user.id) || undefined
+  }));
 };
 
 export const fetchUserRequests = async (organizationId: string): Promise<OrgUserRequest[]> => {
