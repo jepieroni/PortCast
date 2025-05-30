@@ -5,7 +5,7 @@ export type ViewType = 'main' | 'inbound' | 'outbound' | 'intertheater' | 'regis
 
 export const useNavigation = () => {
   const [currentView, setCurrentView] = useState<ViewType>('main');
-  const [outlookDays, setOutlookDays] = useState([7]);
+  const [outlookDays, setOutlookDays] = useState<number[]>([7]);
 
   const navigateTo = (view: ViewType) => {
     setCurrentView(view);

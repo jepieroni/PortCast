@@ -6,12 +6,12 @@ import AdminDashboard from './AdminDashboard';
 import OrgAdminDashboard from './OrgAdminDashboard';
 import { useAuth } from '@/hooks/useAuth';
 
-export type ViewType = 'main' | 'registration' | 'admin';
+export type ViewType = 'main' | 'inbound' | 'outbound' | 'intertheater' | 'registration' | 'admin';
 
 interface ViewRouterProps {
   currentView: ViewType;
-  outlookDays: number;
-  onOutlookDaysChange: (days: number) => void;
+  outlookDays: number[];
+  onOutlookDaysChange: (days: number[]) => void;
   onNavigate: (view: ViewType) => void;
   onBack: () => void;
 }
@@ -23,8 +23,7 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
     case 'main':
       return (
         <MainDashboard
-          outlookDays={outlookDays}
-          onOutlookDaysChange={onOutlookDaysChange}
+          onCardClick={(cardId) => onNavigate(cardId as ViewType)}
         />
       );
     case 'registration':
@@ -44,8 +43,7 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
     default:
       return (
         <MainDashboard
-          outlookDays={outlookDays}
-          onOutlookDaysChange={onOutlookDaysChange}
+          onCardClick={(cardId) => onNavigate(cardId as ViewType)}
         />
       );
   }
