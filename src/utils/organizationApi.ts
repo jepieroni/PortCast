@@ -1,5 +1,8 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type USStateCode = Database['public']['Enums']['us_state_code'];
 
 export const checkExistingOrganization = async (name: string) => {
   const { data: orgData, error: orgError } = await supabase
@@ -101,7 +104,7 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     .insert({
       organization_name: formData.organizationName,
       city: formData.city,
-      state: formData.state,
+      state: formData.state as USStateCode,
       first_name: formData.firstName,
       last_name: formData.lastName,
       email: formData.email
