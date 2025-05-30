@@ -84,7 +84,8 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
       <div className="grid md:grid-cols-2 gap-6">
         <OrganizationUsersTable 
           orgUsers={orgUsers} 
-          onUpdateUserRole={updateUserRole} 
+          onUpdateUserRole={updateUserRole}
+          onRefreshData={fetchOrganizationData}
         />
         <UserRequestsTable 
           userRequests={userRequests} 

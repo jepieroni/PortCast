@@ -198,6 +198,7 @@ export type Database = {
           id: string
           last_name: string | null
           organization_id: string | null
+          status: string | null
           updated_at: string | null
         }
         Insert: {
@@ -207,6 +208,7 @@ export type Database = {
           id: string
           last_name?: string | null
           organization_id?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -216,6 +218,7 @@ export type Database = {
           id?: string
           last_name?: string | null
           organization_id?: string | null
+          status?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -526,6 +529,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: Json
       }
+      disable_user_account: {
+        Args: { _user_id: string }
+        Returns: Json
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
@@ -547,6 +554,10 @@ export type Database = {
       }
       is_org_admin_for_organization: {
         Args: { check_organization_id: string }
+        Returns: boolean
+      }
+      is_user_account_active: {
+        Args: { _user_id: string }
         Returns: boolean
       }
       validate_and_consume_setup_token: {

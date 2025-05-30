@@ -36,6 +36,20 @@ const LoginForm = ({ onSuccess }: LoginFormProps) => {
       }
 
       if (data.user) {
+        // Check if the user's account is active
+        const { data: isActive, error: statusError } = await supabase.rpc('is_user_account_active', {
+          _user_id: data.user.id
+        });
+
+        if (statusError) {
+          console.error('Error checking account status:', statusError);
+          // Continue with login if we can't check status
+        } else if (!isActive) {
+          // Sign out the user immediately if account is disabled
+          await supabase.auth.signOut();
+          throw new Error('Your account has been disabled. Please contact your organization administrator.');
+        }
+
         toast({
           title: "Success",
           description: "Successfully signed in!",

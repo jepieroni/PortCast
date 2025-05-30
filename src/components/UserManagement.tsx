@@ -23,6 +23,7 @@ interface User {
   last_name: string;
   organization_name?: string;
   role?: UserRole;
+  status?: string;
 }
 
 const UserManagement = ({ onBack }: UserManagementProps) => {
@@ -85,7 +86,8 @@ const UserManagement = ({ onBack }: UserManagementProps) => {
           first_name: profile.first_name || '',
           last_name: profile.last_name || '',
           organization_name: organization?.name,
-          role: userRole?.role
+          role: userRole?.role,
+          status: profile.status || 'active'
         };
       }) || [];
 
@@ -166,6 +168,7 @@ const UserManagement = ({ onBack }: UserManagementProps) => {
                 <TableHead>Email</TableHead>
                 <TableHead>Organization</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -189,6 +192,11 @@ const UserManagement = ({ onBack }: UserManagementProps) => {
                     ) : (
                       <Badge variant="secondary">No role</Badge>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.status === 'active' ? 'default' : 'destructive'}>
+                      {user.status || 'active'}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Select

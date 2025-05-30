@@ -26,7 +26,7 @@ export const fetchOrganizationUsers = async (organizationId: string): Promise<Or
   // First, fetch all users in the organization
   const { data: usersData, error: usersError } = await supabase
     .from('profiles')
-    .select('id, email, first_name, last_name')
+    .select('id, email, first_name, last_name, status')
     .eq('organization_id', organizationId);
 
   if (usersError) {
@@ -75,7 +75,8 @@ export const fetchOrganizationUsers = async (organizationId: string): Promise<Or
       email: user.email || '',
       first_name: user.first_name || '',
       last_name: user.last_name || '',
-      role: userRole || 'user' // Default to 'user' if no role is found
+      role: userRole || 'user', // Default to 'user' if no role is found
+      status: user.status || 'active' // Include status field
     };
   });
 };

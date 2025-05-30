@@ -1,4 +1,3 @@
-
 import type { Database } from '@/integrations/supabase/types';
 
 type UserRole = Database['public']['Enums']['user_role'];
@@ -9,6 +8,7 @@ export interface OrgUser {
   first_name: string;
   last_name: string;
   role?: UserRole;
+  status?: string;
 }
 
 export interface OrgUserRequest {
