@@ -34,19 +34,20 @@ export const useAccountSetup = () => {
     try {
       console.log('Setting up account with token:', token);
       
-      const { data, error } = await supabase.rpc('setup_user_account', {
-        _token: token,
-        _password: password
+      // Call the new edge function instead of the database function
+      const { data, error } = await supabase.functions.invoke('setup-user-account', {
+        body: {
+          token: token,
+          password: password
+        }
       });
 
       console.log('Account setup result:', { data, error });
 
       if (error) throw error;
 
-      const result = data as { success: boolean; message: string };
-
-      if (!result.success) {
-        throw new Error(result.message);
+      if (!data.success) {
+        throw new Error(data.message);
       }
 
       setAccountCreated(true);

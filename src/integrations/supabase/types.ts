@@ -491,8 +491,8 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      setup_user_account: {
-        Args: { _token: string; _password: string }
+      validate_and_consume_setup_token: {
+        Args: { _token: string }
         Returns: Json
       }
     }
