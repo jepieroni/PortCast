@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -75,6 +74,7 @@ export const useScacManagement = (isGlobalAdmin: boolean) => {
         organization_name: tsp.organizations?.name || 'Unassigned'
       })) || [];
 
+      console.log('Fetched TSPs:', formattedTsps);
       setTsps(formattedTsps);
 
       // If global admin, fetch all pending claims
@@ -299,13 +299,24 @@ export const useScacManagement = (isGlobalAdmin: boolean) => {
   };
 
   const isClaimable = (tsp: TSP) => {
+    console.log('Checking claimability for TSP:', {
+      scac: tsp.scac_code,
+      tspOrgId: tsp.organization_id,
+      userOrgId: organizationId,
+      isGlobalAdmin
+    });
+    
     // For global admins, they can claim any TSP
     if (isGlobalAdmin) {
+      console.log('Global admin can claim any TSP');
       return true;
     }
     
-    // For org admins, they can only claim unassigned TSPs or TSPs already assigned to their organization
-    return !tsp.organization_id || tsp.organization_id === organizationId;
+    // For org admins, they can only claim unassigned TSPs (organization_id is null)
+    // OR TSPs already assigned to their organization
+    const canClaim = tsp.organization_id === null || tsp.organization_id === organizationId;
+    console.log('Org admin claimability result:', canClaim);
+    return canClaim;
   };
 
   return {
