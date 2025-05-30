@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import type { OrgUser, OrgUserRequest } from '@/types/orgAdmin';
@@ -38,8 +37,11 @@ export const fetchOrganizationUsers = async (organizationId: string): Promise<Or
     return [];
   }
 
+  console.log('Users in organization:', usersData);
+
   // Get all user IDs for this organization
   const userIds = usersData.map(user => user.id);
+  console.log('User IDs to fetch roles for:', userIds);
 
   // Separately fetch user roles for these users
   const { data: rolesData, error: rolesError } = await supabase
@@ -52,20 +54,30 @@ export const fetchOrganizationUsers = async (organizationId: string): Promise<Or
     // Don't throw here, just continue without roles
   }
 
+  console.log('Roles data from database:', rolesData);
+
   // Create a map of user roles for easy lookup
   const roleMap = new Map<string, UserRole>();
   rolesData?.forEach(roleRecord => {
+    console.log(`Setting role for user ${roleRecord.user_id}: ${roleRecord.role}`);
     roleMap.set(roleRecord.user_id, roleRecord.role);
   });
 
+  console.log('Final roleMap:', Object.fromEntries(roleMap));
+
   // Transform the data to match our OrgUser interface
-  return usersData.map(user => ({
-    id: user.id,
-    email: user.email || '',
-    first_name: user.first_name || '',
-    last_name: user.last_name || '',
-    role: roleMap.get(user.id) || 'user' // Default to 'user' if no role is found
-  }));
+  return usersData.map(user => {
+    const userRole = roleMap.get(user.id);
+    console.log(`User ${user.email} (${user.id}) role lookup result:`, userRole);
+    
+    return {
+      id: user.id,
+      email: user.email || '',
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      role: userRole || 'user' // Default to 'user' if no role is found
+    };
+  });
 };
 
 export const fetchUserRequests = async (organizationId: string): Promise<OrgUserRequest[]> => {
