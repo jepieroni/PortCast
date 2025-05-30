@@ -175,6 +175,7 @@ const ScacManagement = ({ onBack, isGlobalAdmin }: ScacManagementProps) => {
   };
 
   const handleTspSelection = (tspId: string, checked: boolean) => {
+    console.log('TSP selection:', { tspId, checked, selectedTsps });
     if (checked) {
       setSelectedTsps([...selectedTsps, tspId]);
     } else {
@@ -313,6 +314,12 @@ const ScacManagement = ({ onBack, isGlobalAdmin }: ScacManagementProps) => {
   };
 
   const isClaimable = (tsp: TSP) => {
+    // For global admins, they can claim any TSP
+    if (isGlobalAdmin) {
+      return true;
+    }
+    
+    // For org admins, they can only claim unassigned TSPs or TSPs already assigned to their organization
     return !tsp.organization_id || tsp.organization_id === organizationId;
   };
 
@@ -408,7 +415,7 @@ const ScacManagement = ({ onBack, isGlobalAdmin }: ScacManagementProps) => {
                 disabled={submitting}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {submitting ? 'Submitting...' : 'Submit Claim'}
+                {submitting ? 'Submitting...' : (isGlobalAdmin ? 'Claim TSPs' : 'Submit Claim')}
               </Button>
             </div>
           )}
@@ -424,31 +431,36 @@ const ScacManagement = ({ onBack, isGlobalAdmin }: ScacManagementProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tsps.map((tsp) => (
-                <TableRow 
-                  key={tsp.id}
-                  className={!isClaimable(tsp) ? 'opacity-50 bg-gray-50' : ''}
-                >
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedTsps.includes(tsp.id)}
-                      onCheckedChange={(checked) => handleTspSelection(tsp.id, checked as boolean)}
-                      disabled={!isClaimable(tsp)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{tsp.scac_code}</TableCell>
-                  <TableCell>{tsp.name}</TableCell>
-                  <TableCell>
-                    {tsp.organization_id ? (
-                      <Badge variant={tsp.organization_id === organizationId ? 'default' : 'secondary'}>
-                        {tsp.organization_name}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">Unassigned</Badge>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {tsps.map((tsp) => {
+                const canClaim = isClaimable(tsp);
+                console.log('TSP claimable check:', { tsp: tsp.scac_code, canClaim, organizationId, tspOrgId: tsp.organization_id });
+                
+                return (
+                  <TableRow 
+                    key={tsp.id}
+                    className={!canClaim ? 'opacity-50 bg-gray-50' : ''}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedTsps.includes(tsp.id)}
+                        onCheckedChange={(checked) => handleTspSelection(tsp.id, checked as boolean)}
+                        disabled={!canClaim}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{tsp.scac_code}</TableCell>
+                    <TableCell>{tsp.name}</TableCell>
+                    <TableCell>
+                      {tsp.organization_id ? (
+                        <Badge variant={tsp.organization_id === organizationId ? 'default' : 'secondary'}>
+                          {tsp.organization_name}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">Unassigned</Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
