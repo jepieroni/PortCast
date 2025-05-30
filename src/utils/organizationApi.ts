@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -106,12 +105,6 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     email: formData.email
   });
   
-  // Debug: Check current session state
-  const { data: session, error: sessionError } = await supabase.auth.getSession();
-  console.log('Current session:', session);
-  console.log('Session error:', sessionError);
-  console.log('Current user:', session?.session?.user || 'No user');
-  
   // Validate required fields
   if (!formData.organizationName || !formData.firstName || !formData.lastName || !formData.email) {
     throw new Error('Missing required fields for organization request');
@@ -120,19 +113,6 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
   // Ensure state is valid or set to null if empty
   const stateValue = formData.state && formData.state.trim() !== '' ? formData.state as USStateCode : null;
   
-  console.log('Prepared data for insert:', {
-    organization_name: formData.organizationName,
-    city: formData.city || null,
-    state: stateValue,
-    first_name: formData.firstName,
-    last_name: formData.lastName,
-    email: formData.email
-  });
-
-  console.log('Attempting to insert organization request...');
-  
-  // Try with explicit auth bypass by using the service role key temporarily
-  // This is a workaround for RLS issues with anonymous requests
   const insertData = {
     organization_name: formData.organizationName,
     city: formData.city || null,
@@ -143,13 +123,12 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
   };
   
   console.log('Insert data being sent:', insertData);
+  console.log('Attempting to insert organization request...');
   
-  // Submit the organization request with explicit field mapping
-  const { data: orgRequest, error: orgError } = await supabase
+  // Submit the organization request without .select() to avoid RLS issues
+  const { error: orgError } = await supabase
     .from('organization_requests')
-    .insert(insertData)
-    .select()
-    .single();
+    .insert(insertData);
 
   if (orgError) {
     console.error('=== ORGANIZATION REQUEST INSERT ERROR ===');
@@ -159,13 +138,10 @@ export const submitOrganizationRequest = async (formData: OrganizationFormData) 
     console.error('Error hint:', orgError.hint);
     console.error('Error details:', orgError.details);
     
-    // Try to get more info about RLS policies
-    console.error('Supabase client auth state:', supabase.auth);
-    
     throw new Error(`Failed to submit organization request: ${orgError.message}`);
   }
 
-  console.log('Organization request created successfully:', orgRequest);
+  console.log('Organization request created successfully');
 
   // Send notification email to global admins (without direct approval links)
   console.log('Sending organization approval request email...');
