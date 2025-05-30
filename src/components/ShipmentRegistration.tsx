@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,16 +19,13 @@ interface ShipmentRegistrationProps {
   onBack: () => void;
 }
 
-interface Country {
+interface RateArea {
   id: string;
-  name: string;
-  code: string;
-}
-
-interface Port {
-  id: string;
-  name: string;
-  code: string;
+  rate_area: string;
+  country_id: string;
+  countries: {
+    name: string;
+  };
 }
 
 interface TSP {
@@ -44,27 +42,47 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
     pickupDate: undefined as Date | undefined,
     rdd: undefined as Date | undefined,
     shipmentType: '',
-    originLocation: '',
-    originCountryId: '',
-    destinationCountryId: '',
+    originRateArea: '',
+    destinationRateArea: '',
     targetPoeId: '',
     targetPodId: '',
     tspId: '',
     estimatedPieces: '',
-    estimatedCube: ''
+    estimatedCube: '',
+    actualPieces: '',
+    actualCube: ''
   });
 
-  // Fetch countries
-  const { data: countries = [] } = useQuery({
-    queryKey: ['countries'],
+  const [canEnterActuals, setCanEnterActuals] = useState(false);
+
+  // Check if pickup date allows actual entry
+  useEffect(() => {
+    if (formData.pickupDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const pickupDate = new Date(formData.pickupDate);
+      pickupDate.setHours(0, 0, 0, 0);
+      
+      setCanEnterActuals(pickupDate <= today);
+    } else {
+      setCanEnterActuals(false);
+    }
+  }, [formData.pickupDate]);
+
+  // Fetch rate areas
+  const { data: rateAreas = [] } = useQuery({
+    queryKey: ['rate-areas'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('countries')
-        .select('*')
-        .order('name');
+        .from('rate_areas')
+        .select(`
+          *,
+          countries (name)
+        `)
+        .order('rate_area');
       
       if (error) throw error;
-      return data as Country[];
+      return data as RateArea[];
     }
   });
 
@@ -78,7 +96,7 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
         .order('name');
       
       if (error) throw error;
-      return data as Port[];
+      return data;
     }
   });
 
@@ -86,7 +104,6 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
   const { data: tsps = [] } = useQuery({
     queryKey: ['tsps-user-org'],
     queryFn: async () => {
-      // First get the current user's organization
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error('User not authenticated');
 
@@ -99,7 +116,6 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
       if (profileError) throw profileError;
       if (!profile?.organization_id) throw new Error('User organization not found');
 
-      // Then fetch TSPs for that organization, ordered by SCAC code
       const { data, error } = await supabase
         .from('tsps')
         .select('*')
@@ -110,6 +126,11 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
       return data as TSP[];
     }
   });
+
+  const validateGblNumber = (gblNumber: string): boolean => {
+    const gblPattern = /^[A-Z]{4}\d{7}$/;
+    return gblPattern.test(gblNumber);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +154,7 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
       return;
     }
 
-    if (!formData.gblNumber || !formData.shipperLastName || !formData.shipmentType) {
+    if (!formData.gblNumber || !formData.shipperLastName || !formData.shipmentType || !formData.tspId) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -142,8 +163,58 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
       return;
     }
 
+    // Validate GBL number format
+    if (!validateGblNumber(formData.gblNumber)) {
+      toast({
+        title: "Error",
+        description: "GBL Number must be in format XXXX9999999 (4 letters followed by 7 digits).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate pieces and volume logic
+    const hasEstimated = formData.estimatedPieces || formData.estimatedCube;
+    const hasActual = formData.actualPieces || formData.actualCube;
+
+    if (hasEstimated && hasActual) {
+      toast({
+        title: "Error",
+        description: "Please enter values in EITHER estimated OR actual fields, not both.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!hasEstimated && !hasActual) {
+      toast({
+        title: "Error",
+        description: "Please enter both pieces and volume in either estimated or actual fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate that both pieces and volume are provided for the chosen type
+    if (hasEstimated && (!formData.estimatedPieces || !formData.estimatedCube)) {
+      toast({
+        title: "Error",
+        description: "Please enter both estimated pieces and estimated volume.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (hasActual && (!formData.actualPieces || !formData.actualCube)) {
+      toast({
+        title: "Error",
+        description: "Please enter both actual pieces and actual volume.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
@@ -155,7 +226,6 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
         return;
       }
 
-      // Insert shipment data
       const shipmentData = {
         user_id: user.id,
         gbl_number: formData.gblNumber,
@@ -163,14 +233,15 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
         pickup_date: format(formData.pickupDate, 'yyyy-MM-dd'),
         rdd: format(formData.rdd, 'yyyy-MM-dd'),
         shipment_type: formData.shipmentType as 'inbound' | 'outbound' | 'intertheater',
-        origin_location: formData.originLocation || null,
-        origin_country_id: formData.originCountryId || null,
-        destination_country_id: formData.destinationCountryId || null,
+        origin_rate_area: formData.originRateArea || null,
+        destination_rate_area: formData.destinationRateArea || null,
         target_poe_id: formData.targetPoeId || null,
         target_pod_id: formData.targetPodId || null,
         tsp_id: formData.tspId || null,
         estimated_pieces: formData.estimatedPieces ? parseFloat(formData.estimatedPieces) : null,
-        estimated_cube: formData.estimatedCube ? parseFloat(formData.estimatedCube) : null
+        estimated_cube: formData.estimatedCube ? parseFloat(formData.estimatedCube) : null,
+        actual_pieces: formData.actualPieces ? parseFloat(formData.actualPieces) : null,
+        actual_cube: formData.actualCube ? parseFloat(formData.actualCube) : null
       };
 
       const { error } = await supabase
@@ -203,6 +274,10 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
   };
 
   const handleInputChange = (field: string, value: string) => {
+    // Auto-capitalize GBL number
+    if (field === 'gblNumber') {
+      value = value.toUpperCase();
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -229,6 +304,22 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="tspId">TSP/SCAC *</Label>
+                    <Select value={formData.tspId} onValueChange={(value) => handleInputChange('tspId', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select TSP" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tsps.map((tsp) => (
+                          <SelectItem key={tsp.id} value={tsp.id}>
+                            {tsp.scac_code} - {tsp.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="gblNumber">GBL Number *</Label>
@@ -236,7 +327,7 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                         id="gblNumber"
                         value={formData.gblNumber}
                         onChange={(e) => handleInputChange('gblNumber', e.target.value)}
-                        placeholder="Government Bill of Lading Number"
+                        placeholder="XXXX9999999 (4 letters + 7 digits)"
                         required
                       />
                     </div>
@@ -325,43 +416,15 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
 
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="originLocation">Origin Location</Label>
-                      <Input
-                        id="originLocation"
-                        value={formData.originLocation}
-                        onChange={(e) => handleInputChange('originLocation', e.target.value)}
-                        placeholder="City, State/Country"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="originCountryId">Origin Country</Label>
-                      <Select value={formData.originCountryId} onValueChange={(value) => handleInputChange('originCountryId', value)}>
+                      <Label htmlFor="originRateArea">Origin Rate Area</Label>
+                      <Select value={formData.originRateArea} onValueChange={(value) => handleInputChange('originRateArea', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select origin country" />
+                          <SelectValue placeholder="Select origin rate area" />
                         </SelectTrigger>
                         <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country.id} value={country.id}>
-                              {country.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="destinationCountryId">Destination Country</Label>
-                      <Select value={formData.destinationCountryId} onValueChange={(value) => handleInputChange('destinationCountryId', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select destination country" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country.id} value={country.id}>
-                              {country.name}
+                          {rateAreas.map((rateArea) => (
+                            <SelectItem key={rateArea.id} value={rateArea.rate_area}>
+                              {rateArea.rate_area} - {rateArea.countries.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -369,15 +432,15 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="tspId">TSP/SCAC</Label>
-                      <Select value={formData.tspId} onValueChange={(value) => handleInputChange('tspId', value)}>
+                      <Label htmlFor="destinationRateArea">Destination Rate Area</Label>
+                      <Select value={formData.destinationRateArea} onValueChange={(value) => handleInputChange('destinationRateArea', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select TSP" />
+                          <SelectValue placeholder="Select destination rate area" />
                         </SelectTrigger>
                         <SelectContent>
-                          {tsps.map((tsp) => (
-                            <SelectItem key={tsp.id} value={tsp.id}>
-                              {tsp.scac_code} - {tsp.name}
+                          {rateAreas.map((rateArea) => (
+                            <SelectItem key={rateArea.id} value={rateArea.rate_area}>
+                              {rateArea.rate_area} - {rateArea.countries.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -436,6 +499,8 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                         id="estimatedPieces"
                         type="number"
                         step="0.1"
+                        style={{ appearance: 'textfield' }}
+                        className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         value={formData.estimatedPieces}
                         onChange={(e) => handleInputChange('estimatedPieces', e.target.value)}
                         placeholder="Number of pieces"
@@ -447,9 +512,52 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                       <Input
                         id="estimatedCube"
                         type="number"
+                        style={{ appearance: 'textfield' }}
+                        className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         value={formData.estimatedCube}
                         onChange={(e) => handleInputChange('estimatedCube', e.target.value)}
                         placeholder="Cubic feet"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Label htmlFor="actualPieces">Actual Pieces</Label>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info size={16} className="text-gray-400 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Enter the number of standard liftvan-equivalent units, e.g. 8 or 2.5</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <Input
+                        id="actualPieces"
+                        type="number"
+                        step="0.1"
+                        style={{ appearance: 'textfield' }}
+                        className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        value={formData.actualPieces}
+                        onChange={(e) => handleInputChange('actualPieces', e.target.value)}
+                        placeholder="Number of pieces"
+                        disabled={!canEnterActuals}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="actualCube">Actual Volume</Label>
+                      <Input
+                        id="actualCube"
+                        type="number"
+                        style={{ appearance: 'textfield' }}
+                        className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        value={formData.actualCube}
+                        onChange={(e) => handleInputChange('actualCube', e.target.value)}
+                        placeholder="Cubic feet"
+                        disabled={!canEnterActuals}
                       />
                     </div>
                   </div>
@@ -484,10 +592,10 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
                 <CardTitle>Quick Tips</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-gray-600">
-                <p>• GBL numbers must be unique in the system</p>
-                <p>• Accurate cube estimates help with consolidation</p>
-                <p>• Multiple POE/POD choices increase consolidation opportunities</p>
-                <p>• Update shipments as actual weights become available</p>
+                <p>• GBL numbers must follow format XXXX9999999</p>
+                <p>• Enter pieces/volume in either estimated OR actual fields</p>
+                <p>• Actual fields enabled only when pickup date is today or past</p>
+                <p>• Rate areas help with consolidation planning</p>
               </CardContent>
             </Card>
           </div>

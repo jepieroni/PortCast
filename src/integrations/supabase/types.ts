@@ -231,6 +231,38 @@ export type Database = {
           },
         ]
       }
+      rate_areas: {
+        Row: {
+          country_id: string
+          created_at: string | null
+          id: string
+          rate_area: string
+          updated_at: string | null
+        }
+        Insert: {
+          country_id: string
+          created_at?: string | null
+          id?: string
+          rate_area: string
+          updated_at?: string | null
+        }
+        Update: {
+          country_id?: string
+          created_at?: string | null
+          id?: string
+          rate_area?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_areas_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scac_claims: {
         Row: {
           approval_token: string
@@ -283,14 +315,15 @@ export type Database = {
       }
       shipments: {
         Row: {
+          actual_cube: number | null
+          actual_pieces: number | null
           created_at: string | null
-          destination_country_id: string | null
+          destination_rate_area: string | null
           estimated_cube: number | null
           estimated_pieces: number | null
           gbl_number: string
           id: string
-          origin_country_id: string | null
-          origin_location: string | null
+          origin_rate_area: string | null
           pickup_date: string
           rdd: string
           remaining_cube: number | null
@@ -306,14 +339,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actual_cube?: number | null
+          actual_pieces?: number | null
           created_at?: string | null
-          destination_country_id?: string | null
+          destination_rate_area?: string | null
           estimated_cube?: number | null
           estimated_pieces?: number | null
           gbl_number: string
           id?: string
-          origin_country_id?: string | null
-          origin_location?: string | null
+          origin_rate_area?: string | null
           pickup_date: string
           rdd: string
           remaining_cube?: number | null
@@ -329,14 +363,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actual_cube?: number | null
+          actual_pieces?: number | null
           created_at?: string | null
-          destination_country_id?: string | null
+          destination_rate_area?: string | null
           estimated_cube?: number | null
           estimated_pieces?: number | null
           gbl_number?: string
           id?: string
-          origin_country_id?: string | null
-          origin_location?: string | null
+          origin_rate_area?: string | null
           pickup_date?: string
           rdd?: string
           remaining_cube?: number | null
@@ -353,18 +388,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "shipments_destination_country_id_fkey"
-            columns: ["destination_country_id"]
+            foreignKeyName: "shipments_destination_rate_area_fkey"
+            columns: ["destination_rate_area"]
             isOneToOne: false
-            referencedRelation: "countries"
-            referencedColumns: ["id"]
+            referencedRelation: "rate_areas"
+            referencedColumns: ["rate_area"]
           },
           {
-            foreignKeyName: "shipments_origin_country_id_fkey"
-            columns: ["origin_country_id"]
+            foreignKeyName: "shipments_origin_rate_area_fkey"
+            columns: ["origin_rate_area"]
             isOneToOne: false
-            referencedRelation: "countries"
-            referencedColumns: ["id"]
+            referencedRelation: "rate_areas"
+            referencedColumns: ["rate_area"]
           },
           {
             foreignKeyName: "shipments_target_pod_id_fkey"
