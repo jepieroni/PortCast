@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Building, User } from 'lucide-react';
+import { ArrowLeft, Building, User, Loader } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import RequestFilters from '@/components/access-requests/RequestFilters';
@@ -43,6 +43,7 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
   const [userRequests, setUserRequests] = useState<UserRequest[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRequests();
@@ -86,6 +87,7 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
   };
 
   const handleOrgRequestAction = async (requestId: string, action: 'approve' | 'deny') => {
+    setProcessingRequestId(requestId);
     try {
       if (action === 'approve') {
         // Get the organization request details
@@ -165,6 +167,8 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
         description: `Failed to ${action} organization request: ${error.message}`,
         variant: "destructive",
       });
+    } finally {
+      setProcessingRequestId(null);
     }
   };
 
@@ -283,6 +287,7 @@ const AccessRequestManagement = ({ onBack }: AccessRequestManagementProps) => {
           <OrganizationRequestsTable 
             requests={filterRequests(orgRequests)}
             onAction={handleOrgRequestAction}
+            processingRequestId={processingRequestId}
           />
         </TabsContent>
 

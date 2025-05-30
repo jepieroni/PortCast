@@ -6,14 +6,16 @@ import { usePendingRequests } from '@/hooks/usePendingRequests';
 
 interface HeaderProps {
   isGlobalAdmin: boolean;
+  isOrgAdmin: boolean;
   loading: boolean;
   onAddShipment: () => void;
   onAdmin: () => void;
   onSignOut: () => void;
 }
 
-const Header = ({ isGlobalAdmin, loading, onAddShipment, onAdmin, onSignOut }: HeaderProps) => {
+const Header = ({ isGlobalAdmin, isOrgAdmin, loading, onAddShipment, onAdmin, onSignOut }: HeaderProps) => {
   const { hasPendingRequests } = usePendingRequests();
+  const isAnyAdmin = isGlobalAdmin || isOrgAdmin;
 
   return (
     <header className="bg-white shadow-sm border-b">
@@ -22,7 +24,8 @@ const Header = ({ isGlobalAdmin, loading, onAddShipment, onAdmin, onSignOut }: H
           <div className="flex items-center gap-2">
             <Ship className="text-blue-600" size={32} />
             <span className="text-xl font-bold text-gray-900">PortCast</span>
-            {isGlobalAdmin && <Badge variant="destructive" className="ml-2">ADMIN</Badge>}
+            {isGlobalAdmin && <Badge variant="destructive" className="ml-2">GLOBAL ADMIN</Badge>}
+            {isOrgAdmin && !isGlobalAdmin && <Badge variant="default" className="ml-2">ORG ADMIN</Badge>}
           </div>
           
           <div className="flex items-center gap-4">
@@ -37,15 +40,15 @@ const Header = ({ isGlobalAdmin, loading, onAddShipment, onAdmin, onSignOut }: H
               <MessageSquare size={16} className="mr-2" />
               Forum
             </Button>
-            {isGlobalAdmin && (
+            {isAnyAdmin && (
               <Button 
                 variant="outline" 
                 onClick={onAdmin}
-                className="border-red-500 text-red-600 hover:bg-red-50 relative"
+                className={`${isGlobalAdmin ? 'border-red-500 text-red-600 hover:bg-red-50' : 'border-blue-500 text-blue-600 hover:bg-blue-50'} relative`}
               >
                 <Settings size={16} className="mr-2" />
                 Admin
-                {hasPendingRequests && (
+                {isGlobalAdmin && hasPendingRequests && (
                   <Bell 
                     size={16} 
                     className="absolute -top-1 -right-1 text-red-600 fill-red-600 animate-[ring_4s_ease-in-out_infinite]" 

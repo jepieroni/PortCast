@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigation } from '@/hooks/useNavigation';
 
 const Index = () => {
-  const { user, loading, isGlobalAdmin, handleSignOut } = useAuth();
+  const { user, loading, isGlobalAdmin, isOrgAdmin, handleSignOut } = useAuth();
   const {
     currentView,
     outlookDays,
@@ -36,6 +36,7 @@ const Index = () => {
   return (
     <AppLayout
       isGlobalAdmin={isGlobalAdmin}
+      isOrgAdmin={isOrgAdmin}
       loading={loading}
       onAddShipment={goToRegistration}
       onAdmin={goToAdmin}

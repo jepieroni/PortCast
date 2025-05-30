@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 interface AppLayoutProps {
   children: ReactNode;
   isGlobalAdmin: boolean;
+  isOrgAdmin: boolean;
   loading: boolean;
   onAddShipment: () => void;
   onAdmin: () => void;
@@ -14,6 +15,7 @@ interface AppLayoutProps {
 const AppLayout = ({
   children,
   isGlobalAdmin,
+  isOrgAdmin,
   loading,
   onAddShipment,
   onAdmin,
@@ -23,6 +25,7 @@ const AppLayout = ({
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Header
         isGlobalAdmin={isGlobalAdmin}
+        isOrgAdmin={isOrgAdmin}
         loading={loading}
         onAddShipment={onAddShipment}
         onAdmin={onAdmin}

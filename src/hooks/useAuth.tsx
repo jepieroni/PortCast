@@ -8,6 +8,7 @@ export const useAuth = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
+  const [isOrgAdmin, setIsOrgAdmin] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -28,6 +29,7 @@ export const useAuth = () => {
             console.log('User signed out, clearing state');
             setUser(null);
             setIsGlobalAdmin(false);
+            setIsOrgAdmin(false);
             setLoading(false);
             return;
           }
@@ -67,6 +69,7 @@ export const useAuth = () => {
         } else {
           setUser(null);
           setIsGlobalAdmin(false);
+          setIsOrgAdmin(false);
           setLoading(false);
         }
 
@@ -78,6 +81,7 @@ export const useAuth = () => {
         if (mounted) {
           setUser(null);
           setIsGlobalAdmin(false);
+          setIsOrgAdmin(false);
           setLoading(false);
         }
       }
@@ -103,12 +107,17 @@ export const useAuth = () => {
         console.error('Error checking user role:', error);
       }
 
-      const isAdmin = roleData?.role === 'global_admin';
-      console.log('User is admin:', isAdmin);
-      setIsGlobalAdmin(isAdmin);
+      const isGlobalAdminUser = roleData?.role === 'global_admin';
+      const isOrgAdminUser = roleData?.role === 'org_admin';
+      
+      console.log('User roles:', { isGlobalAdmin: isGlobalAdminUser, isOrgAdmin: isOrgAdminUser });
+      
+      setIsGlobalAdmin(isGlobalAdminUser);
+      setIsOrgAdmin(isOrgAdminUser);
     } catch (error) {
       console.error('Error checking user role:', error);
       setIsGlobalAdmin(false);
+      setIsOrgAdmin(false);
     } finally {
       setLoading(false);
     }
@@ -122,6 +131,7 @@ export const useAuth = () => {
       // Clear local state immediately
       setUser(null);
       setIsGlobalAdmin(false);
+      setIsOrgAdmin(false);
       
       // Set a timeout to prevent hanging
       const signOutTimeout = setTimeout(() => {
@@ -166,6 +176,7 @@ export const useAuth = () => {
     user,
     loading,
     isGlobalAdmin,
+    isOrgAdmin,
     handleSignOut
   };
 };
