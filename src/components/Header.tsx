@@ -4,20 +4,23 @@ import { Badge } from '@/components/ui/badge';
 import { Ship, Plus, LogOut, Settings, Bell } from 'lucide-react';
 import { usePendingRequests } from '@/hooks/usePendingRequests';
 import UserDisplay from '@/components/UserDisplay';
+import { ViewType } from '@/hooks/useNavigation';
 
 interface HeaderProps {
   isGlobalAdmin: boolean;
   isOrgAdmin: boolean;
   loading: boolean;
   user: any;
+  currentView: ViewType;
   onAddShipment: () => void;
   onAdmin: () => void;
   onSignOut: () => void;
 }
 
-const Header = ({ isGlobalAdmin, isOrgAdmin, loading, user, onAddShipment, onAdmin, onSignOut }: HeaderProps) => {
+const Header = ({ isGlobalAdmin, isOrgAdmin, loading, user, currentView, onAddShipment, onAdmin, onSignOut }: HeaderProps) => {
   const { hasPendingRequests } = usePendingRequests();
   const isAnyAdmin = isGlobalAdmin || isOrgAdmin;
+  const showAddShipment = currentView !== 'admin';
 
   return (
     <header className="bg-white shadow-sm border-b">
@@ -38,13 +41,15 @@ const Header = ({ isGlobalAdmin, isOrgAdmin, loading, user, onAddShipment, onAdm
           </div>
           
           <div className="flex items-center gap-4">
-            <Button 
-              onClick={onAddShipment}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus size={16} className="mr-2" />
-              Add Shipment
-            </Button>
+            {showAddShipment && (
+              <Button 
+                onClick={onAddShipment}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus size={16} className="mr-2" />
+                Add Shipment
+              </Button>
+            )}
             {isAnyAdmin && (
               <Button 
                 variant="outline" 

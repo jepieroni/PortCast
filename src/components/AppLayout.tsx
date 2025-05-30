@@ -1,6 +1,7 @@
 
 import { ReactNode } from 'react';
 import Header from '@/components/Header';
+import { ViewType } from '@/hooks/useNavigation';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -8,6 +9,7 @@ interface AppLayoutProps {
   isOrgAdmin: boolean;
   loading: boolean;
   user: any;
+  currentView: ViewType;
   onAddShipment: () => void;
   onAdmin: () => void;
   onSignOut: () => void;
@@ -19,6 +21,7 @@ const AppLayout = ({
   isOrgAdmin,
   loading,
   user,
+  currentView,
   onAddShipment,
   onAdmin,
   onSignOut,
@@ -30,6 +33,7 @@ const AppLayout = ({
         isOrgAdmin={isOrgAdmin}
         loading={loading}
         user={user}
+        currentView={currentView}
         onAddShipment={onAddShipment}
         onAdmin={onAdmin}
         onSignOut={onSignOut}
