@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ interface RateArea {
   name: string | null;
   country_id: string;
   is_conus: boolean;
+  is_intertheater_only: boolean;
   countries: {
     name: string;
   };

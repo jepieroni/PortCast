@@ -237,6 +237,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_conus: boolean
+          is_intertheater_only: boolean
           name: string | null
           rate_area: string
           updated_at: string | null
@@ -246,6 +247,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_conus?: boolean
+          is_intertheater_only?: boolean
           name?: string | null
           rate_area: string
           updated_at?: string | null
@@ -255,6 +257,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_conus?: boolean
+          is_intertheater_only?: boolean
           name?: string | null
           rate_area?: string
           updated_at?: string | null
