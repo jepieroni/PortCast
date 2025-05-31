@@ -20,7 +20,7 @@ const ConsolidationCard = ({
   hasUserShipments,
   type 
 }: ConsolidationCardProps) => {
-  const fillPercentage = Math.min((totalCube / 2400) * 100, 100); // 2400 cubic feet = full 40ft container
+  const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
   
   return (
     <Card className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
