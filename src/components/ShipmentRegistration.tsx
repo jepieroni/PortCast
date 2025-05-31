@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,8 +22,9 @@ interface ShipmentRegistrationProps {
 interface RateArea {
   id: string;
   rate_area: string;
-  name: string;
+  name: string | null;
   country_id: string;
+  is_conus: boolean;
   countries: {
     name: string;
   };

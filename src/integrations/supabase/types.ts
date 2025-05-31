@@ -236,6 +236,7 @@ export type Database = {
           country_id: string
           created_at: string | null
           id: string
+          is_conus: boolean
           name: string | null
           rate_area: string
           updated_at: string | null
@@ -244,6 +245,7 @@ export type Database = {
           country_id: string
           created_at?: string | null
           id?: string
+          is_conus?: boolean
           name?: string | null
           rate_area: string
           updated_at?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           country_id?: string
           created_at?: string | null
           id?: string
+          is_conus?: boolean
           name?: string | null
           rate_area?: string
           updated_at?: string | null
@@ -335,8 +338,6 @@ export type Database = {
           shipper_last_name: string
           target_pod_id: string | null
           target_poe_id: string | null
-          total_cube: number | null
-          total_pieces: number | null
           tsp_id: string | null
           updated_at: string | null
           user_id: string
@@ -359,8 +360,6 @@ export type Database = {
           shipper_last_name: string
           target_pod_id?: string | null
           target_poe_id?: string | null
-          total_cube?: number | null
-          total_pieces?: number | null
           tsp_id?: string | null
           updated_at?: string | null
           user_id: string
@@ -383,8 +382,6 @@ export type Database = {
           shipper_last_name?: string
           target_pod_id?: string | null
           target_poe_id?: string | null
-          total_cube?: number | null
-          total_pieces?: number | null
           tsp_id?: string | null
           updated_at?: string | null
           user_id?: string
