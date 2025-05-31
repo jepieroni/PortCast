@@ -9,6 +9,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ShipmentFormData, RateArea, TSP, Port } from '../types';
+import { useMemo } from 'react';
 
 interface ShipmentFormFieldsProps {
   formData: ShipmentFormData;
@@ -29,6 +30,40 @@ export const ShipmentFormFields = ({
   onInputChange,
   onDateChange
 }: ShipmentFormFieldsProps) => {
+  // Filter rate areas based on shipment type
+  const { originRateAreas, destinationRateAreas } = useMemo(() => {
+    if (!formData.shipmentType) {
+      return { originRateAreas: [], destinationRateAreas: [] };
+    }
+
+    switch (formData.shipmentType) {
+      case 'inbound':
+        return {
+          originRateAreas: rateAreas.filter(ra => !ra.is_conus && !ra.is_intertheater_only),
+          destinationRateAreas: rateAreas.filter(ra => ra.is_conus && !ra.is_intertheater_only)
+        };
+      case 'outbound':
+        return {
+          originRateAreas: rateAreas.filter(ra => ra.is_conus && !ra.is_intertheater_only),
+          destinationRateAreas: rateAreas.filter(ra => !ra.is_conus && !ra.is_intertheater_only)
+        };
+      case 'intertheater':
+        return {
+          originRateAreas: rateAreas.filter(ra => !ra.is_conus),
+          destinationRateAreas: rateAreas.filter(ra => !ra.is_conus)
+        };
+      default:
+        return { originRateAreas: [], destinationRateAreas: [] };
+    }
+  }, [formData.shipmentType, rateAreas]);
+
+  const handleShipmentTypeChange = (value: string) => {
+    onInputChange('shipmentType', value);
+    // Clear existing rate area values when shipment type changes
+    onInputChange('originRateArea', '');
+    onInputChange('destinationRateArea', '');
+  };
+
   return (
     <>
       <div className="space-y-2">
@@ -129,7 +164,7 @@ export const ShipmentFormFields = ({
 
       <div className="space-y-2">
         <Label htmlFor="shipmentType">Shipment Type *</Label>
-        <Select value={formData.shipmentType} onValueChange={(value) => onInputChange('shipmentType', value)}>
+        <Select value={formData.shipmentType} onValueChange={handleShipmentTypeChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select shipment type" />
           </SelectTrigger>
@@ -144,12 +179,16 @@ export const ShipmentFormFields = ({
       <div className="grid md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="originRateArea">Origin Rate Area</Label>
-          <Select value={formData.originRateArea} onValueChange={(value) => onInputChange('originRateArea', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select origin rate area" />
+          <Select 
+            value={formData.originRateArea} 
+            onValueChange={(value) => onInputChange('originRateArea', value)}
+            disabled={!formData.shipmentType}
+          >
+            <SelectTrigger className={!formData.shipmentType ? "opacity-50 cursor-not-allowed" : ""}>
+              <SelectValue placeholder={!formData.shipmentType ? "Select shipment type first" : "Select origin rate area"} />
             </SelectTrigger>
             <SelectContent>
-              {rateAreas.map((rateArea) => (
+              {originRateAreas.map((rateArea) => (
                 <SelectItem key={rateArea.id} value={rateArea.rate_area}>
                   {rateArea.rate_area} - {rateArea.name || rateArea.countries.name}
                 </SelectItem>
@@ -160,12 +199,16 @@ export const ShipmentFormFields = ({
 
         <div className="space-y-2">
           <Label htmlFor="destinationRateArea">Destination Rate Area</Label>
-          <Select value={formData.destinationRateArea} onValueChange={(value) => onInputChange('destinationRateArea', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select destination rate area" />
+          <Select 
+            value={formData.destinationRateArea} 
+            onValueChange={(value) => onInputChange('destinationRateArea', value)}
+            disabled={!formData.shipmentType}
+          >
+            <SelectTrigger className={!formData.shipmentType ? "opacity-50 cursor-not-allowed" : ""}>
+              <SelectValue placeholder={!formData.shipmentType ? "Select shipment type first" : "Select destination rate area"} />
             </SelectTrigger>
             <SelectContent>
-              {rateAreas.map((rateArea) => (
+              {destinationRateAreas.map((rateArea) => (
                 <SelectItem key={rateArea.id} value={rateArea.rate_area}>
                   {rateArea.rate_area} - {rateArea.name || rateArea.countries.name}
                 </SelectItem>
