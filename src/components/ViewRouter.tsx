@@ -4,6 +4,7 @@ import MainDashboard from './MainDashboard';
 import ShipmentRegistration from './ShipmentRegistration';
 import AdminDashboard from './AdminDashboard';
 import OrgAdminDashboard from './OrgAdminDashboard';
+import ConsolidationDashboard from './ConsolidationDashboard';
 import { useAuth } from '@/hooks/useAuth';
 
 export type ViewType = 'main' | 'inbound' | 'outbound' | 'intertheater' | 'registration' | 'admin';
@@ -19,11 +20,45 @@ interface ViewRouterProps {
 const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate, onBack }: ViewRouterProps) => {
   const { isGlobalAdmin, isOrgAdmin } = useAuth();
 
+  const handleTabChange = (tab: string) => {
+    onNavigate(tab as ViewType);
+  };
+
   switch (currentView) {
     case 'main':
       return (
         <MainDashboard
           onCardClick={(cardId) => onNavigate(cardId as ViewType)}
+        />
+      );
+    case 'inbound':
+      return (
+        <ConsolidationDashboard
+          type="inbound"
+          outlookDays={outlookDays}
+          onOutlookDaysChange={onOutlookDaysChange}
+          onBack={onBack}
+          onTabChange={handleTabChange}
+        />
+      );
+    case 'outbound':
+      return (
+        <ConsolidationDashboard
+          type="outbound"
+          outlookDays={outlookDays}
+          onOutlookDaysChange={onOutlookDaysChange}
+          onBack={onBack}
+          onTabChange={handleTabChange}
+        />
+      );
+    case 'intertheater':
+      return (
+        <ConsolidationDashboard
+          type="intertheater"
+          outlookDays={outlookDays}
+          onOutlookDaysChange={onOutlookDaysChange}
+          onBack={onBack}
+          onTabChange={handleTabChange}
         />
       );
     case 'registration':
