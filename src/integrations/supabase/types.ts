@@ -161,34 +161,23 @@ export type Database = {
       ports: {
         Row: {
           code: string
-          country_id: string | null
           created_at: string | null
           id: string
           name: string
         }
         Insert: {
           code: string
-          country_id?: string | null
           created_at?: string | null
           id?: string
           name: string
         }
         Update: {
           code?: string
-          country_id?: string | null
           created_at?: string | null
           id?: string
           name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "ports_country_id_fkey"
-            columns: ["country_id"]
-            isOneToOne: false
-            referencedRelation: "countries"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
