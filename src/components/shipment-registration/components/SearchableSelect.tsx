@@ -85,37 +85,45 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
             side="bottom"
             sideOffset={4}
             style={{ pointerEvents: 'auto' }}
+            onOpenAutoFocus={(e) => {
+              // Don't prevent auto focus - let it work naturally
+            }}
           >
-            <Command shouldFilter={false} className="pointer-events-auto">
-              <CommandInput
-                placeholder={`Search ${label.toLowerCase()}...`}
-                value={searchValue}
-                onValueChange={setSearchValue}
-                className="h-9 pointer-events-auto"
-              />
-              <CommandList className="max-h-64 overflow-y-auto pointer-events-auto">
-                <CommandEmpty className="pointer-events-auto">No results found.</CommandEmpty>
-                <CommandGroup className="pointer-events-auto">
-                  {filteredOptions.map((option) => (
-                    <CommandItem
-                      key={option.value}
-                      value={option.value}
-                      onSelect={() => handleSelect(option.value)}
-                      className="cursor-pointer pointer-events-auto hover:bg-accent hover:text-accent-foreground"
-                      style={{ pointerEvents: 'auto' }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value === option.value ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {option.label}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
+            <div className="pointer-events-auto">
+              <div className="flex items-center border-b px-3 pointer-events-auto">
+                <Input
+                  placeholder={`Search ${label.toLowerCase()}...`}
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="h-9 border-0 focus:ring-0 focus:outline-none bg-transparent pointer-events-auto"
+                  autoFocus
+                />
+              </div>
+              <div className="max-h-64 overflow-y-auto pointer-events-auto">
+                {filteredOptions.length === 0 ? (
+                  <div className="py-6 text-center text-sm pointer-events-auto">No results found.</div>
+                ) : (
+                  <div className="p-1 pointer-events-auto">
+                    {filteredOptions.map((option) => (
+                      <div
+                        key={option.value}
+                        onClick={() => handleSelect(option.value)}
+                        className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground pointer-events-auto"
+                        style={{ pointerEvents: 'auto' }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value === option.value ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {option.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </PopoverContent>
         </Popover>
         {error && (
