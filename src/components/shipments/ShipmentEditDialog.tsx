@@ -363,6 +363,8 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               onChange={(value) => handleInputChange('target_poe_id', value)}
               placeholder="Search and select POE"
               options={portOptions}
+              error=""
+              onFocus={() => {}}
             />
 
             <SearchableSelect
@@ -372,6 +374,8 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               onChange={(value) => handleInputChange('target_pod_id', value)}
               placeholder="Search and select POD"
               options={portOptions}
+              error=""
+              onFocus={() => {}}
             />
 
             <div>
