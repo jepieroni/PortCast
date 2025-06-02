@@ -25,10 +25,11 @@ interface SearchableSelectProps {
   error?: string;
   onFocus?: () => void;
   className?: string;
+  disabled?: boolean;
 }
 
 export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelectProps>(
-  ({ label, required, value, onChange, placeholder, options, error, onFocus, className }, ref) => {
+  ({ label, required, value, onChange, placeholder, options, error, onFocus, className, disabled }, ref) => {
     const [open, setOpen] = useState(false);
     const [searchValue, setSearchValue] = useState('');
 
@@ -47,6 +48,8 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
     };
 
     const handleOpenChange = (isOpen: boolean) => {
+      if (disabled) return;
+      
       console.log('SearchableSelect open change:', isOpen);
       setOpen(isOpen);
       if (isOpen && onFocus) {
@@ -70,9 +73,11 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
               role="combobox"
               aria-expanded={open}
               type="button"
+              disabled={disabled}
               className={cn(
                 "w-full justify-between",
-                error && "border-red-500 focus:border-red-500"
+                error && "border-red-500 focus:border-red-500",
+                disabled && "opacity-50 cursor-not-allowed"
               )}
             >
               {selectedOption ? selectedOption.label : placeholder}
