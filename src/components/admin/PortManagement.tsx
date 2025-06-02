@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { ArrowLeft, Edit, Trash2, Plus, Search } from 'lucide-react';
 import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +30,12 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
     rate_area_id: '',
     region_id: ''
   });
-  const [newRegionName, setNewRegionName] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
+  const [newRegionData, setNewRegionData] = useState({
+    name: '',
+    description: ''
+  });
+  const [isCreatingRegion, setIsCreatingRegion] = useState(false);
 
   const getPortRegion = (portId: string) => {
     const membership = portRegionMemberships.find(m => m.port_id === portId);
@@ -41,24 +48,50 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
     queryClient.invalidateQueries({ queryKey: ['port-region-memberships'] });
   };
 
+  const handleCreateNewRegion = async () => {
+    if (!newRegionData.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Region name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCreatingRegion(true);
+    try {
+      const { data: newRegion, error } = await supabase
+        .from('port_regions')
+        .insert(newRegionData)
+        .select()
+        .single();
+      
+      if (error) {
+        if (error.code === '23505' && error.message.includes('port_regions_name_unique')) {
+          throw new Error('A port region with this name already exists. Please choose a different name.');
+        }
+        throw error;
+      }
+
+      setFormData(prev => ({ ...prev, region_id: newRegion.id }));
+      setNewRegionData({ name: '', description: '' });
+      toast({ title: "Success", description: "Port region created successfully" });
+      refreshData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingRegion(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
-      let regionId = formData.region_id;
-      
-      // Create new region if needed
-      if (newRegionName && !regionId) {
-        const { data: newRegion, error: regionError } = await supabase
-          .from('port_regions')
-          .insert({ name: newRegionName })
-          .select()
-          .single();
-        
-        if (regionError) throw regionError;
-        regionId = newRegion.id;
-      }
-
       const portData = {
         name: formData.name,
         code: formData.code,
@@ -74,7 +107,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         if (error) throw error;
         
         // Update region membership
-        if (regionId) {
+        if (formData.region_id) {
           await supabase
             .from('port_region_memberships')
             .delete()
@@ -82,7 +115,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
           
           await supabase
             .from('port_region_memberships')
-            .insert({ port_id: editingPort.id, region_id: regionId });
+            .insert({ port_id: editingPort.id, region_id: formData.region_id });
         }
         
         toast({ title: "Success", description: "Port updated successfully" });
@@ -96,10 +129,10 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         if (error) throw error;
         
         // Add region membership
-        if (regionId) {
+        if (formData.region_id) {
           await supabase
             .from('port_region_memberships')
-            .insert({ port_id: newPort.id, region_id: regionId });
+            .insert({ port_id: newPort.id, region_id: formData.region_id });
         }
         
         toast({ title: "Success", description: "Port created successfully" });
@@ -107,7 +140,6 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       
       setEditingPort(null);
       setFormData({ name: '', code: '', rate_area_id: '', region_id: '' });
-      setNewRegionName('');
       refreshData();
     } catch (error: any) {
       toast({
@@ -149,6 +181,10 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       });
     }
   };
+
+  const filteredPorts = ports.filter(port => 
+    port.name.toLowerCase().includes(searchFilter.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
@@ -206,7 +242,48 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="region_id">Port Region</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="region_id">Port Region</Label>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <Button type="button" variant="outline" size="sm">
+                        <Plus size={14} className="mr-1" />
+                        Create New
+                      </Button>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80 z-50 bg-white border shadow-lg">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold">Create New Port Region</h4>
+                        <div className="space-y-2">
+                          <Label htmlFor="newRegionName">Name</Label>
+                          <Input
+                            id="newRegionName"
+                            value={newRegionData.name}
+                            onChange={(e) => setNewRegionData(prev => ({ ...prev, name: e.target.value }))}
+                            placeholder="Region name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="newRegionDescription">Description</Label>
+                          <Textarea
+                            id="newRegionDescription"
+                            value={newRegionData.description}
+                            onChange={(e) => setNewRegionData(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Region description (optional)"
+                          />
+                        </div>
+                        <Button 
+                          type="button" 
+                          onClick={handleCreateNewRegion}
+                          disabled={isCreatingRegion}
+                          className="w-full"
+                        >
+                          {isCreatingRegion ? 'Creating...' : 'Create Region'}
+                        </Button>
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
                 <Select value={formData.region_id} onValueChange={(value) => setFormData(prev => ({ ...prev, region_id: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Port Region (Optional)" />
@@ -221,16 +298,6 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="newRegion">Or Create New Region</Label>
-                <Input
-                  id="newRegion"
-                  placeholder="New region name"
-                  value={newRegionName}
-                  onChange={(e) => setNewRegionName(e.target.value)}
-                />
-              </div>
-
               <div className="flex gap-2">
                 <Button type="submit">
                   {editingPort ? 'Update' : 'Create'} Port
@@ -242,7 +309,6 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
                     onClick={() => {
                       setEditingPort(null);
                       setFormData({ name: '', code: '', rate_area_id: '', region_id: '' });
-                      setNewRegionName('');
                     }}
                   >
                     Cancel
@@ -255,11 +321,22 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Existing Ports</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Existing Ports</CardTitle>
+              <div className="flex items-center gap-2">
+                <Search size={16} className="text-gray-500" />
+                <Input
+                  placeholder="Search ports..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="w-48"
+                />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {ports.map((port) => {
+              {filteredPorts.map((port) => {
                 const region = getPortRegion(port.id);
                 return (
                   <div key={port.id} className="flex items-center justify-between p-2 border rounded">
@@ -285,6 +362,11 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
                   </div>
                 );
               })}
+              {filteredPorts.length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                  {searchFilter ? 'No ports found matching your search.' : 'No ports found.'}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
