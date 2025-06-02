@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface RateAreaManagementProps {
   onBack: () => void;
@@ -18,13 +17,13 @@ interface RateAreaManagementProps {
 
 const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { rateAreas } = useShipmentData();
   const [editingRateArea, setEditingRateArea] = useState<any>(null);
   const [formData, setFormData] = useState({
     rate_area: '',
     name: '',
-    country_id: '',
-    is_conus: false
+    country_id: ''
   });
 
   // Fetch countries for dropdown
@@ -40,6 +39,10 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
       return data;
     }
   });
+
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['shipment-data'] });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,8 +71,8 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
       }
       
       setEditingRateArea(null);
-      setFormData({ rate_area: '', name: '', country_id: '', is_conus: false });
-      window.location.reload();
+      setFormData({ rate_area: '', name: '', country_id: '' });
+      refreshData();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -84,8 +87,7 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
     setFormData({
       rate_area: rateArea.rate_area,
       name: rateArea.name || '',
-      country_id: rateArea.country_id,
-      is_conus: rateArea.is_conus
+      country_id: rateArea.country_id
     });
   };
 
@@ -100,7 +102,7 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
       
       if (error) throw error;
       toast({ title: "Success", description: "Rate area deleted successfully" });
-      window.location.reload();
+      refreshData();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -164,15 +166,6 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
                 </Select>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="is_conus"
-                  checked={formData.is_conus}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_conus: !!checked }))}
-                />
-                <Label htmlFor="is_conus">Is CONUS</Label>
-              </div>
-
               <div className="flex gap-2">
                 <Button type="submit">
                   {editingRateArea ? 'Update' : 'Create'} Rate Area
@@ -183,7 +176,7 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
                     variant="outline"
                     onClick={() => {
                       setEditingRateArea(null);
-                      setFormData({ rate_area: '', name: '', country_id: '', is_conus: false });
+                      setFormData({ rate_area: '', name: '', country_id: '' });
                     }}
                   >
                     Cancel
