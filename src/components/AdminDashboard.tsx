@@ -10,13 +10,16 @@ import OrganizationManagement from './OrganizationManagement';
 import AccessRequestManagement from './AccessRequestManagement';
 import UserCleanup from './UserCleanup';
 import ScacManagement from './ScacManagement';
+import PortManagement from './admin/PortManagement';
+import RateAreaManagement from './admin/RateAreaManagement';
+import PortRegionManagement from './admin/PortRegionManagement';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminView = 'dashboard' | 'users' | 'organizations' | 'requests' | 'cleanup' | 'scac';
+type AdminView = 'dashboard' | 'users' | 'organizations' | 'requests' | 'cleanup' | 'scac' | 'ports' | 'rate-areas' | 'port-regions';
 
 const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
   const { currentUser } = useAdminAccess(onBack);
@@ -34,6 +37,12 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
         return <UserCleanup onBack={() => setCurrentView('dashboard')} />;
       case 'scac':
         return <ScacManagement onBack={() => setCurrentView('dashboard')} isGlobalAdmin={true} />;
+      case 'ports':
+        return <PortManagement onBack={() => setCurrentView('dashboard')} />;
+      case 'rate-areas':
+        return <RateAreaManagement onBack={() => setCurrentView('dashboard')} />;
+      case 'port-regions':
+        return <PortRegionManagement onBack={() => setCurrentView('dashboard')} />;
       default:
         return (
           <AdminStats
@@ -42,6 +51,9 @@ const AdminDashboard = ({ onBack }: AdminDashboardProps) => {
             onAccessRequestManagement={() => setCurrentView('requests')}
             onUserCleanup={() => setCurrentView('cleanup')}
             onScacManagement={() => setCurrentView('scac')}
+            onPortManagement={() => setCurrentView('ports')}
+            onRateAreaManagement={() => setCurrentView('rate-areas')}
+            onPortRegionManagement={() => setCurrentView('port-regions')}
           />
         );
     }

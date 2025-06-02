@@ -21,7 +21,21 @@ export interface Port {
   id: string;
   name: string;
   code: string;
-  country_id: string | null;
+  rate_area_id: string | null;
+}
+
+export interface PortRegion {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
+
+export interface PortRegionMembership {
+  id: string;
+  port_id: string;
+  region_id: string;
+  created_at: string;
 }
 
 export interface ShipmentFormData {

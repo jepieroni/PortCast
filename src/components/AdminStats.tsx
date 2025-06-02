@@ -1,9 +1,7 @@
 
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Building, FileText, Trash2, Building2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Users, Building2, UserCheck, UserX, Anchor, Globe2, MapPin } from 'lucide-react';
 
 interface AdminStatsProps {
   onUserManagement: () => void;
@@ -11,225 +9,101 @@ interface AdminStatsProps {
   onAccessRequestManagement: () => void;
   onUserCleanup: () => void;
   onScacManagement: () => void;
+  onPortManagement: () => void;
+  onRateAreaManagement: () => void;
+  onPortRegionManagement: () => void;
 }
 
-interface Stats {
-  totalUsers: number;
-  totalOrganizations: number;
-  pendingOrgRequests: number;
-  pendingUserRequests: number;
-  pendingScacClaims: number;
-}
-
-const AdminStats = ({ 
-  onUserManagement, 
-  onOrganizationManagement, 
-  onAccessRequestManagement, 
+const AdminStats = ({
+  onUserManagement,
+  onOrganizationManagement,
+  onAccessRequestManagement,
   onUserCleanup,
-  onScacManagement 
+  onScacManagement,
+  onPortManagement,
+  onRateAreaManagement,
+  onPortRegionManagement
 }: AdminStatsProps) => {
-  const [stats, setStats] = useState<Stats>({
-    totalUsers: 0,
-    totalOrganizations: 0,
-    pendingOrgRequests: 0,
-    pendingUserRequests: 0,
-    pendingScacClaims: 0
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
-    try {
-      // Fetch users count
-      const { count: usersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      // Fetch organizations count
-      const { count: orgsCount } = await supabase
-        .from('organizations')
-        .select('*', { count: 'exact', head: true });
-
-      // Fetch pending organization requests
-      const { count: pendingOrgCount } = await supabase
-        .from('organization_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      // Fetch pending user requests
-      const { count: pendingUserCount } = await supabase
-        .from('user_requests')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      // Fetch pending SCAC claims
-      const { count: pendingScacCount } = await supabase
-        .from('scac_claims')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
-      setStats({
-        totalUsers: usersCount || 0,
-        totalOrganizations: orgsCount || 0,
-        pendingOrgRequests: pendingOrgCount || 0,
-        pendingUserRequests: pendingUserCount || 0,
-        pendingScacClaims: pendingScacCount || 0
-      });
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onUserManagement}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">User Management</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <p className="text-xs text-muted-foreground">Manage system users and roles</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onOrganizationManagement}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Organizations</CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrganizations}</div>
+            <p className="text-xs text-muted-foreground">Manage organizations</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onAccessRequestManagement}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Org Requests</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Access Requests</CardTitle>
+            <UserCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingOrgRequests}</div>
+            <p className="text-xs text-muted-foreground">Review pending access requests</p>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onScacManagement}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending User Requests</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">SCAC Management</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.pendingUserRequests}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users size={20} />
-              User Management
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Manage user accounts, roles, and permissions across the system.
-            </p>
-            <Button onClick={onUserManagement} className="w-full">
-              Manage Users
-            </Button>
+            <p className="text-xs text-muted-foreground">Manage SCAC codes and claims</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building size={20} />
-              Organization Management
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onPortManagement}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Port Management</CardTitle>
+            <Anchor className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Manage organizations and their settings.
-            </p>
-            <Button onClick={onOrganizationManagement} className="w-full">
-              Manage Organizations
-            </Button>
+            <p className="text-xs text-muted-foreground">Manage ports and regions</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText size={20} />
-              Access Requests
-              {(stats.pendingOrgRequests + stats.pendingUserRequests) > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                  {stats.pendingOrgRequests + stats.pendingUserRequests}
-                </span>
-              )}
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onRateAreaManagement}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rate Areas</CardTitle>
+            <Globe2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Review and approve organization and user access requests.
-            </p>
-            <Button onClick={onAccessRequestManagement} className="w-full">
-              Review Requests
-            </Button>
+            <p className="text-xs text-muted-foreground">Manage rate areas</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 size={20} />
-              SCAC Management
-              {stats.pendingScacClaims > 0 && (
-                <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
-                  {stats.pendingScacClaims}
-                </span>
-              )}
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onPortRegionManagement}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Port Regions</CardTitle>
+            <MapPin className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Manage TSP (SCAC) assignments and approve organization claims.
-            </p>
-            <Button onClick={onScacManagement} className="w-full">
-              Manage SCACs
-            </Button>
+            <p className="text-xs text-muted-foreground">Manage port regions</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Trash2 size={20} />
-              User Cleanup
-            </CardTitle>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onUserCleanup}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">User Cleanup</CardTitle>
+            <UserX className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Remove users and clean up associated data from the system.
-            </p>
-            <Button onClick={onUserCleanup} variant="destructive" className="w-full">
-              User Cleanup
-            </Button>
+            <p className="text-xs text-muted-foreground">Clean up test users</p>
           </CardContent>
         </Card>
       </div>
