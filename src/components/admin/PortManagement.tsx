@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -201,8 +202,8 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         <h2 className="text-2xl font-bold">Port Management</h2>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card>
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle>
               {editingPort ? 'Edit Port' : 'Add Port'}
@@ -340,7 +341,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="flex flex-col h-full">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Existing Ports</CardTitle>
@@ -355,8 +356,8 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-1 max-h-96 overflow-y-auto">
+          <CardContent className="flex-1 flex flex-col">
+            <div className="space-y-1 flex-1 overflow-y-auto">
               {filteredPorts.map((port) => {
                 const region = getPortRegion(port.id);
                 return (
