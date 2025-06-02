@@ -56,12 +56,12 @@ const ShipmentFilters = ({ filters, onFiltersChange }: ShipmentFiltersProps) => 
           />
         </div>
 
-        <Select value={filters.shipmentType} onValueChange={(value) => updateFilter('shipmentType', value)}>
+        <Select value={filters.shipmentType || undefined} onValueChange={(value) => updateFilter('shipmentType', value || '')}>
           <SelectTrigger>
             <SelectValue placeholder="Shipment Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="all">All Types</SelectItem>
             <SelectItem value="inbound">Inbound</SelectItem>
             <SelectItem value="outbound">Outbound</SelectItem>
             <SelectItem value="intertheater">Intertheater</SelectItem>
