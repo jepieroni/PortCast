@@ -158,26 +158,94 @@ export type Database = {
         }
         Relationships: []
       }
+      port_region_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          port_id: string
+          region_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          port_id: string
+          region_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          port_id?: string
+          region_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "port_region_memberships_port_id_fkey"
+            columns: ["port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "port_region_memberships_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "port_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      port_regions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       ports: {
         Row: {
           code: string
           created_at: string | null
           id: string
           name: string
+          rate_area_id: string | null
         }
         Insert: {
           code: string
           created_at?: string | null
           id?: string
           name: string
+          rate_area_id?: string | null
         }
         Update: {
           code?: string
           created_at?: string | null
           id?: string
           name?: string
+          rate_area_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ports_rate_area_id_fkey"
+            columns: ["rate_area_id"]
+            isOneToOne: false
+            referencedRelation: "rate_areas"
+            referencedColumns: ["rate_area"]
+          },
+        ]
       }
       profiles: {
         Row: {

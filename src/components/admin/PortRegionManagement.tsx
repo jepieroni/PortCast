@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -29,7 +29,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
     try {
       if (editingRegion) {
         const { error } = await supabase
-          .from('port_regions' as any)
+          .from('port_regions')
           .update(formData)
           .eq('id', editingRegion.id);
         
@@ -37,7 +37,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
         toast({ title: "Success", description: "Port region updated successfully" });
       } else {
         const { error } = await supabase
-          .from('port_regions' as any)
+          .from('port_regions')
           .insert(formData);
         
         if (error) throw error;
@@ -46,7 +46,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
       
       setEditingRegion(null);
       setFormData({ name: '', description: '' });
-      window.location.reload(); // Refresh data
+      window.location.reload();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -69,7 +69,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
     
     try {
       const { error } = await supabase
-        .from('port_regions' as any)
+        .from('port_regions')
         .delete()
         .eq('id', regionId);
       

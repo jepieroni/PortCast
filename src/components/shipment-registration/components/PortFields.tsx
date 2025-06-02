@@ -17,30 +17,10 @@ export const PortFields = ({
 }: PortFieldsProps) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
 
-  // Get ports grouped by region
-  const getPortsByRegion = (regionId: string) => {
-    const regionPortIds = portRegionMemberships
-      .filter(m => m.region_id === regionId)
-      .map(m => m.port_id);
-    
-    return ports.filter(port => regionPortIds.includes(port.id));
-  };
-
   // Get region for a port
   const getPortRegion = (portId: string) => {
     const membership = portRegionMemberships.find(m => m.port_id === portId);
     return membership ? portRegions.find(r => r.id === membership.region_id) : null;
-  };
-
-  // Get all ports, optionally filtering by selected port's region for regional flexibility
-  const getAvailablePorts = (selectedPortId?: string) => {
-    if (!selectedPortId) return ports;
-    
-    const selectedRegion = getPortRegion(selectedPortId);
-    if (!selectedRegion) return ports;
-    
-    // Return all ports in the same region as the selected port
-    return getPortsByRegion(selectedRegion.id);
   };
 
   return (
