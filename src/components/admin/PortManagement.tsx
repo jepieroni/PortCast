@@ -10,6 +10,7 @@ import { useShipmentData } from '@/components/shipment-registration/hooks/useShi
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PortManagementProps {
   onBack: () => void;
@@ -17,6 +18,7 @@ interface PortManagementProps {
 
 const PortManagement = ({ onBack }: PortManagementProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { ports, rateAreas } = useShipmentData();
   const { portRegions, portRegionMemberships } = usePortRegions();
   const [editingPort, setEditingPort] = useState<any>(null);
@@ -31,6 +33,12 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
   const getPortRegion = (portId: string) => {
     const membership = portRegionMemberships.find(m => m.port_id === portId);
     return membership ? portRegions.find(r => r.id === membership.region_id) : null;
+  };
+
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['shipment-data'] });
+    queryClient.invalidateQueries({ queryKey: ['port-regions'] });
+    queryClient.invalidateQueries({ queryKey: ['port-region-memberships'] });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,7 +108,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       setEditingPort(null);
       setFormData({ name: '', code: '', rate_area_id: '', region_id: '' });
       setNewRegionName('');
-      window.location.reload();
+      refreshData();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -132,7 +140,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       
       if (error) throw error;
       toast({ title: "Success", description: "Port deleted successfully" });
-      window.location.reload();
+      refreshData();
     } catch (error: any) {
       toast({
         title: "Error",

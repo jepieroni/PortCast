@@ -9,6 +9,7 @@ import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface PortRegionManagementProps {
   onBack: () => void;
@@ -16,12 +17,18 @@ interface PortRegionManagementProps {
 
 const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { portRegions } = usePortRegions();
   const [editingRegion, setEditingRegion] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: ''
   });
+
+  const refreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['port-regions'] });
+    queryClient.invalidateQueries({ queryKey: ['port-region-memberships'] });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +53,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
       
       setEditingRegion(null);
       setFormData({ name: '', description: '' });
-      window.location.reload();
+      refreshData();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -75,7 +82,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
       
       if (error) throw error;
       toast({ title: "Success", description: "Port region deleted successfully" });
-      window.location.reload();
+      refreshData();
     } catch (error: any) {
       toast({
         title: "Error",
