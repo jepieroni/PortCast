@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { ShipmentFormData } from '../types';
 import { useShipmentValidation } from './useShipmentValidation';
@@ -17,9 +18,7 @@ export const useShipmentForm = (onBack: () => void, onSuccess?: () => void, tsps
     targetPoeId: '',
     targetPodId: '',
     tspId: '',
-    estimatedPieces: '',
     estimatedCube: '',
-    actualPieces: '',
     actualCube: ''
   });
 

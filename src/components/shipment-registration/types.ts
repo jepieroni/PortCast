@@ -1,3 +1,4 @@
+
 export interface RateArea {
   id: string;
   rate_area: string;
@@ -50,8 +51,6 @@ export interface ShipmentFormData {
   targetPoeId: string;
   targetPodId: string;
   tspId: string;
-  estimatedPieces: string;
   estimatedCube: string;
-  actualPieces: string;
   actualCube: string;
 }

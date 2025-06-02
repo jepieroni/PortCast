@@ -385,18 +385,15 @@ export type Database = {
       shipments: {
         Row: {
           actual_cube: number | null
-          actual_pieces: number | null
           created_at: string | null
           destination_rate_area: string
           estimated_cube: number | null
-          estimated_pieces: number | null
           gbl_number: string
           id: string
           origin_rate_area: string
           pickup_date: string
           rdd: string
           remaining_cube: number | null
-          remaining_pieces: number | null
           shipment_type: Database["public"]["Enums"]["shipment_type"]
           shipper_last_name: string
           target_pod_id: string
@@ -407,18 +404,15 @@ export type Database = {
         }
         Insert: {
           actual_cube?: number | null
-          actual_pieces?: number | null
           created_at?: string | null
           destination_rate_area: string
           estimated_cube?: number | null
-          estimated_pieces?: number | null
           gbl_number: string
           id?: string
           origin_rate_area: string
           pickup_date: string
           rdd: string
           remaining_cube?: number | null
-          remaining_pieces?: number | null
           shipment_type: Database["public"]["Enums"]["shipment_type"]
           shipper_last_name: string
           target_pod_id: string
@@ -429,18 +423,15 @@ export type Database = {
         }
         Update: {
           actual_cube?: number | null
-          actual_pieces?: number | null
           created_at?: string | null
           destination_rate_area?: string
           estimated_cube?: number | null
-          estimated_pieces?: number | null
           gbl_number?: string
           id?: string
           origin_rate_area?: string
           pickup_date?: string
           rdd?: string
           remaining_cube?: number | null
-          remaining_pieces?: number | null
           shipment_type?: Database["public"]["Enums"]["shipment_type"]
           shipper_last_name?: string
           target_pod_id?: string

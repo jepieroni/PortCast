@@ -21,13 +21,10 @@ export const useShipmentSubmission = () => {
       }
 
       // Convert values to integers
-      const estimatedPieces = formData.estimatedPieces ? parseInt(formData.estimatedPieces) : null;
       const estimatedCube = formData.estimatedCube ? parseInt(formData.estimatedCube) : null;
-      const actualPieces = formData.actualPieces ? parseInt(formData.actualPieces) : null;
       const actualCube = formData.actualCube ? parseInt(formData.actualCube) : null;
 
       // If actual values are provided, copy them to remaining fields
-      const remainingPieces = actualPieces !== null ? actualPieces : null;
       const remainingCube = actualCube !== null ? actualCube : null;
 
       const shipmentData = {
@@ -42,11 +39,8 @@ export const useShipmentSubmission = () => {
         target_poe_id: formData.targetPoeId,
         target_pod_id: formData.targetPodId,
         tsp_id: formData.tspId,
-        estimated_pieces: estimatedPieces,
         estimated_cube: estimatedCube,
-        actual_pieces: actualPieces,
         actual_cube: actualCube,
-        remaining_pieces: remainingPieces,
         remaining_cube: remainingCube
       };
 

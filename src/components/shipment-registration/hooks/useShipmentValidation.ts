@@ -59,49 +59,30 @@ export const useShipmentValidation = () => {
       });
     }
 
-    // Validate pieces and volume logic
-    const hasEstimated = formData.estimatedPieces || formData.estimatedCube;
-    const hasActual = formData.actualPieces || formData.actualCube;
+    // Validate cube logic - must have either estimated OR actual, not both
+    const hasEstimated = formData.estimatedCube;
+    const hasActual = formData.actualCube;
 
     if (hasEstimated && hasActual) {
       errors.push({ 
-        field: 'estimatedPieces', 
-        message: 'Enter values in EITHER estimated OR actual fields, not both' 
+        field: 'estimatedCube', 
+        message: 'Enter cube in EITHER estimated OR actual field, not both' 
       });
       errors.push({ 
-        field: 'actualPieces', 
-        message: 'Enter values in EITHER estimated OR actual fields, not both' 
+        field: 'actualCube', 
+        message: 'Enter cube in EITHER estimated OR actual field, not both' 
       });
     }
 
     if (!hasEstimated && !hasActual) {
       errors.push({ 
-        field: 'estimatedPieces', 
-        message: 'Enter both pieces and volume in either estimated or actual fields' 
+        field: 'estimatedCube', 
+        message: 'Cube volume is required - enter in either estimated or actual field' 
       });
       errors.push({ 
-        field: 'estimatedCube', 
-        message: 'Enter both pieces and volume in either estimated or actual fields' 
+        field: 'actualCube', 
+        message: 'Cube volume is required - enter in either estimated or actual field' 
       });
-    }
-
-    // Validate that both pieces and volume are provided for the chosen type
-    if (hasEstimated && (!formData.estimatedPieces || !formData.estimatedCube)) {
-      if (!formData.estimatedPieces) {
-        errors.push({ field: 'estimatedPieces', message: 'Estimated pieces is required when using estimated values' });
-      }
-      if (!formData.estimatedCube) {
-        errors.push({ field: 'estimatedCube', message: 'Estimated volume is required when using estimated values' });
-      }
-    }
-
-    if (hasActual && (!formData.actualPieces || !formData.actualCube)) {
-      if (!formData.actualPieces) {
-        errors.push({ field: 'actualPieces', message: 'Actual pieces is required when using actual values' });
-      }
-      if (!formData.actualCube) {
-        errors.push({ field: 'actualCube', message: 'Actual volume is required when using actual values' });
-      }
     }
 
     // Show toast for overall validation status
