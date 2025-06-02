@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -198,8 +199,18 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
   })) || [];
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open onOpenChange={onClose} modal={true}>
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onOpenAutoFocus={(e) => {
+          // Prevent dialog from stealing focus initially
+          e.preventDefault();
+        }}
+        onCloseAutoFocus={(e) => {
+          // Prevent dialog from managing focus on close
+          e.preventDefault();
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Edit Shipment - {shipment?.gbl_number}</DialogTitle>
         </DialogHeader>

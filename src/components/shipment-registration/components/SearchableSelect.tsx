@@ -72,7 +72,7 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
-        <Popover open={open} onOpenChange={handleOpenChange} modal={false}>
+        <Popover open={open} onOpenChange={handleOpenChange}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -90,11 +90,33 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-full p-0 z-[100]" 
+            className="w-full p-0 z-[200] bg-white border shadow-lg" 
             align="start"
+            side="bottom"
+            sideOffset={4}
             onOpenAutoFocus={(e) => {
               console.log('PopoverContent onOpenAutoFocus');
+              // Allow the input to receive focus
+            }}
+            onCloseAutoFocus={(e) => {
+              // Prevent focus from returning to trigger when closed
               e.preventDefault();
+            }}
+            onEscapeKeyDown={(e) => {
+              // Handle escape key properly
+              setOpen(false);
+            }}
+            onPointerDownOutside={(e) => {
+              // Only close if clicking outside the popover content
+              setOpen(false);
+            }}
+            onFocusOutside={(e) => {
+              // Prevent closing when focus moves within the popover
+              const target = e.target as Element;
+              const popoverContent = e.currentTarget;
+              if (popoverContent.contains(target)) {
+                e.preventDefault();
+              }
             }}
           >
             <Command>
@@ -102,7 +124,7 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
                 placeholder={`Search ${label.toLowerCase()}...`}
                 value={searchValue}
                 onValueChange={setSearchValue}
-                className="pointer-events-auto"
+                className="pointer-events-auto h-9"
                 autoFocus
                 onFocus={() => {
                   console.log('CommandInput focused');
