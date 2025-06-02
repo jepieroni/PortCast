@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
-type OrgAdminView = 'dashboard' | 'scac';
+type OrgAdminView = 'overview' | 'users' | 'requests' | 'scac' | 'ports' | 'rate-areas' | 'port-regions';
 
 interface OrgAdminNavigationProps {
   currentView: OrgAdminView;
@@ -55,8 +55,8 @@ export const OrgAdminNavigation = ({ currentView, onViewChange }: OrgAdminNaviga
   return (
     <div className="flex gap-2 mb-6">
       <Button 
-        variant={currentView === 'dashboard' ? 'default' : 'outline'}
-        onClick={() => onViewChange('dashboard')}
+        variant={currentView === 'users' ? 'default' : 'outline'}
+        onClick={() => onViewChange('users')}
       >
         <Users size={16} className="mr-2" />
         Users & Requests

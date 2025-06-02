@@ -16,10 +16,10 @@ interface OrgAdminDashboardProps {
   onBack: () => void;
 }
 
-type AdminView = 'overview' | 'users' | 'requests' | 'scac' | 'ports' | 'rate-areas' | 'port-regions';
+type OrgAdminView = 'overview' | 'users' | 'requests' | 'scac' | 'ports' | 'rate-areas' | 'port-regions';
 
 const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
-  const [currentView, setCurrentView] = useState<AdminView>('overview');
+  const [currentView, setCurrentView] = useState<OrgAdminView>('overview');
   const {
     orgUsers,
     userRequests,
@@ -32,6 +32,10 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
   useEffect(() => {
     fetchOrganizationData();
   }, []);
+
+  const handleViewChange = (view: OrgAdminView) => {
+    setCurrentView(view);
+  };
 
   const renderContent = () => {
     switch (currentView) {
@@ -60,10 +64,61 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
         return <PortRegionManagement onBack={() => setCurrentView('overview')} />;
       default:
         return (
-          <OrgAdminNavigation
-            currentView={currentView}
-            onViewChange={setCurrentView}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Button
+              variant="outline"
+              className="p-6 h-auto flex flex-col items-center gap-3"
+              onClick={() => handleViewChange('users')}
+            >
+              <div className="text-lg font-medium">Manage Users</div>
+              <div className="text-sm text-gray-600">View and manage organization users</div>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="p-6 h-auto flex flex-col items-center gap-3"
+              onClick={() => handleViewChange('requests')}
+            >
+              <div className="text-lg font-medium">User Requests</div>
+              <div className="text-sm text-gray-600">Review pending user access requests</div>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="p-6 h-auto flex flex-col items-center gap-3"
+              onClick={() => handleViewChange('scac')}
+            >
+              <div className="text-lg font-medium">SCAC Management</div>
+              <div className="text-sm text-gray-600">Manage SCAC codes and claims</div>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="p-6 h-auto flex flex-col items-center gap-3"
+              onClick={() => handleViewChange('ports')}
+            >
+              <div className="text-lg font-medium">Port Management</div>
+              <div className="text-sm text-gray-600">Manage ports and their assignments</div>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="p-6 h-auto flex flex-col items-center gap-3"
+              onClick={() => handleViewChange('rate-areas')}
+            >
+              <div className="text-lg font-medium">Rate Areas</div>
+              <div className="text-sm text-gray-600">Manage rate area definitions</div>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="p-6 h-auto flex flex-col items-center gap-3"
+              onClick={() => handleViewChange('port-regions')}
+            >
+              <div className="text-lg font-medium">Port Regions</div>
+              <div className="text-sm text-gray-600">Manage port region groupings</div>
+            </Button>
+          </div>
         );
     }
   };
