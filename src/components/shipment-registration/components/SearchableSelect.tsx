@@ -40,6 +40,7 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
     });
 
     const handleSelect = (selectedValue: string) => {
+      console.log('Option selected:', selectedValue);
       onChange(selectedValue === value ? '' : selectedValue);
       setOpen(false);
       setSearchValue('');
@@ -94,38 +95,13 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
             align="start"
             side="bottom"
             sideOffset={4}
-            onOpenAutoFocus={(e) => {
-              console.log('PopoverContent onOpenAutoFocus');
-              // Allow the input to receive focus
-            }}
-            onCloseAutoFocus={(e) => {
-              // Prevent focus from returning to trigger when closed
-              e.preventDefault();
-            }}
-            onEscapeKeyDown={(e) => {
-              // Handle escape key properly
-              setOpen(false);
-            }}
-            onPointerDownOutside={(e) => {
-              // Only close if clicking outside the popover content
-              setOpen(false);
-            }}
-            onFocusOutside={(e) => {
-              // Prevent closing when focus moves within the popover
-              const target = e.target as Element;
-              const popoverContent = e.currentTarget;
-              if (popoverContent.contains(target)) {
-                e.preventDefault();
-              }
-            }}
           >
             <Command>
               <CommandInput
                 placeholder={`Search ${label.toLowerCase()}...`}
                 value={searchValue}
                 onValueChange={setSearchValue}
-                className="pointer-events-auto h-9"
-                autoFocus
+                className="h-9"
                 onFocus={() => {
                   console.log('CommandInput focused');
                 }}
