@@ -40,14 +40,24 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
           .update(formData)
           .eq('id', editingRegion.id);
         
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505' && error.message.includes('port_regions_name_unique')) {
+            throw new Error('A port region with this name already exists. Please choose a different name.');
+          }
+          throw error;
+        }
         toast({ title: "Success", description: "Port region updated successfully" });
       } else {
         const { error } = await supabase
           .from('port_regions')
           .insert(formData);
         
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505' && error.message.includes('port_regions_name_unique')) {
+            throw new Error('A port region with this name already exists. Please choose a different name.');
+          }
+          throw error;
+        }
         toast({ title: "Success", description: "Port region created successfully" });
       }
       
