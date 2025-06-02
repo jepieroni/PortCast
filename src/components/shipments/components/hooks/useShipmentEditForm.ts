@@ -92,6 +92,8 @@ export const useShipmentEditForm = (shipment: any) => {
         target_pod_id: shipment.target_pod_id || '',
         tsp_id: shipment.tsp_id || '',
       };
+      
+      console.log('Setting form data to:', newFormData);
       setFormData(newFormData);
       
       // Initialize date input values

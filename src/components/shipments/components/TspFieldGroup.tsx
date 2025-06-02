@@ -17,6 +17,9 @@ interface TspFieldGroupProps {
 }
 
 export const TspFieldGroup = ({ formData, tsps, onInputChange }: TspFieldGroupProps) => {
+  console.log('TspFieldGroup formData.tsp_id:', formData.tsp_id);
+  console.log('Available TSPs:', tsps);
+
   return (
     <div>
       <Label htmlFor="tsp_id">TSP *</Label>

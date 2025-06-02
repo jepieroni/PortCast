@@ -16,6 +16,9 @@ interface BasicFieldsProps {
 }
 
 export const BasicFields = ({ formData, rateAreas, onInputChange }: BasicFieldsProps) => {
+  console.log('BasicFields formData:', formData);
+  console.log('Available rate areas:', rateAreas);
+
   return (
     <>
       <div>
