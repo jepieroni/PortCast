@@ -1,4 +1,3 @@
-
 export interface RateArea {
   id: string;
   rate_area: string;
@@ -21,7 +20,9 @@ export interface Port {
   id: string;
   name: string;
   code: string;
-  rate_area_id: string | null;
+  description?: string | null;
+  rate_area_id?: string | null;
+  created_at?: string | null;
 }
 
 export interface PortRegion {
