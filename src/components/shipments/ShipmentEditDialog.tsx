@@ -365,6 +365,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               options={portOptions}
               error=""
               onFocus={() => {}}
+              className="w-full"
             />
 
             <SearchableSelect
@@ -376,6 +377,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               options={portOptions}
               error=""
               onFocus={() => {}}
+              className="w-full"
             />
 
             <div>
