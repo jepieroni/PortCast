@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ArrowLeft, Save } from 'lucide-react';
+import { useMemo } from 'react';
 import { useShipmentData } from './shipment-registration/hooks/useShipmentData';
 import { useShipmentForm } from './shipment-registration/hooks/useShipmentForm';
 import { FormField } from './shipment-registration/components/FormField';
@@ -38,15 +39,55 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
     label: `${tsp.scac_code} - ${tsp.name}`
   })) || [];
 
-  const rateAreaOptions = rateAreas?.map(area => ({
-    value: area.rate_area,
-    label: `${area.rate_area} - ${area.name}`
-  })) || [];
+  // Filter rate areas based on shipment type
+  const { originRateAreaOptions, destinationRateAreaOptions } = useMemo(() => {
+    if (!formData.shipmentType || !rateAreas) {
+      return { originRateAreaOptions: [], destinationRateAreaOptions: [] };
+    }
+
+    let originRateAreas, destinationRateAreas;
+
+    switch (formData.shipmentType) {
+      case 'inbound':
+        originRateAreas = rateAreas.filter(ra => !ra.is_conus && !ra.is_intertheater_only);
+        destinationRateAreas = rateAreas.filter(ra => ra.is_conus && !ra.is_intertheater_only);
+        break;
+      case 'outbound':
+        originRateAreas = rateAreas.filter(ra => ra.is_conus && !ra.is_intertheater_only);
+        destinationRateAreas = rateAreas.filter(ra => !ra.is_conus && !ra.is_intertheater_only);
+        break;
+      case 'intertheater':
+        originRateAreas = rateAreas.filter(ra => !ra.is_conus);
+        destinationRateAreas = rateAreas.filter(ra => !ra.is_conus);
+        break;
+      default:
+        originRateAreas = [];
+        destinationRateAreas = [];
+    }
+
+    return {
+      originRateAreaOptions: originRateAreas.map(area => ({
+        value: area.rate_area,
+        label: `${area.rate_area} - ${area.name || area.countries.name}`
+      })),
+      destinationRateAreaOptions: destinationRateAreas.map(area => ({
+        value: area.rate_area,
+        label: `${area.rate_area} - ${area.name || area.countries.name}`
+      }))
+    };
+  }, [formData.shipmentType, rateAreas]);
 
   const portOptions = ports?.map(port => ({
     value: port.id,
     label: `${port.code} - ${port.name}`
   })) || [];
+
+  const handleShipmentTypeChange = (value: string) => {
+    handleInputChange('shipmentType', value);
+    // Clear existing rate area values when shipment type changes
+    handleInputChange('originRateArea', '');
+    handleInputChange('destinationRateArea', '');
+  };
 
   return (
     <TooltipProvider>
@@ -95,7 +136,7 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       label="Shipment Type"
                       required
                       value={formData.shipmentType}
-                      onChange={(value) => handleInputChange('shipmentType', value)}
+                      onChange={handleShipmentTypeChange}
                       placeholder="Select type"
                       options={shipmentTypeOptions}
                       error={fieldValidation.getError('shipmentType')}
@@ -133,8 +174,8 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       required
                       value={formData.originRateArea}
                       onChange={(value) => handleInputChange('originRateArea', value)}
-                      placeholder="Select origin"
-                      options={rateAreaOptions}
+                      placeholder={!formData.shipmentType ? "Select shipment type first" : "Select origin"}
+                      options={originRateAreaOptions}
                       error={fieldValidation.getError('originRateArea')}
                       onFocus={() => fieldValidation.clearFieldError('originRateArea')}
                     />
@@ -146,8 +187,8 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       required
                       value={formData.destinationRateArea}
                       onChange={(value) => handleInputChange('destinationRateArea', value)}
-                      placeholder="Select destination"
-                      options={rateAreaOptions}
+                      placeholder={!formData.shipmentType ? "Select shipment type first" : "Select destination"}
+                      options={destinationRateAreaOptions}
                       error={fieldValidation.getError('destinationRateArea')}
                       onFocus={() => fieldValidation.clearFieldError('destinationRateArea')}
                     />
