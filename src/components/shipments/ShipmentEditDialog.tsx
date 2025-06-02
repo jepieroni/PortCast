@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -84,10 +85,14 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
     tsp_id: '',
   });
 
+  // Local state for date input values
+  const [pickupInputValue, setPickupInputValue] = useState('');
+  const [rddInputValue, setRddInputValue] = useState('');
+
   useEffect(() => {
     if (shipment) {
       console.log('Shipment data for editing:', shipment);
-      setFormData({
+      const newFormData = {
         gbl_number: shipment.gbl_number || '',
         shipper_last_name: shipment.shipper_last_name || '',
         shipment_type: shipment.shipment_type || '',
@@ -104,7 +109,12 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
         target_poe_id: shipment.target_poe_id || '',
         target_pod_id: shipment.target_pod_id || '',
         tsp_id: shipment.tsp_id || '',
-      });
+      };
+      setFormData(newFormData);
+      
+      // Initialize date input values
+      setPickupInputValue(formatDateForInput(newFormData.pickup_date));
+      setRddInputValue(formatDateForInput(newFormData.rdd));
     }
   }, [shipment]);
 
@@ -123,6 +133,13 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
   };
 
   const handleDateInputChange = (field: string, value: string) => {
+    // Always update the input value to allow typing
+    if (field === 'pickup_date') {
+      setPickupInputValue(value);
+    } else if (field === 'rdd') {
+      setRddInputValue(value);
+    }
+
     if (value === '') {
       setFormData(prev => ({ ...prev, [field]: '' }));
       return;
@@ -134,11 +151,42 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
     }
   };
 
+  const handleDateInputBlur = (field: string, value: string) => {
+    // On blur, try to parse and format the date
+    const parsedDate = parseDateString(value);
+    if (parsedDate) {
+      const isoDate = parsedDate.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, [field]: isoDate }));
+      
+      // Update input to show formatted version
+      const formatted = format(parsedDate, 'MM/dd/yy');
+      if (field === 'pickup_date') {
+        setPickupInputValue(formatted);
+      } else if (field === 'rdd') {
+        setRddInputValue(formatted);
+      }
+    }
+  };
+
   const handleDateSelect = (field: string, date: Date | undefined) => {
     if (date) {
-      setFormData(prev => ({ ...prev, [field]: date.toISOString().split('T')[0] }));
+      const isoDate = date.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, [field]: isoDate }));
+      
+      // Update input value to show formatted date
+      const formatted = format(date, 'MM/dd/yy');
+      if (field === 'pickup_date') {
+        setPickupInputValue(formatted);
+      } else if (field === 'rdd') {
+        setRddInputValue(formatted);
+      }
     } else {
       setFormData(prev => ({ ...prev, [field]: '' }));
+      if (field === 'pickup_date') {
+        setPickupInputValue('');
+      } else if (field === 'rdd') {
+        setRddInputValue('');
+      }
     }
   };
 
@@ -206,8 +254,9 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               <div className="flex gap-2">
                 <Input
                   placeholder="MM/DD/YY"
-                  value={formatDateForInput(formData.pickup_date)}
+                  value={pickupInputValue}
                   onChange={(e) => handleDateInputChange('pickup_date', e.target.value)}
+                  onBlur={(e) => handleDateInputBlur('pickup_date', e.target.value)}
                   className="flex-1"
                 />
                 <Popover>
@@ -239,8 +288,9 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               <div className="flex gap-2">
                 <Input
                   placeholder="MM/DD/YY"
-                  value={formatDateForInput(formData.rdd)}
+                  value={rddInputValue}
                   onChange={(e) => handleDateInputChange('rdd', e.target.value)}
+                  onBlur={(e) => handleDateInputBlur('rdd', e.target.value)}
                   className="flex-1"
                 />
                 <Popover>

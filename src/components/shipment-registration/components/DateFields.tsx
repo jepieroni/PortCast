@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -61,12 +62,33 @@ export const DateFields = ({
   formData,
   onDateChange
 }: DateFieldsProps) => {
+  const [pickupInputValue, setPickupInputValue] = useState('');
+  const [rddInputValue, setRddInputValue] = useState('');
+
+  // Update input values when formData changes (e.g., from calendar selection)
+  useEffect(() => {
+    setPickupInputValue(formatDateForInput(formData.pickupDate));
+  }, [formData.pickupDate]);
+
+  useEffect(() => {
+    setRddInputValue(formatDateForInput(formData.rdd));
+  }, [formData.rdd]);
+
   const handleDateInputChange = (field: string, value: string) => {
+    // Always update the input value to allow typing
+    if (field === 'pickupDate') {
+      setPickupInputValue(value);
+    } else if (field === 'rdd') {
+      setRddInputValue(value);
+    }
+
+    // If empty, clear the date
     if (value === '') {
       onDateChange(field, undefined);
       return;
     }
     
+    // Try to parse the date
     const parsedDate = parseDateString(value);
     if (parsedDate) {
       onDateChange(field, parsedDate);
@@ -78,6 +100,12 @@ export const DateFields = ({
     const parsedDate = parseDateString(value);
     if (parsedDate) {
       onDateChange(field, parsedDate);
+      // Update input to show formatted version
+      if (field === 'pickupDate') {
+        setPickupInputValue(formatDateForInput(parsedDate));
+      } else if (field === 'rdd') {
+        setRddInputValue(formatDateForInput(parsedDate));
+      }
     }
   };
 
@@ -88,7 +116,7 @@ export const DateFields = ({
         <div className="flex gap-2">
           <Input
             placeholder="MM/DD/YY"
-            value={formatDateForInput(formData.pickupDate)}
+            value={pickupInputValue}
             onChange={(e) => handleDateInputChange('pickupDate', e.target.value)}
             onBlur={(e) => handleDateInputBlur('pickupDate', e.target.value)}
             className="flex-1"
@@ -122,7 +150,7 @@ export const DateFields = ({
         <div className="flex gap-2">
           <Input
             placeholder="MM/DD/YY"
-            value={formatDateForInput(formData.rdd)}
+            value={rddInputValue}
             onChange={(e) => handleDateInputChange('rdd', e.target.value)}
             onBlur={(e) => handleDateInputBlur('rdd', e.target.value)}
             className="flex-1"
