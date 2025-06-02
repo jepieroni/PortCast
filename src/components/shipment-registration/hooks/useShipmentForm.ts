@@ -5,7 +5,7 @@ import { useShipmentValidation } from './useShipmentValidation';
 import { useShipmentSubmission } from './useShipmentSubmission';
 import { shouldAllowActualEntry, formatFieldValue } from '../utils/shipmentUtils';
 
-export const useShipmentForm = (onBack: () => void) => {
+export const useShipmentForm = (onBack: () => void, onSuccess?: () => void) => {
   const [formData, setFormData] = useState<ShipmentFormData>({
     gblNumber: '',
     shipperLastName: '',
@@ -50,7 +50,11 @@ export const useShipmentForm = (onBack: () => void) => {
 
     const success = await submitShipment(formData);
     if (success) {
-      onBack();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        onBack();
+      }
     }
   };
 

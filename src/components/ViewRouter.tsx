@@ -28,6 +28,7 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
   };
 
   const goToConsolidationMain = () => onNavigate('consolidation');
+  const goToShipments = () => onNavigate('shipments');
 
   switch (currentView) {
     case 'main':
@@ -76,7 +77,12 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
         />
       );
     case 'registration':
-      return <ShipmentRegistration onBack={onBack} />;
+      return (
+        <ShipmentRegistration 
+          onBack={goToShipments} 
+          onSuccess={goToShipments}
+        />
+      );
     case 'admin':
       // Route to appropriate admin dashboard based on user role
       if (isGlobalAdmin) {

@@ -11,11 +11,12 @@ import { SidebarCards } from './shipment-registration/components/SidebarCards';
 
 interface ShipmentRegistrationProps {
   onBack: () => void;
+  onSuccess?: () => void;
 }
 
-const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
+const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) => {
   const { rateAreas, ports, tsps } = useShipmentData();
-  const { formData, canEnterActuals, handleInputChange, handleDateChange, handleSubmit } = useShipmentForm(onBack);
+  const { formData, canEnterActuals, handleInputChange, handleDateChange, handleSubmit } = useShipmentForm(onBack, onSuccess);
 
   return (
     <TooltipProvider>
@@ -23,7 +24,7 @@ const ShipmentRegistration = ({ onBack }: ShipmentRegistrationProps) => {
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft size={16} className="mr-2" />
-            Back to Dashboard
+            Back to Shipments
           </Button>
           <h2 className="text-2xl font-bold">Shipment Registration</h2>
         </div>
