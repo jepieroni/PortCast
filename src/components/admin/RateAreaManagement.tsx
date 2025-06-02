@@ -59,12 +59,16 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
     e.preventDefault();
     
     try {
+      // Prepare rate area data (excluding region_id as it's not a column in rate_areas table)
       const rateAreaData = {
-        ...formData,
+        rate_area: formData.rate_area,
+        name: formData.name,
+        country_id: formData.country_id,
         is_intertheater_only: false // Always set to false as requested
       };
 
       if (editingRateArea) {
+        // Update existing rate area
         const { error } = await supabase
           .from('rate_areas')
           .update(rateAreaData)
@@ -72,9 +76,9 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
         
         if (error) throw error;
 
-        // Update region membership
+        // Handle region membership update
         if (formData.region_id) {
-          // Delete existing membership
+          // Delete existing membership for this rate area
           await supabase
             .from('rate_area_region_memberships')
             .delete()
@@ -87,10 +91,17 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
               rate_area_id: editingRateArea.rate_area, 
               region_id: formData.region_id 
             });
+        } else {
+          // If no region selected, remove any existing membership
+          await supabase
+            .from('rate_area_region_memberships')
+            .delete()
+            .eq('rate_area_id', editingRateArea.rate_area);
         }
         
         toast({ title: "Success", description: "Rate area updated successfully" });
       } else {
+        // Create new rate area
         const { data: newRateArea, error } = await supabase
           .from('rate_areas')
           .insert(rateAreaData)
@@ -99,7 +110,7 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
         
         if (error) throw error;
 
-        // Add region membership
+        // Add region membership if region was selected
         if (formData.region_id) {
           await supabase
             .from('rate_area_region_memberships')
