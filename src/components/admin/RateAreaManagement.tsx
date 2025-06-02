@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
+import { usePortRegions } from '@/hooks/usePortRegions';
+import { useRateAreaRegions } from '@/hooks/useRateAreaRegions';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -19,11 +21,14 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { rateAreas } = useShipmentData();
+  const { portRegions } = usePortRegions();
+  const { rateAreaRegionMemberships } = useRateAreaRegions();
   const [editingRateArea, setEditingRateArea] = useState<any>(null);
   const [formData, setFormData] = useState({
     rate_area: '',
     name: '',
-    country_id: ''
+    country_id: '',
+    region_id: ''
   });
 
   // Fetch countries for dropdown
@@ -40,8 +45,14 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
     }
   });
 
+  const getRateAreaRegion = (rateAreaId: string) => {
+    const membership = rateAreaRegionMemberships.find(m => m.rate_area_id === rateAreaId);
+    return membership ? portRegions.find(r => r.id === membership.region_id) : null;
+  };
+
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['shipment-data'] });
+    queryClient.invalidateQueries({ queryKey: ['rate-area-region-memberships'] });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,18 +71,49 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
           .eq('id', editingRateArea.id);
         
         if (error) throw error;
+
+        // Update region membership
+        if (formData.region_id) {
+          // Delete existing membership
+          await supabase
+            .from('rate_area_region_memberships')
+            .delete()
+            .eq('rate_area_id', editingRateArea.rate_area);
+          
+          // Add new membership
+          await supabase
+            .from('rate_area_region_memberships')
+            .insert({ 
+              rate_area_id: editingRateArea.rate_area, 
+              region_id: formData.region_id 
+            });
+        }
+        
         toast({ title: "Success", description: "Rate area updated successfully" });
       } else {
-        const { error } = await supabase
+        const { data: newRateArea, error } = await supabase
           .from('rate_areas')
-          .insert(rateAreaData);
+          .insert(rateAreaData)
+          .select()
+          .single();
         
         if (error) throw error;
+
+        // Add region membership
+        if (formData.region_id) {
+          await supabase
+            .from('rate_area_region_memberships')
+            .insert({ 
+              rate_area_id: newRateArea.rate_area, 
+              region_id: formData.region_id 
+            });
+        }
+        
         toast({ title: "Success", description: "Rate area created successfully" });
       }
       
       setEditingRateArea(null);
-      setFormData({ rate_area: '', name: '', country_id: '' });
+      setFormData({ rate_area: '', name: '', country_id: '', region_id: '' });
       refreshData();
     } catch (error: any) {
       toast({
@@ -84,10 +126,12 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
 
   const handleEdit = (rateArea: any) => {
     setEditingRateArea(rateArea);
+    const region = getRateAreaRegion(rateArea.rate_area);
     setFormData({
       rate_area: rateArea.rate_area,
       name: rateArea.name || '',
-      country_id: rateArea.country_id
+      country_id: rateArea.country_id,
+      region_id: region?.id || ''
     });
   };
 
@@ -166,6 +210,22 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
                 </Select>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="region_id">Port Region</Label>
+                <Select value={formData.region_id} onValueChange={(value) => setFormData(prev => ({ ...prev, region_id: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Port Region" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {portRegions.map((region) => (
+                      <SelectItem key={region.id} value={region.id}>
+                        {region.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex gap-2">
                 <Button type="submit">
                   {editingRateArea ? 'Update' : 'Create'} Rate Area
@@ -176,7 +236,7 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
                     variant="outline"
                     onClick={() => {
                       setEditingRateArea(null);
-                      setFormData({ rate_area: '', name: '', country_id: '' });
+                      setFormData({ rate_area: '', name: '', country_id: '', region_id: '' });
                     }}
                   >
                     Cancel
@@ -193,29 +253,37 @@ const RateAreaManagement = ({ onBack }: RateAreaManagementProps) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {rateAreas.map((rateArea) => (
-                <div key={rateArea.id} className="flex items-center justify-between p-2 border rounded">
-                  <div>
-                    <div className="font-medium">{rateArea.rate_area}</div>
-                    <div className="text-sm text-gray-600">
-                      {rateArea.name} | {rateArea.countries?.name} | 
-                      {rateArea.is_conus ? ' CONUS' : ' Non-CONUS'}
+              {rateAreas.map((rateArea) => {
+                const region = getRateAreaRegion(rateArea.rate_area);
+                return (
+                  <div key={rateArea.id} className="flex items-center justify-between p-2 border rounded">
+                    <div>
+                      <div className="font-medium">{rateArea.rate_area}</div>
+                      <div className="text-sm text-gray-600">
+                        {rateArea.name} | {rateArea.countries?.name} | 
+                        {rateArea.is_conus ? ' CONUS' : ' Non-CONUS'}
+                      </div>
+                      {region && (
+                        <div className="text-xs text-blue-600">
+                          Region: {region.name}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(rateArea)}>
+                        <Edit size={14} />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => handleDelete(rateArea.id)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => handleEdit(rateArea)}>
-                      <Edit size={14} />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive" 
-                      onClick={() => handleDelete(rateArea.id)}
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
