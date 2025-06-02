@@ -1,18 +1,22 @@
 
-import { useState, useEffect } from 'react';
-import { Label } from '@/components/ui/label';
+import { useState, useEffect, forwardRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ShipmentFormData } from '../types';
+import { FormField } from './FormField';
 
 interface DateFieldsProps {
   formData: ShipmentFormData;
   onDateChange: (field: string, date: Date | undefined) => void;
+  pickupError?: string;
+  rddError?: string;
+  onFieldFocus?: (field: string) => void;
+  setFieldRef?: (field: string, ref: HTMLDivElement | null) => void;
 }
 
 const parseDateString = (dateStr: string): Date | null => {
@@ -58,126 +62,117 @@ const formatDateForInput = (date: Date | undefined): string => {
   return format(date, 'MM/dd/yy');
 };
 
-export const DateFields = ({
-  formData,
-  onDateChange
-}: DateFieldsProps) => {
-  const [pickupInputValue, setPickupInputValue] = useState('');
-  const [rddInputValue, setRddInputValue] = useState('');
-
-  // Update input values when formData changes (e.g., from calendar selection)
-  useEffect(() => {
-    setPickupInputValue(formatDateForInput(formData.pickupDate));
-  }, [formData.pickupDate]);
+const DateFieldWithPicker = forwardRef<HTMLDivElement, {
+  label: string;
+  field: string;
+  value: Date | undefined;
+  onChange: (date: Date | undefined) => void;
+  error?: string;
+  onFieldFocus?: () => void;
+}>(({ label, field, value, onChange, error, onFieldFocus }, ref) => {
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
-    setRddInputValue(formatDateForInput(formData.rdd));
-  }, [formData.rdd]);
+    setInputValue(formatDateForInput(value));
+  }, [value]);
 
-  const handleDateInputChange = (field: string, value: string) => {
-    // Always update the input value to allow typing
-    if (field === 'pickupDate') {
-      setPickupInputValue(value);
-    } else if (field === 'rdd') {
-      setRddInputValue(value);
-    }
+  const handleDateInputChange = (inputValue: string) => {
+    setInputValue(inputValue);
 
-    // If empty, clear the date
-    if (value === '') {
-      onDateChange(field, undefined);
+    if (inputValue === '') {
+      onChange(undefined);
       return;
     }
     
-    // Try to parse the date
-    const parsedDate = parseDateString(value);
+    const parsedDate = parseDateString(inputValue);
     if (parsedDate) {
-      onDateChange(field, parsedDate);
+      onChange(parsedDate);
     }
   };
 
-  const handleDateInputBlur = (field: string, value: string) => {
-    // On blur, try to parse and format the date
-    const parsedDate = parseDateString(value);
+  const handleDateInputBlur = (inputValue: string) => {
+    const parsedDate = parseDateString(inputValue);
     if (parsedDate) {
-      onDateChange(field, parsedDate);
-      // Update input to show formatted version
-      if (field === 'pickupDate') {
-        setPickupInputValue(formatDateForInput(parsedDate));
-      } else if (field === 'rdd') {
-        setRddInputValue(formatDateForInput(parsedDate));
-      }
+      onChange(parsedDate);
+      setInputValue(formatDateForInput(parsedDate));
     }
   };
 
   return (
+    <FormField
+      ref={ref}
+      type="custom"
+      label={label}
+      required
+      error={error}
+    >
+      <div className="flex gap-2">
+        <Input
+          placeholder="MM/DD/YY"
+          value={inputValue}
+          onChange={(e) => handleDateInputChange(e.target.value)}
+          onBlur={(e) => handleDateInputBlur(e.target.value)}
+          onFocus={onFieldFocus}
+          className={cn("flex-1", error && "border-red-500 focus:border-red-500")}
+        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              type="button"
+              onClick={onFieldFocus}
+            >
+              <CalendarIcon className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={value}
+              onSelect={onChange}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </FormField>
+  );
+});
+
+DateFieldWithPicker.displayName = 'DateFieldWithPicker';
+
+export const DateFields = ({
+  formData,
+  onDateChange,
+  pickupError,
+  rddError,
+  onFieldFocus,
+  setFieldRef
+}: DateFieldsProps) => {
+  return (
     <div className="grid md:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="pickupDate">Pickup Date *</Label>
-        <div className="flex gap-2">
-          <Input
-            placeholder="MM/DD/YY"
-            value={pickupInputValue}
-            onChange={(e) => handleDateInputChange('pickupDate', e.target.value)}
-            onBlur={(e) => handleDateInputBlur('pickupDate', e.target.value)}
-            className="flex-1"
-          />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0"
-                type="button"
-              >
-                <CalendarIcon className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formData.pickupDate}
-                onSelect={(date) => onDateChange('pickupDate', date)}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+      <DateFieldWithPicker
+        ref={(ref) => setFieldRef?.('pickupDate', ref)}
+        label="Pickup Date"
+        field="pickupDate"
+        value={formData.pickupDate}
+        onChange={(date) => onDateChange('pickupDate', date)}
+        error={pickupError}
+        onFieldFocus={() => onFieldFocus?.('pickupDate')}
+      />
       
-      <div className="space-y-2">
-        <Label htmlFor="rdd">Required Delivery Date (RDD) *</Label>
-        <div className="flex gap-2">
-          <Input
-            placeholder="MM/DD/YY"
-            value={rddInputValue}
-            onChange={(e) => handleDateInputChange('rdd', e.target.value)}
-            onBlur={(e) => handleDateInputBlur('rdd', e.target.value)}
-            className="flex-1"
-          />
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0"
-                type="button"
-              >
-                <CalendarIcon className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={formData.rdd}
-                onSelect={(date) => onDateChange('rdd', date)}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+      <DateFieldWithPicker
+        ref={(ref) => setFieldRef?.('rdd', ref)}
+        label="Required Delivery Date (RDD)"
+        field="rdd"
+        value={formData.rdd}
+        onChange={(date) => onDateChange('rdd', date)}
+        error={rddError}
+        onFieldFocus={() => onFieldFocus?.('rdd')}
+      />
     </div>
   );
 };

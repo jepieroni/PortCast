@@ -1,8 +1,9 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ShipmentFormData } from '../types';
 import { useShipmentValidation } from './useShipmentValidation';
 import { useShipmentSubmission } from './useShipmentSubmission';
+import { useFieldValidation } from './useFieldValidation';
 import { shouldAllowActualEntry, formatFieldValue } from '../utils/shipmentUtils';
 
 export const useShipmentForm = (onBack: () => void, onSuccess?: () => void) => {
@@ -26,6 +27,8 @@ export const useShipmentForm = (onBack: () => void, onSuccess?: () => void) => {
   const [canEnterActuals, setCanEnterActuals] = useState(false);
   const { validateForm } = useShipmentValidation();
   const { submitShipment } = useShipmentSubmission();
+  const fieldValidation = useFieldValidation();
+  const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   // Check if pickup date allows actual entry
   useEffect(() => {
@@ -35,16 +38,47 @@ export const useShipmentForm = (onBack: () => void, onSuccess?: () => void) => {
   const handleInputChange = (field: string, value: string) => {
     const formattedValue = formatFieldValue(field, value);
     setFormData(prev => ({ ...prev, [field]: formattedValue }));
+    
+    // Clear field error when user starts typing
+    if (fieldValidation.hasError(field)) {
+      fieldValidation.clearFieldError(field);
+    }
   };
 
   const handleDateChange = (field: string, date: Date | undefined) => {
     setFormData(prev => ({ ...prev, [field]: date }));
+    
+    // Clear field error when user changes date
+    if (fieldValidation.hasError(field)) {
+      fieldValidation.clearFieldError(field);
+    }
+  };
+
+  const focusFirstError = (firstErrorField: string) => {
+    const fieldRef = fieldRefs.current[firstErrorField];
+    if (fieldRef) {
+      fieldRef.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      
+      // Focus the input within the field
+      const input = fieldRef.querySelector('input, select, button[role="combobox"]') as HTMLElement;
+      if (input) {
+        setTimeout(() => input.focus(), 100);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm(formData)) {
+    fieldValidation.clearAllErrors();
+    const validationResult = validateForm(formData);
+    
+    if (!validationResult.isValid) {
+      fieldValidation.setMultipleErrors(validationResult.errors);
+      
+      if (validationResult.firstErrorField) {
+        focusFirstError(validationResult.firstErrorField);
+      }
       return;
     }
 
@@ -58,11 +92,17 @@ export const useShipmentForm = (onBack: () => void, onSuccess?: () => void) => {
     }
   };
 
+  const setFieldRef = (field: string, ref: HTMLDivElement | null) => {
+    fieldRefs.current[field] = ref;
+  };
+
   return {
     formData,
     canEnterActuals,
     handleInputChange,
     handleDateChange,
-    handleSubmit
+    handleSubmit,
+    fieldValidation,
+    setFieldRef
   };
 };
