@@ -1,10 +1,13 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { useShipmentActions } from '@/hooks/useShipmentActions';
 import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
 
@@ -13,6 +16,51 @@ interface ShipmentEditDialogProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+const parseDateString = (dateStr: string): Date | null => {
+  // Remove any non-digit characters except /
+  const cleaned = dateStr.replace(/[^\d\/]/g, '');
+  
+  // Check for MM/DD/YY or MM/DD/YYYY format
+  const mmddyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
+  const match = cleaned.match(mmddyyPattern);
+  
+  if (match) {
+    let [, month, day, year] = match;
+    
+    // Convert 2-digit year to 4-digit year
+    if (year.length === 2) {
+      const currentYear = new Date().getFullYear();
+      const currentCentury = Math.floor(currentYear / 100) * 100;
+      const yearNum = parseInt(year);
+      
+      // If year is less than 50, assume 20xx, otherwise 19xx
+      if (yearNum < 50) {
+        year = (currentCentury + yearNum).toString();
+      } else {
+        year = (currentCentury - 100 + yearNum).toString();
+      }
+    }
+    
+    const parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    
+    // Validate the date
+    if (parsedDate.getMonth() === parseInt(month) - 1 && 
+        parsedDate.getDate() === parseInt(day) &&
+        parsedDate.getFullYear() === parseInt(year)) {
+      return parsedDate;
+    }
+  }
+  
+  return null;
+};
+
+const formatDateForInput = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  return format(date, 'MM/dd/yy');
+};
 
 const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialogProps) => {
   const { updateShipment } = useShipmentActions();
@@ -72,6 +120,26 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleDateInputChange = (field: string, value: string) => {
+    if (value === '') {
+      setFormData(prev => ({ ...prev, [field]: '' }));
+      return;
+    }
+    
+    const parsedDate = parseDateString(value);
+    if (parsedDate) {
+      setFormData(prev => ({ ...prev, [field]: parsedDate.toISOString().split('T')[0] }));
+    }
+  };
+
+  const handleDateSelect = (field: string, date: Date | undefined) => {
+    if (date) {
+      setFormData(prev => ({ ...prev, [field]: date.toISOString().split('T')[0] }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   return (
@@ -135,24 +203,68 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
 
             <div>
               <Label htmlFor="pickup_date">Pickup Date *</Label>
-              <Input
-                id="pickup_date"
-                type="date"
-                value={formData.pickup_date}
-                onChange={(e) => handleInputChange('pickup_date', e.target.value)}
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="MM/DD/YY"
+                  value={formatDateForInput(formData.pickup_date)}
+                  onChange={(e) => handleDateInputChange('pickup_date', e.target.value)}
+                  className="flex-1"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      type="button"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.pickup_date ? new Date(formData.pickup_date) : undefined}
+                      onSelect={(date) => handleDateSelect('pickup_date', date)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             <div>
               <Label htmlFor="rdd">Required Delivery Date *</Label>
-              <Input
-                id="rdd"
-                type="date"
-                value={formData.rdd}
-                onChange={(e) => handleInputChange('rdd', e.target.value)}
-                required
-              />
+              <div className="flex gap-2">
+                <Input
+                  placeholder="MM/DD/YY"
+                  value={formatDateForInput(formData.rdd)}
+                  onChange={(e) => handleDateInputChange('rdd', e.target.value)}
+                  className="flex-1"
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      type="button"
+                    >
+                      <CalendarIcon className="h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.rdd ? new Date(formData.rdd) : undefined}
+                      onSelect={(date) => handleDateSelect('rdd', date)}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             <div>
