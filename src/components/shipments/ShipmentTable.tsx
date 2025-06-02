@@ -29,6 +29,7 @@ interface Shipment {
   rdd: string;
   actual_cube: number;
   estimated_cube: number;
+  remaining_cube: number;
   user_id: string;
   profiles: {
     first_name: string;
@@ -66,6 +67,21 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
       case 'intertheater': return 'bg-orange-500';
       default: return 'bg-gray-500';
     }
+  };
+
+  const getCubeDisplayValue = (shipment: Shipment) => {
+    // If remaining_cube exists, use it
+    if (shipment.remaining_cube !== null && shipment.remaining_cube !== undefined) {
+      return `${shipment.remaining_cube} cuft`;
+    }
+    
+    // If only estimated_cube is available, use it with "(Estimated)" indicator
+    if (shipment.estimated_cube !== null && shipment.estimated_cube !== undefined) {
+      return `${shipment.estimated_cube} cuft (Estimated)`;
+    }
+    
+    // Fallback
+    return '0 cuft';
   };
 
   if (isLoading) {
@@ -109,7 +125,7 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
               <TableHead>Route</TableHead>
               <TableHead>Pickup Date</TableHead>
               <TableHead>RDD</TableHead>
-              <TableHead>Cube (Actual/Est.)</TableHead>
+              <TableHead>Cube Remaining</TableHead>
               {isGlobalAdmin && <TableHead>Organization</TableHead>}
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -130,12 +146,7 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
                 <TableCell>{format(new Date(shipment.pickup_date), 'MMM dd, yyyy')}</TableCell>
                 <TableCell>{format(new Date(shipment.rdd), 'MMM dd, yyyy')}</TableCell>
                 <TableCell>
-                  {shipment.actual_cube || shipment.estimated_cube} cuft
-                  {shipment.actual_cube && shipment.estimated_cube && (
-                    <span className="text-gray-500 text-xs block">
-                      Est: {shipment.estimated_cube} cuft
-                    </span>
-                  )}
+                  {getCubeDisplayValue(shipment)}
                 </TableCell>
                 {isGlobalAdmin && (
                   <TableCell className="text-sm">
