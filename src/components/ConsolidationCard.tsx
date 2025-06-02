@@ -1,11 +1,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Package, TrendingUp } from 'lucide-react';
+import { Package, TrendingUp, Ship } from 'lucide-react';
 
 interface ConsolidationCardProps {
-  title: string;
-  subtitle?: string;
+  poe_name: string;
+  poe_code: string;
+  pod_name: string;
+  pod_code: string;
   totalCube: number;
   availableShipments: number;
   hasUserShipments: boolean;
@@ -13,8 +15,10 @@ interface ConsolidationCardProps {
 }
 
 const ConsolidationCard = ({ 
-  title, 
-  subtitle, 
+  poe_name,
+  poe_code,
+  pod_name,
+  pod_code,
   totalCube, 
   availableShipments, 
   hasUserShipments,
@@ -22,22 +26,37 @@ const ConsolidationCard = ({
 }: ConsolidationCardProps) => {
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
   
+  const getTitle = () => {
+    if (type === 'intertheater') {
+      return `${poe_code || poe_name} → ${pod_code || pod_name}`;
+    }
+    return pod_code || pod_name;
+  };
+
+  const getSubtitle = () => {
+    if (type === 'intertheater') {
+      return `${poe_name} to ${pod_name}`;
+    }
+    return `From ${poe_code || poe_name}`;
+  };
+  
   return (
     <Card className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
       hasUserShipments ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:scale-105'
     }`}>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
+          <CardTitle className="text-lg font-semibold flex items-center gap-2">
+            <Ship size={18} className="text-blue-600" />
+            {getTitle()}
+          </CardTitle>
           {hasUserShipments && (
             <Badge variant="default" className="bg-blue-600">
               Your Shipments
             </Badge>
           )}
         </div>
-        {subtitle && (
-          <p className="text-sm text-gray-600">{subtitle}</p>
-        )}
+        <p className="text-sm text-gray-600">{getSubtitle()}</p>
       </CardHeader>
       
       <CardContent className="space-y-4">

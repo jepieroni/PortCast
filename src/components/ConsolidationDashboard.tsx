@@ -92,12 +92,11 @@ const ConsolidationDashboard = ({
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {consolidations.map((consolidation, index) => (
             <ConsolidationCard
-              key={index}
-              title={type === 'intertheater' 
-                ? `${consolidation.origin_rate_area} → ${consolidation.destination_rate_area}`
-                : consolidation.destination_rate_area
-              }
-              subtitle={type !== 'intertheater' ? consolidation.origin_rate_area : undefined}
+              key={`${consolidation.poe_id}-${consolidation.pod_id}`}
+              poe_name={consolidation.poe_name}
+              poe_code={consolidation.poe_code}
+              pod_name={consolidation.pod_name}
+              pod_code={consolidation.pod_code}
               totalCube={consolidation.total_cube}
               availableShipments={consolidation.shipment_count}
               hasUserShipments={consolidation.has_user_shipments}
