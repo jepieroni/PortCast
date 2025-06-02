@@ -6,6 +6,7 @@ import { useShipmentActions } from '@/hooks/useShipmentActions';
 import ShipmentViewDialog from './ShipmentViewDialog';
 import ShipmentTableHeader from './components/ShipmentTableHeader';
 import ShipmentTableRow from './components/ShipmentTableRow';
+import DeleteConfirmDialog from './components/DeleteConfirmDialog';
 import { ShipmentTableLoading, ShipmentTableError, ShipmentTableEmpty } from './components/ShipmentTableStates';
 
 interface Shipment {
@@ -41,16 +42,29 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
   const navigate = useNavigate();
   const { deleteShipment } = useShipmentActions();
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
+  const [deletingShipment, setDeletingShipment] = useState<Shipment | null>(null);
 
   const handleEdit = (shipment: Shipment) => {
     navigate(`/shipments/${shipment.id}/edit`);
   };
 
-  const handleDelete = async (shipmentId: string) => {
-    if (confirm('Are you sure you want to delete this shipment?')) {
-      await deleteShipment(shipmentId);
+  const handleDeleteClick = (shipment: Shipment) => {
+    setDeletingShipment(shipment);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingShipment) return;
+    
+    try {
+      await deleteShipment(deletingShipment.id);
       onRefresh();
+    } finally {
+      setDeletingShipment(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeletingShipment(null);
   };
 
   if (isLoading) {
@@ -77,7 +91,7 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
                 shipment={shipment}
                 onView={setViewingShipment}
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onDelete={handleDeleteClick}
               />
             ))}
           </TableBody>
@@ -90,6 +104,13 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
           onClose={() => setViewingShipment(null)}
         />
       )}
+
+      <DeleteConfirmDialog
+        open={!!deletingShipment}
+        shipment={deletingShipment}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </>
   );
 };

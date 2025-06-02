@@ -32,7 +32,7 @@ interface ShipmentTableRowProps {
   shipment: Shipment;
   onView: (shipment: Shipment) => void;
   onEdit: (shipment: Shipment) => void;
-  onDelete: (shipmentId: string) => void;
+  onDelete: (shipment: Shipment) => void;
 }
 
 const ShipmentTableRow = ({ shipment, onView, onEdit, onDelete }: ShipmentTableRowProps) => {
@@ -83,7 +83,7 @@ const ShipmentTableRow = ({ shipment, onView, onEdit, onDelete }: ShipmentTableR
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onDelete(shipment.id)}
+            onClick={() => onDelete(shipment)}
           >
             <Trash2 size={14} />
           </Button>
