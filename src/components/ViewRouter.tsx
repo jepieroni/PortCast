@@ -17,9 +17,10 @@ interface ViewRouterProps {
   onOutlookDaysChange: (days: number[]) => void;
   onNavigate: (view: ViewType) => void;
   onBack: () => void;
+  onAddShipment: () => void;
 }
 
-const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate, onBack }: ViewRouterProps) => {
+const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate, onBack, onAddShipment }: ViewRouterProps) => {
   const { isGlobalAdmin, isOrgAdmin } = useAuth();
 
   const handleTabChange = (tab: string) => {
@@ -36,7 +37,7 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
         />
       );
     case 'shipments':
-      return <ShipmentsDashboard onBack={onBack} />;
+      return <ShipmentsDashboard onBack={onBack} onAddShipment={onAddShipment} />;
     case 'consolidation':
       return (
         <ConsolidationMainDashboard

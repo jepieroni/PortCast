@@ -40,7 +40,6 @@ const Index = () => {
       loading={loading}
       user={user}
       currentView={currentView}
-      onAddShipment={goToRegistration}
       onAdmin={goToAdmin}
       onSignOut={handleSignOutAndReset}
     >
@@ -50,6 +49,7 @@ const Index = () => {
         onOutlookDaysChange={setOutlookDays}
         onNavigate={navigateTo}
         onBack={goToMain}
+        onAddShipment={goToRegistration}
       />
     </AppLayout>
   );

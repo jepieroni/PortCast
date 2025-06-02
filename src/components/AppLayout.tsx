@@ -10,7 +10,6 @@ interface AppLayoutProps {
   loading: boolean;
   user: any;
   currentView: ViewType;
-  onAddShipment: () => void;
   onAdmin: () => void;
   onSignOut: () => void;
 }
@@ -22,7 +21,6 @@ const AppLayout = ({
   loading,
   user,
   currentView,
-  onAddShipment,
   onAdmin,
   onSignOut,
 }: AppLayoutProps) => {
@@ -34,7 +32,6 @@ const AppLayout = ({
         loading={loading}
         user={user}
         currentView={currentView}
-        onAddShipment={onAddShipment}
         onAdmin={onAdmin}
         onSignOut={onSignOut}
       />
