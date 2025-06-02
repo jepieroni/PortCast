@@ -130,10 +130,10 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
                 <TableCell>{format(new Date(shipment.pickup_date), 'MMM dd, yyyy')}</TableCell>
                 <TableCell>{format(new Date(shipment.rdd), 'MMM dd, yyyy')}</TableCell>
                 <TableCell>
-                  {shipment.actual_cube || shipment.estimated_cube} ft³
+                  {shipment.actual_cube || shipment.estimated_cube} cuft
                   {shipment.actual_cube && shipment.estimated_cube && (
                     <span className="text-gray-500 text-xs block">
-                      Est: {shipment.estimated_cube} ft³
+                      Est: {shipment.estimated_cube} cuft
                     </span>
                   )}
                 </TableCell>
