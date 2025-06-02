@@ -57,29 +57,18 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
       }
     };
 
-    const handleButtonClick = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log('SearchableSelect button clicked, current open state:', open);
-      setOpen(!open);
-      if (!open && onFocus) {
-        onFocus();
-      }
-    };
-
     return (
       <div ref={ref} className={cn("space-y-2", className)}>
         <Label className={cn(error && "text-red-600")}>
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
-        <Popover open={open} onOpenChange={handleOpenChange}>
+        <Popover open={open} onOpenChange={handleOpenChange} modal={false}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              onClick={handleButtonClick}
               type="button"
               className={cn(
                 "w-full justify-between",
@@ -91,20 +80,25 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-full p-0 z-[200] bg-white border shadow-lg" 
+            className="w-[var(--radix-popover-trigger-width)] p-0 z-[9999] bg-white border shadow-lg" 
             align="start"
             side="bottom"
             sideOffset={4}
+            onOpenAutoFocus={(e) => {
+              // Prevent auto focus to avoid conflicts with dialog
+              e.preventDefault();
+            }}
+            onCloseAutoFocus={(e) => {
+              // Prevent auto focus return to avoid conflicts with dialog
+              e.preventDefault();
+            }}
           >
-            <Command>
+            <Command shouldFilter={false}>
               <CommandInput
                 placeholder={`Search ${label.toLowerCase()}...`}
                 value={searchValue}
                 onValueChange={setSearchValue}
                 className="h-9"
-                onFocus={() => {
-                  console.log('CommandInput focused');
-                }}
               />
               <CommandList className="max-h-64 overflow-y-auto">
                 <CommandEmpty>No results found.</CommandEmpty>
