@@ -38,6 +38,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
 
   useEffect(() => {
     if (shipment) {
+      console.log('Shipment data for editing:', shipment);
       setFormData({
         gbl_number: shipment.gbl_number || '',
         shipper_last_name: shipment.shipper_last_name || '',
@@ -77,7 +78,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Shipment - {shipment.gbl_number}</DialogTitle>
+          <DialogTitle>Edit Shipment - {shipment?.gbl_number}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
