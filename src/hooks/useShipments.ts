@@ -60,44 +60,45 @@ export const useShipments = (filters: any) => {
       const { data: shipments, error } = await query;
       if (error) throw error;
 
-      // Now fetch profile and organization info for each shipment
-      if (shipments && shipments.length > 0) {
-        const userIds = [...new Set(shipments.map(s => s.user_id))];
-        
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            first_name,
-            last_name,
-            organization_id,
-            organizations!inner(name)
-          `)
-          .in('id', userIds);
-
-        // Attach profile data to shipments
-        const enrichedShipments = shipments.map(shipment => {
-          const profile = profiles?.find(p => p.id === shipment.user_id);
-          return {
-            ...shipment,
-            profiles: profile ? {
-              first_name: profile.first_name || '',
-              last_name: profile.last_name || '',
-              organizations: {
-                name: profile.organizations?.name || 'Unknown'
-              }
-            } : {
-              first_name: '',
-              last_name: '',
-              organizations: { name: 'Unknown' }
-            }
-          };
-        });
-
-        return enrichedShipments;
+      // Always return an array, even if empty
+      if (!shipments || shipments.length === 0) {
+        return [];
       }
 
-      return shipments || [];
+      // Fetch profile and organization info for each shipment
+      const userIds = [...new Set(shipments.map(s => s.user_id))];
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          organization_id,
+          organizations!inner(name)
+        `)
+        .in('id', userIds);
+
+      // Attach profile data to shipments
+      const enrichedShipments = shipments.map(shipment => {
+        const profile = profiles?.find(p => p.id === shipment.user_id);
+        return {
+          ...shipment,
+          profiles: profile ? {
+            first_name: profile.first_name || '',
+            last_name: profile.last_name || '',
+            organizations: {
+              name: profile.organizations?.name || 'Unknown'
+            }
+          } : {
+            first_name: '',
+            last_name: '',
+            organizations: { name: 'Unknown' }
+          }
+        };
+      });
+
+      return enrichedShipments;
     }
   });
 };
