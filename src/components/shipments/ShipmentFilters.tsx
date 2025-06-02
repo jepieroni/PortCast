@@ -2,6 +2,7 @@
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Search, Filter, X } from 'lucide-react';
 
 interface ShipmentFiltersProps {
@@ -46,41 +47,62 @@ const ShipmentFilters = ({ filters, onFiltersChange }: ShipmentFiltersProps) => 
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <div className="space-y-2">
+          <Label htmlFor="search" className="text-sm font-medium text-gray-700">
+            Search
+          </Label>
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Input
+              id="search"
+              placeholder="GBL, shipper name..."
+              value={filters.search}
+              onChange={(e) => updateFilter('search', e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-sm font-medium text-gray-700">
+            Shipment Type
+          </Label>
+          <Select value={filters.shipmentType || undefined} onValueChange={(value) => updateFilter('shipmentType', value || '')}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="inbound">Inbound</SelectItem>
+              <SelectItem value="outbound">Outbound</SelectItem>
+              <SelectItem value="intertheater">Intertheater</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="dateFrom" className="text-sm font-medium text-gray-700">
+            Pickup Date From
+          </Label>
           <Input
-            placeholder="Search GBL, shipper name..."
-            value={filters.search}
-            onChange={(e) => updateFilter('search', e.target.value)}
-            className="pl-9"
+            id="dateFrom"
+            type="date"
+            value={filters.dateFrom}
+            onChange={(e) => updateFilter('dateFrom', e.target.value)}
           />
         </div>
 
-        <Select value={filters.shipmentType || undefined} onValueChange={(value) => updateFilter('shipmentType', value || '')}>
-          <SelectTrigger>
-            <SelectValue placeholder="Shipment Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="inbound">Inbound</SelectItem>
-            <SelectItem value="outbound">Outbound</SelectItem>
-            <SelectItem value="intertheater">Intertheater</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Input
-          type="date"
-          placeholder="From Date"
-          value={filters.dateFrom}
-          onChange={(e) => updateFilter('dateFrom', e.target.value)}
-        />
-
-        <Input
-          type="date"
-          placeholder="To Date"
-          value={filters.dateTo}
-          onChange={(e) => updateFilter('dateTo', e.target.value)}
-        />
+        <div className="space-y-2">
+          <Label htmlFor="dateTo" className="text-sm font-medium text-gray-700">
+            Pickup Date To
+          </Label>
+          <Input
+            id="dateTo"
+            type="date"
+            value={filters.dateTo}
+            onChange={(e) => updateFilter('dateTo', e.target.value)}
+          />
+        </div>
       </div>
     </div>
   );
