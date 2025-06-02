@@ -1,9 +1,10 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Upload } from 'lucide-react';
 import ShipmentTable from './shipments/ShipmentTable';
 import ShipmentFilters from './shipments/ShipmentFilters';
+import BulkShipmentUpload from './shipments/BulkShipmentUpload';
 import { useShipments } from '@/hooks/useShipments';
 
 interface ShipmentsDashboardProps {
@@ -18,8 +19,15 @@ const ShipmentsDashboard = ({ onBack, onAddShipment }: ShipmentsDashboardProps) 
     dateFrom: '',
     dateTo: '',
   });
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   const { data: shipments, isLoading, error, refetch } = useShipments(filters);
+
+  if (showBulkUpload) {
+    return (
+      <BulkShipmentUpload onBack={() => setShowBulkUpload(false)} />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -32,13 +40,23 @@ const ShipmentsDashboard = ({ onBack, onAddShipment }: ShipmentsDashboardProps) 
           <h2 className="text-2xl font-bold">Shipments Management</h2>
         </div>
         
-        <Button 
-          onClick={onAddShipment}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus size={16} className="mr-2" />
-          Add Shipment
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowBulkUpload(true)}
+            variant="outline"
+            className="border-blue-600 text-blue-600 hover:bg-blue-50"
+          >
+            <Upload size={16} className="mr-2" />
+            Bulk Upload
+          </Button>
+          <Button 
+            onClick={onAddShipment}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus size={16} className="mr-2" />
+            Add Shipment
+          </Button>
+        </div>
       </div>
 
       <ShipmentFilters filters={filters} onFiltersChange={setFilters} />

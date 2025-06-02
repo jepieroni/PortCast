@@ -158,6 +158,48 @@ export type Database = {
         }
         Relationships: []
       }
+      port_code_translations: {
+        Row: {
+          created_at: string
+          external_port_code: string
+          id: string
+          organization_id: string
+          port_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_port_code: string
+          id?: string
+          organization_id: string
+          port_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_port_code?: string
+          id?: string
+          organization_id?: string
+          port_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "port_code_translations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "port_code_translations_port_id_fkey"
+            columns: ["port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       port_region_memberships: {
         Row: {
           created_at: string
@@ -327,6 +369,41 @@ export type Database = {
           },
         ]
       }
+      rate_area_translations: {
+        Row: {
+          created_at: string
+          external_rate_area_code: string
+          id: string
+          organization_id: string
+          rate_area_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          external_rate_area_code: string
+          id?: string
+          organization_id: string
+          rate_area_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          external_rate_area_code?: string
+          id?: string
+          organization_id?: string
+          rate_area_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_area_translations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_areas: {
         Row: {
           country_id: string
@@ -411,6 +488,101 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "scac_claims_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipment_uploads_staging: {
+        Row: {
+          actual_cube: number | null
+          created_at: string
+          destination_rate_area: string
+          estimated_cube: number | null
+          gbl_number: string
+          id: string
+          organization_id: string
+          origin_rate_area: string
+          pickup_date: string
+          raw_destination_rate_area: string | null
+          raw_origin_rate_area: string | null
+          raw_pod_code: string | null
+          raw_poe_code: string | null
+          raw_scac_code: string | null
+          rdd: string
+          remaining_cube: number | null
+          shipment_type: Database["public"]["Enums"]["shipment_type"]
+          shipper_last_name: string
+          target_pod_id: string | null
+          target_poe_id: string | null
+          tsp_id: string | null
+          updated_at: string
+          upload_session_id: string
+          user_id: string
+          validation_errors: Json | null
+          validation_status: string
+        }
+        Insert: {
+          actual_cube?: number | null
+          created_at?: string
+          destination_rate_area: string
+          estimated_cube?: number | null
+          gbl_number: string
+          id?: string
+          organization_id: string
+          origin_rate_area: string
+          pickup_date: string
+          raw_destination_rate_area?: string | null
+          raw_origin_rate_area?: string | null
+          raw_pod_code?: string | null
+          raw_poe_code?: string | null
+          raw_scac_code?: string | null
+          rdd: string
+          remaining_cube?: number | null
+          shipment_type: Database["public"]["Enums"]["shipment_type"]
+          shipper_last_name: string
+          target_pod_id?: string | null
+          target_poe_id?: string | null
+          tsp_id?: string | null
+          updated_at?: string
+          upload_session_id: string
+          user_id: string
+          validation_errors?: Json | null
+          validation_status?: string
+        }
+        Update: {
+          actual_cube?: number | null
+          created_at?: string
+          destination_rate_area?: string
+          estimated_cube?: number | null
+          gbl_number?: string
+          id?: string
+          organization_id?: string
+          origin_rate_area?: string
+          pickup_date?: string
+          raw_destination_rate_area?: string | null
+          raw_origin_rate_area?: string | null
+          raw_pod_code?: string | null
+          raw_poe_code?: string | null
+          raw_scac_code?: string | null
+          rdd?: string
+          remaining_cube?: number | null
+          shipment_type?: Database["public"]["Enums"]["shipment_type"]
+          shipper_last_name?: string
+          target_pod_id?: string | null
+          target_poe_id?: string | null
+          tsp_id?: string | null
+          updated_at?: string
+          upload_session_id?: string
+          user_id?: string
+          validation_errors?: Json | null
+          validation_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_uploads_staging_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
