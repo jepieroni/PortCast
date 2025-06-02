@@ -63,7 +63,7 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
-        <Popover open={open} onOpenChange={handleOpenChange} modal={false}>
+        <Popover open={open} onOpenChange={handleOpenChange} modal={true}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -80,35 +80,29 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-[var(--radix-popover-trigger-width)] p-0 z-[9999] bg-white border shadow-lg" 
+            className="w-[var(--radix-popover-trigger-width)] p-0 z-[10000] bg-white border shadow-2xl pointer-events-auto" 
             align="start"
             side="bottom"
             sideOffset={4}
-            onOpenAutoFocus={(e) => {
-              // Prevent auto focus to avoid conflicts with dialog
-              e.preventDefault();
-            }}
-            onCloseAutoFocus={(e) => {
-              // Prevent auto focus return to avoid conflicts with dialog
-              e.preventDefault();
-            }}
+            style={{ pointerEvents: 'auto' }}
           >
-            <Command shouldFilter={false}>
+            <Command shouldFilter={false} className="pointer-events-auto">
               <CommandInput
                 placeholder={`Search ${label.toLowerCase()}...`}
                 value={searchValue}
                 onValueChange={setSearchValue}
-                className="h-9"
+                className="h-9 pointer-events-auto"
               />
-              <CommandList className="max-h-64 overflow-y-auto">
-                <CommandEmpty>No results found.</CommandEmpty>
-                <CommandGroup>
+              <CommandList className="max-h-64 overflow-y-auto pointer-events-auto">
+                <CommandEmpty className="pointer-events-auto">No results found.</CommandEmpty>
+                <CommandGroup className="pointer-events-auto">
                   {filteredOptions.map((option) => (
                     <CommandItem
                       key={option.value}
                       value={option.value}
                       onSelect={() => handleSelect(option.value)}
-                      className="cursor-pointer"
+                      className="cursor-pointer pointer-events-auto hover:bg-accent hover:text-accent-foreground"
+                      style={{ pointerEvents: 'auto' }}
                     >
                       <Check
                         className={cn(
