@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { useShipmentData } from './shipment-registration/hooks/useShipmentData';
 import { useShipmentForm } from './shipment-registration/hooks/useShipmentForm';
 import { FormField } from './shipment-registration/components/FormField';
+import { SearchableSelect } from './shipment-registration/components/SearchableSelect';
 import { DateFields } from './shipment-registration/components/DateFields';
 import { VolumeFields } from './shipment-registration/components/VolumeFields';
 import { SidebarCards } from './shipment-registration/components/SidebarCards';
@@ -77,9 +78,11 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
     };
   }, [formData.shipmentType, rateAreas]);
 
+  // Create searchable port options with enhanced search text
   const portOptions = ports?.map(port => ({
     value: port.id,
-    label: `${port.code} - ${port.name}`
+    label: `${port.code} - ${port.name}`,
+    searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
   })) || [];
 
   const handleShipmentTypeChange = (value: string) => {
@@ -193,27 +196,25 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       onFocus={() => fieldValidation.clearFieldError('destinationRateArea')}
                     />
 
-                    <FormField
+                    <SearchableSelect
                       ref={(ref) => setFieldRef('targetPoeId', ref)}
-                      type="select"
                       label="Port of Embarkation (POE)"
                       required
                       value={formData.targetPoeId}
                       onChange={(value) => handleInputChange('targetPoeId', value)}
-                      placeholder="Select POE"
+                      placeholder="Search and select POE"
                       options={portOptions}
                       error={fieldValidation.getError('targetPoeId')}
                       onFocus={() => fieldValidation.clearFieldError('targetPoeId')}
                     />
 
-                    <FormField
+                    <SearchableSelect
                       ref={(ref) => setFieldRef('targetPodId', ref)}
-                      type="select"
                       label="Port of Debarkation (POD)"
                       required
                       value={formData.targetPodId}
                       onChange={(value) => handleInputChange('targetPodId', value)}
-                      placeholder="Select POD"
+                      placeholder="Search and select POD"
                       options={portOptions}
                       error={fieldValidation.getError('targetPodId')}
                       onFocus={() => fieldValidation.clearFieldError('targetPodId')}

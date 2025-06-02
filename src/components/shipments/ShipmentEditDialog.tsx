@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useShipmentActions } from '@/hooks/useShipmentActions';
 import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
+import { SearchableSelect } from '@/components/shipment-registration/components/SearchableSelect';
 
 interface ShipmentEditDialogProps {
   shipment: any;
@@ -190,6 +190,13 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
     }
   };
 
+  // Create searchable port options with enhanced search text
+  const portOptions = ports?.map(port => ({
+    value: port.id,
+    label: `${port.code} - ${port.name}`,
+    searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
+  })) || [];
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -349,37 +356,23 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               </Select>
             </div>
 
-            <div>
-              <Label htmlFor="target_poe_id">Port of Embarkation (POE) *</Label>
-              <Select value={formData.target_poe_id} onValueChange={(value) => handleInputChange('target_poe_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select POE" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ports?.map((port) => (
-                    <SelectItem key={port.id} value={port.id}>
-                      {port.code} - {port.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <SearchableSelect
+              label="Port of Embarkation (POE)"
+              required
+              value={formData.target_poe_id}
+              onChange={(value) => handleInputChange('target_poe_id', value)}
+              placeholder="Search and select POE"
+              options={portOptions}
+            />
 
-            <div>
-              <Label htmlFor="target_pod_id">Port of Debarkation (POD) *</Label>
-              <Select value={formData.target_pod_id} onValueChange={(value) => handleInputChange('target_pod_id', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select POD" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ports?.map((port) => (
-                    <SelectItem key={port.id} value={port.id}>
-                      {port.code} - {port.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <SearchableSelect
+              label="Port of Debarkation (POD)"
+              required
+              value={formData.target_pod_id}
+              onChange={(value) => handleInputChange('target_pod_id', value)}
+              placeholder="Search and select POD"
+              options={portOptions}
+            />
 
             <div>
               <Label htmlFor="estimated_pieces">Estimated Pieces</Label>
