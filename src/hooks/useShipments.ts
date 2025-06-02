@@ -14,7 +14,12 @@ export const useShipments = (filters: any) => {
 
       let query = supabase
         .from('shipments')
-        .select('*');
+        .select(`
+          *,
+          tsp:tsps(id, name, scac_code),
+          target_poe:ports!target_poe_id(id, name, code),
+          target_pod:ports!target_pod_id(id, name, code)
+        `);
 
       // If not global admin, filter by organization
       if (!isGlobalAdmin) {

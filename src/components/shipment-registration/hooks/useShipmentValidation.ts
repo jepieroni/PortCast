@@ -26,10 +26,12 @@ export const useShipmentValidation = () => {
       return false;
     }
 
-    if (!formData.gblNumber || !formData.shipperLastName || !formData.shipmentType || !formData.tspId) {
+    if (!formData.gblNumber || !formData.shipperLastName || !formData.shipmentType || 
+        !formData.tspId || !formData.targetPoeId || !formData.targetPodId || 
+        !formData.originRateArea || !formData.destinationRateArea) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields including TSP, POE, POD, Origin Rate Area, and Destination Rate Area.",
         variant: "destructive",
       });
       return false;

@@ -387,21 +387,21 @@ export type Database = {
           actual_cube: number | null
           actual_pieces: number | null
           created_at: string | null
-          destination_rate_area: string | null
+          destination_rate_area: string
           estimated_cube: number | null
           estimated_pieces: number | null
           gbl_number: string
           id: string
-          origin_rate_area: string | null
+          origin_rate_area: string
           pickup_date: string
           rdd: string
           remaining_cube: number | null
           remaining_pieces: number | null
           shipment_type: Database["public"]["Enums"]["shipment_type"]
           shipper_last_name: string
-          target_pod_id: string | null
-          target_poe_id: string | null
-          tsp_id: string | null
+          target_pod_id: string
+          target_poe_id: string
+          tsp_id: string
           updated_at: string | null
           user_id: string
         }
@@ -409,21 +409,21 @@ export type Database = {
           actual_cube?: number | null
           actual_pieces?: number | null
           created_at?: string | null
-          destination_rate_area?: string | null
+          destination_rate_area: string
           estimated_cube?: number | null
           estimated_pieces?: number | null
           gbl_number: string
           id?: string
-          origin_rate_area?: string | null
+          origin_rate_area: string
           pickup_date: string
           rdd: string
           remaining_cube?: number | null
           remaining_pieces?: number | null
           shipment_type: Database["public"]["Enums"]["shipment_type"]
           shipper_last_name: string
-          target_pod_id?: string | null
-          target_poe_id?: string | null
-          tsp_id?: string | null
+          target_pod_id: string
+          target_poe_id: string
+          tsp_id: string
           updated_at?: string | null
           user_id: string
         }
@@ -431,21 +431,21 @@ export type Database = {
           actual_cube?: number | null
           actual_pieces?: number | null
           created_at?: string | null
-          destination_rate_area?: string | null
+          destination_rate_area?: string
           estimated_cube?: number | null
           estimated_pieces?: number | null
           gbl_number?: string
           id?: string
-          origin_rate_area?: string | null
+          origin_rate_area?: string
           pickup_date?: string
           rdd?: string
           remaining_cube?: number | null
           remaining_pieces?: number | null
           shipment_type?: Database["public"]["Enums"]["shipment_type"]
           shipper_last_name?: string
-          target_pod_id?: string | null
-          target_poe_id?: string | null
-          tsp_id?: string | null
+          target_pod_id?: string
+          target_poe_id?: string
+          tsp_id?: string
           updated_at?: string | null
           user_id?: string
         }

@@ -27,8 +27,10 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
     rdd: '',
     estimated_cube: '',
     actual_cube: '',
+    remaining_cube: '',
     estimated_pieces: '',
     actual_pieces: '',
+    remaining_pieces: '',
     target_poe_id: '',
     target_pod_id: '',
     tsp_id: '',
@@ -46,8 +48,10 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
         rdd: shipment.rdd || '',
         estimated_cube: shipment.estimated_cube?.toString() || '',
         actual_cube: shipment.actual_cube?.toString() || '',
+        remaining_cube: shipment.remaining_cube?.toString() || '',
         estimated_pieces: shipment.estimated_pieces?.toString() || '',
         actual_pieces: shipment.actual_pieces?.toString() || '',
+        remaining_pieces: shipment.remaining_pieces?.toString() || '',
         target_poe_id: shipment.target_poe_id || '',
         target_pod_id: shipment.target_pod_id || '',
         tsp_id: shipment.tsp_id || '',
@@ -79,7 +83,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="gbl_number">GBL Number</Label>
+              <Label htmlFor="gbl_number">GBL Number *</Label>
               <Input
                 id="gbl_number"
                 value={formData.gbl_number}
@@ -89,7 +93,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
             </div>
 
             <div>
-              <Label htmlFor="shipper_last_name">Shipper Last Name</Label>
+              <Label htmlFor="shipper_last_name">Shipper Last Name *</Label>
               <Input
                 id="shipper_last_name"
                 value={formData.shipper_last_name}
@@ -99,7 +103,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
             </div>
 
             <div>
-              <Label htmlFor="shipment_type">Shipment Type</Label>
+              <Label htmlFor="shipment_type">Shipment Type *</Label>
               <Select value={formData.shipment_type} onValueChange={(value) => handleInputChange('shipment_type', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
@@ -113,7 +117,23 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
             </div>
 
             <div>
-              <Label htmlFor="pickup_date">Pickup Date</Label>
+              <Label htmlFor="tsp_id">TSP *</Label>
+              <Select value={formData.tsp_id} onValueChange={(value) => handleInputChange('tsp_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select TSP" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tsps?.map((tsp) => (
+                    <SelectItem key={tsp.id} value={tsp.id}>
+                      {tsp.scac_code} - {tsp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="pickup_date">Pickup Date *</Label>
               <Input
                 id="pickup_date"
                 type="date"
@@ -124,7 +144,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
             </div>
 
             <div>
-              <Label htmlFor="rdd">Required Delivery Date</Label>
+              <Label htmlFor="rdd">Required Delivery Date *</Label>
               <Input
                 id="rdd"
                 type="date"
@@ -135,7 +155,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
             </div>
 
             <div>
-              <Label htmlFor="origin_rate_area">Origin Rate Area</Label>
+              <Label htmlFor="origin_rate_area">Origin Rate Area *</Label>
               <Select value={formData.origin_rate_area} onValueChange={(value) => handleInputChange('origin_rate_area', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select origin" />
@@ -151,7 +171,7 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
             </div>
 
             <div>
-              <Label htmlFor="destination_rate_area">Destination Rate Area</Label>
+              <Label htmlFor="destination_rate_area">Destination Rate Area *</Label>
               <Select value={formData.destination_rate_area} onValueChange={(value) => handleInputChange('destination_rate_area', value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select destination" />
@@ -167,25 +187,35 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
             </div>
 
             <div>
-              <Label htmlFor="estimated_cube">Estimated Cube (ft³)</Label>
-              <Input
-                id="estimated_cube"
-                type="number"
-                step="0.01"
-                value={formData.estimated_cube}
-                onChange={(e) => handleInputChange('estimated_cube', e.target.value)}
-              />
+              <Label htmlFor="target_poe_id">Port of Embarkation (POE) *</Label>
+              <Select value={formData.target_poe_id} onValueChange={(value) => handleInputChange('target_poe_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select POE" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ports?.map((port) => (
+                    <SelectItem key={port.id} value={port.id}>
+                      {port.code} - {port.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <Label htmlFor="actual_cube">Actual Cube (ft³)</Label>
-              <Input
-                id="actual_cube"
-                type="number"
-                step="0.01"
-                value={formData.actual_cube}
-                onChange={(e) => handleInputChange('actual_cube', e.target.value)}
-              />
+              <Label htmlFor="target_pod_id">Port of Debarkation (POD) *</Label>
+              <Select value={formData.target_pod_id} onValueChange={(value) => handleInputChange('target_pod_id', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select POD" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ports?.map((port) => (
+                    <SelectItem key={port.id} value={port.id}>
+                      {port.code} - {port.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -193,8 +223,22 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               <Input
                 id="estimated_pieces"
                 type="number"
+                style={{ appearance: 'textfield' }}
+                className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 value={formData.estimated_pieces}
                 onChange={(e) => handleInputChange('estimated_pieces', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="estimated_cube">Estimated Cube (ft³)</Label>
+              <Input
+                id="estimated_cube"
+                type="number"
+                style={{ appearance: 'textfield' }}
+                className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                value={formData.estimated_cube}
+                onChange={(e) => handleInputChange('estimated_cube', e.target.value)}
               />
             </div>
 
@@ -203,8 +247,46 @@ const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialog
               <Input
                 id="actual_pieces"
                 type="number"
+                style={{ appearance: 'textfield' }}
+                className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 value={formData.actual_pieces}
                 onChange={(e) => handleInputChange('actual_pieces', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="actual_cube">Actual Cube (ft³)</Label>
+              <Input
+                id="actual_cube"
+                type="number"
+                style={{ appearance: 'textfield' }}
+                className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                value={formData.actual_cube}
+                onChange={(e) => handleInputChange('actual_cube', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="remaining_pieces">Remaining Pieces</Label>
+              <Input
+                id="remaining_pieces"
+                type="number"
+                style={{ appearance: 'textfield' }}
+                className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                value={formData.remaining_pieces}
+                onChange={(e) => handleInputChange('remaining_pieces', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="remaining_cube">Remaining Cube (ft³)</Label>
+              <Input
+                id="remaining_cube"
+                type="number"
+                style={{ appearance: 'textfield' }}
+                className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                value={formData.remaining_cube}
+                onChange={(e) => handleInputChange('remaining_cube', e.target.value)}
               />
             </div>
           </div>

@@ -23,14 +23,13 @@ export const VolumeFields = ({ formData, canEnterActuals, onInputChange }: Volum
                 <Info size={16} className="text-gray-400 cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Enter the number of standard liftvan-equivalent units, e.g. 8 or 2.5</p>
+                <p>Enter the number of standard liftvan-equivalent units as whole numbers</p>
               </TooltipContent>
             </Tooltip>
           </div>
           <Input
             id="estimatedPieces"
             type="number"
-            step="0.1"
             style={{ appearance: 'textfield' }}
             className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             value={formData.estimatedPieces}
@@ -40,7 +39,7 @@ export const VolumeFields = ({ formData, canEnterActuals, onInputChange }: Volum
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="estimatedCube">Estimated Volume</Label>
+          <Label htmlFor="estimatedCube">Estimated Volume (ft³)</Label>
           <Input
             id="estimatedCube"
             type="number"
@@ -62,14 +61,13 @@ export const VolumeFields = ({ formData, canEnterActuals, onInputChange }: Volum
                 <Info size={16} className="text-gray-400 cursor-help" />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Enter the number of standard liftvan-equivalent units, e.g. 8 or 2.5</p>
+                <p>Enter the number of standard liftvan-equivalent units as whole numbers</p>
               </TooltipContent>
             </Tooltip>
           </div>
           <Input
             id="actualPieces"
             type="number"
-            step="0.1"
             style={{ appearance: 'textfield' }}
             className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             value={formData.actualPieces}
@@ -80,7 +78,7 @@ export const VolumeFields = ({ formData, canEnterActuals, onInputChange }: Volum
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="actualCube">Actual Volume</Label>
+          <Label htmlFor="actualCube">Actual Volume (ft³)</Label>
           <Input
             id="actualCube"
             type="number"
