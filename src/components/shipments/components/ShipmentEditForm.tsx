@@ -117,10 +117,12 @@ export const ShipmentEditForm = ({ shipment, onSubmit, onCancel }: ShipmentEditF
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form data on submit:', formData);
     onSubmit(formData);
   };
 
   const handleInputChange = (field: string, value: string) => {
+    console.log(`Updating field ${field} with value:`, value);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

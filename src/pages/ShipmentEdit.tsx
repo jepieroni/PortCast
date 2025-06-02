@@ -39,16 +39,18 @@ const ShipmentEdit = () => {
   const handleFormSubmit = async (formData: any) => {
     if (!id) return;
     
+    console.log('Form data being submitted:', formData);
+    
     try {
       await updateShipment(id, formData);
-      navigate('/shipments');
+      navigate('/'); // Navigate back to main dashboard instead of /shipments
     } catch (error) {
       console.error('Error updating shipment:', error);
     }
   };
 
   const handleCancel = () => {
-    navigate('/shipments');
+    navigate('/'); // Navigate back to main dashboard instead of /shipments
   };
 
   if (isLoading) {
@@ -61,7 +63,7 @@ const ShipmentEdit = () => {
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={handleCancel}>
             <ArrowLeft size={16} className="mr-2" />
-            Back to Shipments
+            Back to Dashboard
           </Button>
           <h2 className="text-2xl font-bold">Edit Shipment</h2>
         </div>
@@ -81,7 +83,7 @@ const ShipmentEdit = () => {
       <div className="flex items-center gap-4">
         <Button variant="outline" onClick={handleCancel}>
           <ArrowLeft size={16} className="mr-2" />
-          Back to Shipments
+          Back to Dashboard
         </Button>
         <h2 className="text-2xl font-bold">Edit Shipment - {shipment.gbl_number}</h2>
       </div>
