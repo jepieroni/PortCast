@@ -1,22 +1,12 @@
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Edit, Trash2, Eye } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { Table, TableBody } from '@/components/ui/table';
 import { useShipmentActions } from '@/hooks/useShipmentActions';
 import ShipmentEditDialog from './ShipmentEditDialog';
 import ShipmentViewDialog from './ShipmentViewDialog';
-import { format } from 'date-fns';
+import ShipmentTableHeader from './components/ShipmentTableHeader';
+import ShipmentTableRow from './components/ShipmentTableRow';
+import { ShipmentTableLoading, ShipmentTableError, ShipmentTableEmpty } from './components/ShipmentTableStates';
 
 interface Shipment {
   id: string;
@@ -48,7 +38,6 @@ interface ShipmentTableProps {
 }
 
 const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTableProps) => {
-  const { isGlobalAdmin } = useAuth();
   const { deleteShipment } = useShipmentActions();
   const [editingShipment, setEditingShipment] = useState<Shipment | null>(null);
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
@@ -60,128 +49,32 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
     }
   };
 
-  const getShipmentTypeColor = (type: string) => {
-    switch (type) {
-      case 'inbound': return 'bg-blue-500';
-      case 'outbound': return 'bg-green-500';
-      case 'intertheater': return 'bg-orange-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getCubeDisplayValue = (shipment: Shipment) => {
-    // If remaining_cube exists, use it
-    if (shipment.remaining_cube !== null && shipment.remaining_cube !== undefined) {
-      return `${shipment.remaining_cube} cuft`;
-    }
-    
-    // If only estimated_cube is available, use it with "(Estimated)" indicator
-    if (shipment.estimated_cube !== null && shipment.estimated_cube !== undefined) {
-      return `${shipment.estimated_cube} cuft (Estimated)`;
-    }
-    
-    // Fallback
-    return '0 cuft';
-  };
-
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
-      </div>
-    );
+    return <ShipmentTableLoading />;
   }
 
   if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-red-600 mb-4">Error loading shipments</p>
-        <p className="text-gray-500">{error.message}</p>
-        <Button onClick={onRefresh} className="mt-4">Try Again</Button>
-      </div>
-    );
+    return <ShipmentTableError error={error} onRetry={onRefresh} />;
   }
 
   if (!shipments || shipments.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 text-lg">No shipments found</p>
-        <p className="text-gray-400">Add some shipments to get started</p>
-      </div>
-    );
+    return <ShipmentTableEmpty />;
   }
 
   return (
     <>
       <div className="border rounded-lg">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>GBL Number</TableHead>
-              <TableHead>Shipper</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Route</TableHead>
-              <TableHead>Pickup Date</TableHead>
-              <TableHead>RDD</TableHead>
-              <TableHead>Cube Remaining</TableHead>
-              {isGlobalAdmin && <TableHead>Organization</TableHead>}
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+          <ShipmentTableHeader />
           <TableBody>
             {shipments.map((shipment) => (
-              <TableRow key={shipment.id}>
-                <TableCell className="font-medium">{shipment.gbl_number}</TableCell>
-                <TableCell>{shipment.shipper_last_name}</TableCell>
-                <TableCell>
-                  <Badge className={`${getShipmentTypeColor(shipment.shipment_type)} text-white capitalize`}>
-                    {shipment.shipment_type}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-sm">
-                  {shipment.origin_rate_area} → {shipment.destination_rate_area}
-                </TableCell>
-                <TableCell>{format(new Date(shipment.pickup_date), 'MMM dd, yyyy')}</TableCell>
-                <TableCell>{format(new Date(shipment.rdd), 'MMM dd, yyyy')}</TableCell>
-                <TableCell>
-                  {getCubeDisplayValue(shipment)}
-                </TableCell>
-                {isGlobalAdmin && (
-                  <TableCell className="text-sm">
-                    {shipment.profiles?.organizations?.name || 'Unknown'}
-                  </TableCell>
-                )}
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => setViewingShipment(shipment)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Eye size={14} />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => setEditingShipment(shipment)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Edit size={14} />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive" 
-                      onClick={() => handleDelete(shipment.id)}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <ShipmentTableRow
+                key={shipment.id}
+                shipment={shipment}
+                onView={setViewingShipment}
+                onEdit={setEditingShipment}
+                onDelete={handleDelete}
+              />
             ))}
           </TableBody>
         </Table>
