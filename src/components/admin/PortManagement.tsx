@@ -42,7 +42,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       // Create new region if needed
       if (newRegionName && !regionId) {
         const { data: newRegion, error: regionError } = await supabase
-          .from('port_regions')
+          .from('port_regions' as any)
           .insert({ name: newRegionName })
           .select()
           .single();
@@ -68,12 +68,12 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         // Update region membership
         if (regionId) {
           await supabase
-            .from('port_region_memberships')
+            .from('port_region_memberships' as any)
             .delete()
             .eq('port_id', editingPort.id);
           
           await supabase
-            .from('port_region_memberships')
+            .from('port_region_memberships' as any)
             .insert({ port_id: editingPort.id, region_id: regionId });
         }
         
@@ -90,7 +90,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         // Add region membership
         if (regionId) {
           await supabase
-            .from('port_region_memberships')
+            .from('port_region_memberships' as any)
             .insert({ port_id: newPort.id, region_id: regionId });
         }
         

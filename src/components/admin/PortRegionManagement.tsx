@@ -29,7 +29,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
     try {
       if (editingRegion) {
         const { error } = await supabase
-          .from('port_regions')
+          .from('port_regions' as any)
           .update(formData)
           .eq('id', editingRegion.id);
         
@@ -37,7 +37,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
         toast({ title: "Success", description: "Port region updated successfully" });
       } else {
         const { error } = await supabase
-          .from('port_regions')
+          .from('port_regions' as any)
           .insert(formData);
         
         if (error) throw error;
@@ -69,7 +69,7 @@ const PortRegionManagement = ({ onBack }: PortRegionManagementProps) => {
     
     try {
       const { error } = await supabase
-        .from('port_regions')
+        .from('port_regions' as any)
         .delete()
         .eq('id', regionId);
       
