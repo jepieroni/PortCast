@@ -40,9 +40,9 @@ const PortList = ({ ports, getPortRegion, handleEdit, handleDelete }: PortListPr
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col min-h-0">
-        <ScrollArea className="flex-1">
-          <div className="space-y-1 pr-4">
+      <CardContent className="flex-1 overflow-hidden p-0">
+        <ScrollArea className="h-full px-6 pb-6">
+          <div className="space-y-1">
             {filteredPorts.map((port) => {
               const region = getPortRegion(port.id);
               return (
