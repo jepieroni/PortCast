@@ -1,8 +1,8 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Table, TableBody } from '@/components/ui/table';
 import { useShipmentActions } from '@/hooks/useShipmentActions';
-import ShipmentEditDialog from './ShipmentEditDialog';
 import ShipmentViewDialog from './ShipmentViewDialog';
 import ShipmentTableHeader from './components/ShipmentTableHeader';
 import ShipmentTableRow from './components/ShipmentTableRow';
@@ -38,9 +38,13 @@ interface ShipmentTableProps {
 }
 
 const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTableProps) => {
+  const navigate = useNavigate();
   const { deleteShipment } = useShipmentActions();
-  const [editingShipment, setEditingShipment] = useState<Shipment | null>(null);
   const [viewingShipment, setViewingShipment] = useState<Shipment | null>(null);
+
+  const handleEdit = (shipment: Shipment) => {
+    navigate(`/shipments/${shipment.id}/edit`);
+  };
 
   const handleDelete = async (shipmentId: string) => {
     if (confirm('Are you sure you want to delete this shipment?')) {
@@ -72,24 +76,13 @@ const ShipmentTable = ({ shipments, isLoading, error, onRefresh }: ShipmentTable
                 key={shipment.id}
                 shipment={shipment}
                 onView={setViewingShipment}
-                onEdit={setEditingShipment}
+                onEdit={handleEdit}
                 onDelete={handleDelete}
               />
             ))}
           </TableBody>
         </Table>
       </div>
-
-      {editingShipment && (
-        <ShipmentEditDialog
-          shipment={editingShipment}
-          onClose={() => setEditingShipment(null)}
-          onSuccess={() => {
-            setEditingShipment(null);
-            onRefresh();
-          }}
-        />
-      )}
 
       {viewingShipment && (
         <ShipmentViewDialog

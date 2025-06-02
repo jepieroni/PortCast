@@ -28,7 +28,6 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
   };
 
   const goToConsolidationMain = () => onNavigate('consolidation');
-  const goToShipments = () => onNavigate('shipments');
 
   switch (currentView) {
     case 'main':
@@ -79,8 +78,8 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
     case 'registration':
       return (
         <ShipmentRegistration 
-          onBack={goToShipments} 
-          onSuccess={goToShipments}
+          onBack={() => onNavigate('shipments')} 
+          onSuccess={() => onNavigate('shipments')}
         />
       );
     case 'admin':

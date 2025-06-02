@@ -2,9 +2,8 @@
 import { TableCell, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Trash2, Eye } from 'lucide-react';
+import { Eye, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { format } from 'date-fns';
 import { getShipmentTypeColor, getCubeDisplayValue } from '../utils/shipmentTableUtils';
 
 interface Shipment {
@@ -39,51 +38,52 @@ interface ShipmentTableRowProps {
 const ShipmentTableRow = ({ shipment, onView, onEdit, onDelete }: ShipmentTableRowProps) => {
   const { isGlobalAdmin } = useAuth();
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
   return (
     <TableRow>
       <TableCell className="font-medium">{shipment.gbl_number}</TableCell>
       <TableCell>{shipment.shipper_last_name}</TableCell>
       <TableCell>
-        <Badge className={`${getShipmentTypeColor(shipment.shipment_type)} text-white capitalize`}>
+        <Badge className={`text-white ${getShipmentTypeColor(shipment.shipment_type)}`}>
           {shipment.shipment_type}
         </Badge>
       </TableCell>
-      <TableCell className="text-sm">
+      <TableCell>
         {shipment.origin_rate_area} → {shipment.destination_rate_area}
       </TableCell>
-      <TableCell>{format(new Date(shipment.pickup_date), 'MMM dd, yyyy')}</TableCell>
-      <TableCell>{format(new Date(shipment.rdd), 'MMM dd, yyyy')}</TableCell>
-      <TableCell>
-        {getCubeDisplayValue(shipment)}
-      </TableCell>
+      <TableCell>{formatDate(shipment.pickup_date)}</TableCell>
+      <TableCell>{formatDate(shipment.rdd)}</TableCell>
+      <TableCell>{getCubeDisplayValue(shipment)}</TableCell>
       {isGlobalAdmin && (
-        <TableCell className="text-sm">
+        <TableCell>
           {shipment.profiles?.organizations?.name || 'Unknown'}
         </TableCell>
       )}
       <TableCell>
-        <div className="flex gap-1">
-          <Button 
-            size="sm" 
-            variant="outline" 
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => onView(shipment)}
-            className="h-8 w-8 p-0"
           >
             <Eye size={14} />
           </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => onEdit(shipment)}
-            className="h-8 w-8 p-0"
           >
             <Edit size={14} />
           </Button>
-          <Button 
-            size="sm" 
-            variant="destructive" 
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => onDelete(shipment.id)}
-            className="h-8 w-8 p-0"
           >
             <Trash2 size={14} />
           </Button>
