@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -340,35 +339,36 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-1 max-h-96 overflow-y-auto">
               {filteredPorts.map((port) => {
                 const region = getPortRegion(port.id);
                 return (
-                  <div key={port.id} className="flex items-center justify-between p-2 border rounded">
-                    <div>
-                      <div className="font-medium">{port.name} ({port.code})</div>
-                      <div className="text-sm text-gray-600">
+                  <div key={port.id} className="flex items-center justify-between p-2 border rounded text-sm">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{port.name} ({port.code})</div>
+                      <div className="text-xs text-gray-600 truncate">
                         Rate Area: {port.rate_area_id || 'None'} | 
                         Region: {region?.name || 'None'}
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(port)}>
-                        <Edit size={14} />
+                    <div className="flex gap-1 ml-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEdit(port)} className="h-7 w-7 p-0">
+                        <Edit size={12} />
                       </Button>
                       <Button 
                         size="sm" 
                         variant="destructive" 
                         onClick={() => handleDelete(port.id)}
+                        className="h-7 w-7 p-0"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={12} />
                       </Button>
                     </div>
                   </div>
                 );
               })}
               {filteredPorts.length === 0 && (
-                <div className="text-center text-gray-500 py-4">
+                <div className="text-center text-gray-500 py-4 text-sm">
                   {searchFilter ? 'No ports found matching your search.' : 'No ports found.'}
                 </div>
               )}
