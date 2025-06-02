@@ -33,7 +33,10 @@ const MainDashboard = ({ onCardClick }: MainDashboardProps) => {
               </CardHeader>
               <CardContent className="p-6">
                 <CardDescription className="text-gray-600 text-base">
-                  {card.description}
+                  {card.id === 'shipments' 
+                    ? 'Add new shipments for consolidation, and manage your organization\'s existing shipments.'
+                    : card.description
+                  }
                 </CardDescription>
               </CardContent>
             </Card>
