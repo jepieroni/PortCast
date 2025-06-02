@@ -46,6 +46,7 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
     };
 
     const handleOpenChange = (isOpen: boolean) => {
+      console.log('SearchableSelect open change:', isOpen);
       setOpen(isOpen);
       if (isOpen && onFocus) {
         onFocus();
@@ -55,18 +56,30 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
       }
     };
 
+    const handleButtonClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('SearchableSelect button clicked, current open state:', open);
+      setOpen(!open);
+      if (!open && onFocus) {
+        onFocus();
+      }
+    };
+
     return (
       <div ref={ref} className={cn("space-y-2", className)}>
         <Label className={cn(error && "text-red-600")}>
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </Label>
-        <Popover open={open} onOpenChange={handleOpenChange}>
+        <Popover open={open} onOpenChange={handleOpenChange} modal={false}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
+              onClick={handleButtonClick}
+              type="button"
               className={cn(
                 "w-full justify-between",
                 error && "border-red-500 focus:border-red-500"
@@ -76,13 +89,24 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0 z-[60]" align="start">
+          <PopoverContent 
+            className="w-full p-0 z-[100]" 
+            align="start"
+            onOpenAutoFocus={(e) => {
+              console.log('PopoverContent onOpenAutoFocus');
+              e.preventDefault();
+            }}
+          >
             <Command>
               <CommandInput
                 placeholder={`Search ${label.toLowerCase()}...`}
                 value={searchValue}
                 onValueChange={setSearchValue}
                 className="pointer-events-auto"
+                autoFocus
+                onFocus={() => {
+                  console.log('CommandInput focused');
+                }}
               />
               <CommandList className="max-h-64 overflow-y-auto">
                 <CommandEmpty>No results found.</CommandEmpty>
