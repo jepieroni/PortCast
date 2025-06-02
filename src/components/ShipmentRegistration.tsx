@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -10,6 +11,7 @@ import { SearchableSelect } from './shipment-registration/components/SearchableS
 import { DateFields } from './shipment-registration/components/DateFields';
 import { VolumeFields } from './shipment-registration/components/VolumeFields';
 import { SidebarCards } from './shipment-registration/components/SidebarCards';
+import { useFilteredPorts } from '@/hooks/useFilteredPorts';
 
 interface ShipmentRegistrationProps {
   onBack: () => void;
@@ -77,8 +79,18 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
     };
   }, [formData.shipmentType, rateAreas]);
 
+  // Filter ports based on rate area selections
+  const filteredPOEs = useFilteredPorts(ports || [], formData.originRateArea);
+  const filteredPODs = useFilteredPorts(ports || [], formData.destinationRateArea);
+
   // Create searchable port options with enhanced search text
-  const portOptions = ports?.map(port => ({
+  const poeOptions = filteredPOEs?.map(port => ({
+    value: port.id,
+    label: `${port.code} - ${port.name}`,
+    searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
+  })) || [];
+
+  const podOptions = filteredPODs?.map(port => ({
     value: port.id,
     label: `${port.code} - ${port.name}`,
     searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
@@ -89,6 +101,21 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
     // Clear existing rate area values when shipment type changes
     handleInputChange('originRateArea', '');
     handleInputChange('destinationRateArea', '');
+    // Clear port selections when shipment type changes
+    handleInputChange('targetPoeId', '');
+    handleInputChange('targetPodId', '');
+  };
+
+  const handleOriginRateAreaChange = (value: string) => {
+    handleInputChange('originRateArea', value);
+    // Clear POE selection when origin rate area changes
+    handleInputChange('targetPoeId', '');
+  };
+
+  const handleDestinationRateAreaChange = (value: string) => {
+    handleInputChange('destinationRateArea', value);
+    // Clear POD selection when destination rate area changes
+    handleInputChange('targetPodId', '');
   };
 
   return (
@@ -175,7 +202,7 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       label="Origin Rate Area"
                       required
                       value={formData.originRateArea}
-                      onChange={(value) => handleInputChange('originRateArea', value)}
+                      onChange={handleOriginRateAreaChange}
                       placeholder={!formData.shipmentType ? "Select shipment type first" : "Select origin"}
                       options={originRateAreaOptions}
                       error={fieldValidation.getError('originRateArea')}
@@ -188,7 +215,7 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       label="Destination Rate Area"
                       required
                       value={formData.destinationRateArea}
-                      onChange={(value) => handleInputChange('destinationRateArea', value)}
+                      onChange={handleDestinationRateAreaChange}
                       placeholder={!formData.shipmentType ? "Select shipment type first" : "Select destination"}
                       options={destinationRateAreaOptions}
                       error={fieldValidation.getError('destinationRateArea')}
@@ -201,10 +228,11 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       required
                       value={formData.targetPoeId}
                       onChange={(value) => handleInputChange('targetPoeId', value)}
-                      placeholder="Search and select POE"
-                      options={portOptions}
+                      placeholder={!formData.originRateArea ? "Select origin rate area first" : "Search and select POE"}
+                      options={poeOptions}
                       error={fieldValidation.getError('targetPoeId')}
                       onFocus={() => fieldValidation.clearFieldError('targetPoeId')}
+                      disabled={!formData.originRateArea}
                     />
 
                     <SearchableSelect
@@ -213,10 +241,11 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
                       required
                       value={formData.targetPodId}
                       onChange={(value) => handleInputChange('targetPodId', value)}
-                      placeholder="Search and select POD"
-                      options={portOptions}
+                      placeholder={!formData.destinationRateArea ? "Select destination rate area first" : "Search and select POD"}
+                      options={podOptions}
                       error={fieldValidation.getError('targetPodId')}
                       onFocus={() => fieldValidation.clearFieldError('targetPodId')}
+                      disabled={!formData.destinationRateArea}
                     />
                   </div>
 

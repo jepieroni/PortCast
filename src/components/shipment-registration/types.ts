@@ -40,6 +40,13 @@ export interface PortRegionMembership {
   created_at: string;
 }
 
+export interface RateAreaRegionMembership {
+  id: string;
+  rate_area_id: string;
+  region_id: string;
+  created_at: string;
+}
+
 export interface ShipmentFormData {
   gblNumber: string;
   shipperLastName: string;

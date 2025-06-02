@@ -291,6 +291,42 @@ export type Database = {
           },
         ]
       }
+      rate_area_region_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          rate_area_id: string
+          region_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rate_area_id: string
+          region_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rate_area_id?: string
+          region_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_rate_area"
+            columns: ["rate_area_id"]
+            isOneToOne: false
+            referencedRelation: "rate_areas"
+            referencedColumns: ["rate_area"]
+          },
+          {
+            foreignKeyName: "fk_region"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "port_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rate_areas: {
         Row: {
           country_id: string
