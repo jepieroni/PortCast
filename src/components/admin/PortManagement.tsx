@@ -26,6 +26,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    description: '',
     rate_area_id: '',
     region_id: ''
   });
@@ -94,6 +95,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       const portData = {
         name: formData.name,
         code: formData.code,
+        description: formData.description || null,
         rate_area_id: formData.rate_area_id || null
       };
 
@@ -138,7 +140,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       }
       
       setEditingPort(null);
-      setFormData({ name: '', code: '', rate_area_id: '', region_id: '' });
+      setFormData({ name: '', code: '', description: '', rate_area_id: '', region_id: '' });
       refreshData();
     } catch (error: any) {
       toast({
@@ -155,6 +157,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
     setFormData({
       name: port.name,
       code: port.code,
+      description: port.description || '',
       rate_area_id: port.rate_area_id || '',
       region_id: region?.id || ''
     });
@@ -181,9 +184,12 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
     }
   };
 
-  const filteredPorts = ports.filter(port => 
-    port.name.toLowerCase().includes(searchFilter.toLowerCase())
-  );
+  const filteredPorts = ports.filter(port => {
+    const searchTerm = searchFilter.toLowerCase();
+    return port.name.toLowerCase().includes(searchTerm) ||
+           port.code.toLowerCase().includes(searchTerm) ||
+           (port.description && port.description.toLowerCase().includes(searchTerm));
+  });
 
   return (
     <div className="space-y-6">
@@ -221,6 +227,17 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
                   value={formData.code}
                   onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter port description..."
+                  rows={3}
                 />
               </div>
 
@@ -312,7 +329,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
                     variant="outline"
                     onClick={() => {
                       setEditingPort(null);
-                      setFormData({ name: '', code: '', rate_area_id: '', region_id: '' });
+                      setFormData({ name: '', code: '', description: '', rate_area_id: '', region_id: '' });
                     }}
                   >
                     Cancel
@@ -346,6 +363,11 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
                   <div key={port.id} className="flex items-center justify-between p-2 border rounded text-sm">
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-sm">{port.name} ({port.code})</div>
+                      {port.description && (
+                        <div className="text-xs text-gray-500 truncate mb-1">
+                          {port.description}
+                        </div>
+                      )}
                       <div className="text-xs text-gray-600 truncate">
                         Rate Area: {port.rate_area_id || 'None'} | 
                         Region: {region?.name || 'None'}
