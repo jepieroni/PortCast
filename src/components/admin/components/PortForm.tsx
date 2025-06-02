@@ -31,7 +31,7 @@ const PortForm = ({
   refreshData
 }: PortFormProps) => {
   return (
-    <Card className="h-fit">
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>
           {editingPort ? 'Edit Port' : 'Add Port'}

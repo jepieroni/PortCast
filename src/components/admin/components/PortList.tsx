@@ -24,7 +24,7 @@ const PortList = ({ ports, getPortRegion, handleEdit, handleDelete }: PortListPr
   });
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle>Existing Ports</CardTitle>
