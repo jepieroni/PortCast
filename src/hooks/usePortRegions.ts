@@ -8,7 +8,7 @@ export const usePortRegions = () => {
     queryKey: ['port-regions'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('port_regions' as any)
+        .from('port_regions')
         .select('*')
         .order('name');
       
@@ -21,7 +21,7 @@ export const usePortRegions = () => {
     queryKey: ['port-region-memberships'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('port_region_memberships' as any)
+        .from('port_region_memberships')
         .select('*');
       
       if (error) throw error;

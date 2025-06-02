@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Plus, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +42,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
       // Create new region if needed
       if (newRegionName && !regionId) {
         const { data: newRegion, error: regionError } = await supabase
-          .from('port_regions' as any)
+          .from('port_regions')
           .insert({ name: newRegionName })
           .select()
           .single();
@@ -68,12 +68,12 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         // Update region membership
         if (regionId) {
           await supabase
-            .from('port_region_memberships' as any)
+            .from('port_region_memberships')
             .delete()
             .eq('port_id', editingPort.id);
           
           await supabase
-            .from('port_region_memberships' as any)
+            .from('port_region_memberships')
             .insert({ port_id: editingPort.id, region_id: regionId });
         }
         
@@ -90,7 +90,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         // Add region membership
         if (regionId) {
           await supabase
-            .from('port_region_memberships' as any)
+            .from('port_region_memberships')
             .insert({ port_id: newPort.id, region_id: regionId });
         }
         

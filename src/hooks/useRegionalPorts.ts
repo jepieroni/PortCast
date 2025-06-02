@@ -18,16 +18,25 @@ export const useRegionalPorts = (regionId?: string) => {
         return data as Port[];
       }
 
-      // Get ports in specific region
+      // Get port IDs in the specific region first
+      const { data: memberships, error: membershipError } = await supabase
+        .from('port_region_memberships')
+        .select('port_id')
+        .eq('region_id', regionId);
+
+      if (membershipError) throw membershipError;
+
+      const portIds = memberships.map(m => m.port_id);
+
+      if (portIds.length === 0) {
+        return [] as Port[];
+      }
+
+      // Then get the ports
       const { data, error } = await supabase
         .from('ports')
-        .select(`
-          *,
-          port_region_memberships!inner(
-            region_id
-          )
-        `)
-        .eq('port_region_memberships.region_id', regionId)
+        .select('*')
+        .in('id', portIds)
         .order('name');
       
       if (error) throw error;

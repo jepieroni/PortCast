@@ -1,11 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-react';
-import OrgAdminNavigation from './org-admin/OrgAdminNavigation';
-import OrganizationUsersTable from './org-admin/OrganizationUsersTable';
-import UserRequestsTable from './org-admin/UserRequestsTable';
+import { OrgAdminNavigation } from './org-admin/OrgAdminNavigation';
+import { OrganizationUsersTable } from './org-admin/OrganizationUsersTable';
+import { UserRequestsTable } from './org-admin/UserRequestsTable';
 import ScacManagement from './ScacManagement';
 import PortManagement from './admin/PortManagement';
 import RateAreaManagement from './admin/RateAreaManagement';
@@ -21,32 +21,33 @@ type AdminView = 'overview' | 'users' | 'requests' | 'scac' | 'ports' | 'rate-ar
 const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
   const [currentView, setCurrentView] = useState<AdminView>('overview');
   const {
-    users,
-    requests,
+    orgUsers,
+    userRequests,
     loading,
+    fetchOrganizationData,
     updateUserRole,
-    approveRequest,
-    denyRequest,
-    currentUser
-  } = useOrgAdminData(onBack);
+    handleUserRequestAction
+  } = useOrgAdminData();
+
+  useEffect(() => {
+    fetchOrganizationData();
+  }, []);
 
   const renderContent = () => {
     switch (currentView) {
       case 'users':
         return (
           <OrganizationUsersTable
-            data={users}
-            onUpdateRole={updateUserRole}
-            loading={loading}
+            orgUsers={orgUsers}
+            onUpdateUserRole={updateUserRole}
+            onRefreshData={fetchOrganizationData}
           />
         );
       case 'requests':
         return (
           <UserRequestsTable
-            data={requests}
-            onApproveRequest={approveRequest}
-            onDenyRequest={denyRequest}
-            loading={loading}
+            userRequests={userRequests}
+            onHandleUserRequestAction={handleUserRequestAction}
           />
         );
       case 'scac':
@@ -60,14 +61,8 @@ const OrgAdminDashboard = ({ onBack }: OrgAdminDashboardProps) => {
       default:
         return (
           <OrgAdminNavigation
-            onUsersClick={() => setCurrentView('users')}
-            onRequestsClick={() => setCurrentView('requests')}
-            onScacClick={() => setCurrentView('scac')}
-            onPortsClick={() => setCurrentView('ports')}
-            onRateAreasClick={() => setCurrentView('rate-areas')}
-            onPortRegionsClick={() => setCurrentView('port-regions')}
-            usersCount={users.length}
-            pendingRequestsCount={requests.filter(r => r.status === 'pending').length}
+            currentView={currentView}
+            onViewChange={setCurrentView}
           />
         );
     }
