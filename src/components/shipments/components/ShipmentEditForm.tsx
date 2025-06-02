@@ -15,7 +15,7 @@ interface ShipmentEditFormProps {
 }
 
 export const ShipmentEditForm = ({ shipment, onSubmit, onCancel }: ShipmentEditFormProps) => {
-  console.log('ShipmentEditForm rendered with shipment:', shipment);
+  console.log('ShipmentEditForm - Rendered with shipment:', shipment?.gbl_number);
   
   const { rateAreas, ports, tsps } = useShipmentData();
   console.log('ShipmentEditForm - Data loaded:', { 
@@ -28,19 +28,42 @@ export const ShipmentEditForm = ({ shipment, onSubmit, onCancel }: ShipmentEditF
     formData,
     pickupInputValue,
     rddInputValue,
+    isInitialized,
     handleInputChange,
     handleDateInputChange,
     handleDateInputBlur,
     handleDateSelect,
   } = useShipmentEditForm(shipment);
 
-  console.log('ShipmentEditForm - Current form data:', formData);
+  console.log('ShipmentEditForm - Form state:', {
+    isInitialized,
+    formData: {
+      gbl_number: formData.gbl_number,
+      origin_rate_area: formData.origin_rate_area,
+      destination_rate_area: formData.destination_rate_area,
+      tsp_id: formData.tsp_id,
+      target_poe_id: formData.target_poe_id,
+      target_pod_id: formData.target_pod_id
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form data on submit:', formData);
+    console.log('ShipmentEditForm - Form submitted with data:', formData);
     onSubmit(formData);
   };
+
+  // Don't render the form until data is initialized to prevent flash of empty fields
+  if (!isInitialized) {
+    console.log('ShipmentEditForm - Not initialized yet, showing loading state');
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-gray-600">Loading form data...</div>
+      </div>
+    );
+  }
+
+  console.log('ShipmentEditForm - Rendering initialized form');
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">

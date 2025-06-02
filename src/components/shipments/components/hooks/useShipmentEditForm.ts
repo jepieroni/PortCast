@@ -67,11 +67,12 @@ export const useShipmentEditForm = (shipment: any) => {
   // Local state for date input values
   const [pickupInputValue, setPickupInputValue] = useState('');
   const [rddInputValue, setRddInputValue] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    console.log('useShipmentEditForm - useEffect triggered with shipment:', shipment);
+    
     if (shipment) {
-      console.log('Original shipment data:', shipment);
-      
       const newFormData = {
         gbl_number: shipment.gbl_number || '',
         shipper_last_name: shipment.shipper_last_name || '',
@@ -88,30 +89,49 @@ export const useShipmentEditForm = (shipment: any) => {
         tsp_id: shipment.tsp_id || '',
       };
       
-      console.log('Form data being set in effect:', newFormData);
-      console.log('Critical fields - origin_rate_area:', newFormData.origin_rate_area, 'destination_rate_area:', newFormData.destination_rate_area, 'tsp_id:', newFormData.tsp_id);
+      console.log('useShipmentEditForm - Setting form data:', newFormData);
+      console.log('useShipmentEditForm - Critical fields check:', {
+        origin_rate_area: newFormData.origin_rate_area,
+        destination_rate_area: newFormData.destination_rate_area,
+        tsp_id: newFormData.tsp_id,
+        target_poe_id: newFormData.target_poe_id,
+        target_pod_id: newFormData.target_pod_id
+      });
+      
       setFormData(newFormData);
       
       // Initialize date input values
-      setPickupInputValue(formatDateForInput(newFormData.pickup_date));
-      setRddInputValue(formatDateForInput(newFormData.rdd));
+      const pickupFormatted = formatDateForInput(newFormData.pickup_date);
+      const rddFormatted = formatDateForInput(newFormData.rdd);
       
-      console.log('Form data set complete');
+      console.log('useShipmentEditForm - Setting date inputs:', {
+        pickup: pickupFormatted,
+        rdd: rddFormatted
+      });
+      
+      setPickupInputValue(pickupFormatted);
+      setRddInputValue(rddFormatted);
+      setIsInitialized(true);
+      
+      console.log('useShipmentEditForm - Form initialization complete');
+    } else {
+      console.log('useShipmentEditForm - No shipment data provided');
+      setIsInitialized(false);
     }
   }, [shipment]);
 
   const handleInputChange = (field: string, value: string) => {
-    console.log(`handleInputChange called - field: ${field}, value: "${value}"`);
+    console.log(`useShipmentEditForm - handleInputChange: ${field} = "${value}"`);
     
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      console.log(`Updated form data for ${field}:`, updated);
+      console.log(`useShipmentEditForm - Updated form data for ${field}:`, updated[field]);
       return updated;
     });
   };
 
   const handleDateInputChange = (field: string, value: string) => {
-    console.log(`handleDateInputChange called - field: ${field}, value: "${value}"`);
+    console.log(`useShipmentEditForm - handleDateInputChange: ${field} = "${value}"`);
     
     // Always update the input value to allow typing
     if (field === 'pickup_date') {
@@ -132,7 +152,7 @@ export const useShipmentEditForm = (shipment: any) => {
   };
 
   const handleDateInputBlur = (field: string, value: string) => {
-    console.log(`handleDateInputBlur called - field: ${field}, value: "${value}"`);
+    console.log(`useShipmentEditForm - handleDateInputBlur: ${field} = "${value}"`);
     
     // On blur, try to parse and format the date
     const parsedDate = parseDateString(value);
@@ -151,7 +171,7 @@ export const useShipmentEditForm = (shipment: any) => {
   };
 
   const handleDateSelect = (field: string, date: Date | undefined) => {
-    console.log(`handleDateSelect called - field: ${field}, date:`, date);
+    console.log(`useShipmentEditForm - handleDateSelect: ${field}`, date);
     
     if (date) {
       const isoDate = date.toISOString().split('T')[0];
@@ -174,10 +194,21 @@ export const useShipmentEditForm = (shipment: any) => {
     }
   };
 
+  console.log('useShipmentEditForm - Current state:', {
+    isInitialized,
+    hasFormData: Object.keys(formData).some(key => formData[key] !== ''),
+    formDataSample: {
+      gbl_number: formData.gbl_number,
+      origin_rate_area: formData.origin_rate_area,
+      tsp_id: formData.tsp_id
+    }
+  });
+
   return {
     formData,
     pickupInputValue,
     rddInputValue,
+    isInitialized,
     handleInputChange,
     handleDateInputChange,
     handleDateInputBlur,
