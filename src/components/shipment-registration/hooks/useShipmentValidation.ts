@@ -26,12 +26,22 @@ export const useShipmentValidation = () => {
       return false;
     }
 
-    if (!formData.gblNumber || !formData.shipperLastName || !formData.shipmentType || 
-        !formData.tspId || !formData.targetPoeId || !formData.targetPodId || 
+    // Validate basic required fields
+    if (!formData.gblNumber || !formData.shipperLastName || !formData.shipmentType) {
+      toast({
+        title: "Error",
+        description: "Please fill in GBL Number, Shipper Last Name, and Shipment Type.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Validate TSP, POE, POD, and rate areas
+    if (!formData.tspId || !formData.targetPoeId || !formData.targetPodId || 
         !formData.originRateArea || !formData.destinationRateArea) {
       toast({
         title: "Error",
-        description: "Please fill in all required fields including TSP, POE, POD, Origin Rate Area, and Destination Rate Area.",
+        description: "Please fill in all required fields: TSP, POE, POD, Origin Rate Area, and Destination Rate Area.",
         variant: "destructive",
       });
       return false;
