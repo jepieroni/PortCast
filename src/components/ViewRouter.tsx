@@ -5,9 +5,11 @@ import ShipmentRegistration from './ShipmentRegistration';
 import AdminDashboard from './AdminDashboard';
 import OrgAdminDashboard from './OrgAdminDashboard';
 import ConsolidationDashboard from './ConsolidationDashboard';
+import ShipmentsDashboard from './ShipmentsDashboard';
+import ConsolidationMainDashboard from './ConsolidationMainDashboard';
 import { useAuth } from '@/hooks/useAuth';
 
-export type ViewType = 'main' | 'inbound' | 'outbound' | 'intertheater' | 'registration' | 'admin';
+export type ViewType = 'main' | 'shipments' | 'consolidation' | 'inbound' | 'outbound' | 'intertheater' | 'registration' | 'admin';
 
 interface ViewRouterProps {
   currentView: ViewType;
@@ -24,11 +26,22 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
     onNavigate(tab as ViewType);
   };
 
+  const goToConsolidationMain = () => onNavigate('consolidation');
+
   switch (currentView) {
     case 'main':
       return (
         <MainDashboard
           onCardClick={(cardId) => onNavigate(cardId as ViewType)}
+        />
+      );
+    case 'shipments':
+      return <ShipmentsDashboard onBack={onBack} />;
+    case 'consolidation':
+      return (
+        <ConsolidationMainDashboard
+          onCardClick={(cardId) => onNavigate(cardId as ViewType)}
+          onBack={onBack}
         />
       );
     case 'inbound':
@@ -37,7 +50,7 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
           type="inbound"
           outlookDays={outlookDays}
           onOutlookDaysChange={onOutlookDaysChange}
-          onBack={onBack}
+          onBack={goToConsolidationMain}
           onTabChange={handleTabChange}
         />
       );
@@ -47,7 +60,7 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
           type="outbound"
           outlookDays={outlookDays}
           onOutlookDaysChange={onOutlookDaysChange}
-          onBack={onBack}
+          onBack={goToConsolidationMain}
           onTabChange={handleTabChange}
         />
       );
@@ -57,7 +70,7 @@ const ViewRouter = ({ currentView, outlookDays, onOutlookDaysChange, onNavigate,
           type="intertheater"
           outlookDays={outlookDays}
           onOutlookDaysChange={onOutlookDaysChange}
-          onBack={onBack}
+          onBack={goToConsolidationMain}
           onTabChange={handleTabChange}
         />
       );

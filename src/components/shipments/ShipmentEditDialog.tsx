@@ -1,0 +1,226 @@
+
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useShipmentActions } from '@/hooks/useShipmentActions';
+import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
+
+interface ShipmentEditDialogProps {
+  shipment: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const ShipmentEditDialog = ({ shipment, onClose, onSuccess }: ShipmentEditDialogProps) => {
+  const { updateShipment } = useShipmentActions();
+  const { rateAreas, ports, tsps } = useShipmentData();
+  const [formData, setFormData] = useState({
+    gbl_number: '',
+    shipper_last_name: '',
+    shipment_type: '',
+    origin_rate_area: '',
+    destination_rate_area: '',
+    pickup_date: '',
+    rdd: '',
+    estimated_cube: '',
+    actual_cube: '',
+    estimated_pieces: '',
+    actual_pieces: '',
+    target_poe_id: '',
+    target_pod_id: '',
+    tsp_id: '',
+  });
+
+  useEffect(() => {
+    if (shipment) {
+      setFormData({
+        gbl_number: shipment.gbl_number || '',
+        shipper_last_name: shipment.shipper_last_name || '',
+        shipment_type: shipment.shipment_type || '',
+        origin_rate_area: shipment.origin_rate_area || '',
+        destination_rate_area: shipment.destination_rate_area || '',
+        pickup_date: shipment.pickup_date || '',
+        rdd: shipment.rdd || '',
+        estimated_cube: shipment.estimated_cube?.toString() || '',
+        actual_cube: shipment.actual_cube?.toString() || '',
+        estimated_pieces: shipment.estimated_pieces?.toString() || '',
+        actual_pieces: shipment.actual_pieces?.toString() || '',
+        target_poe_id: shipment.target_poe_id || '',
+        target_pod_id: shipment.target_pod_id || '',
+        tsp_id: shipment.tsp_id || '',
+      });
+    }
+  }, [shipment]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await updateShipment(shipment.id, formData);
+      onSuccess();
+    } catch (error) {
+      console.error('Error updating shipment:', error);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Shipment - {shipment.gbl_number}</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="gbl_number">GBL Number</Label>
+              <Input
+                id="gbl_number"
+                value={formData.gbl_number}
+                onChange={(e) => handleInputChange('gbl_number', e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="shipper_last_name">Shipper Last Name</Label>
+              <Input
+                id="shipper_last_name"
+                value={formData.shipper_last_name}
+                onChange={(e) => handleInputChange('shipper_last_name', e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="shipment_type">Shipment Type</Label>
+              <Select value={formData.shipment_type} onValueChange={(value) => handleInputChange('shipment_type', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inbound">Inbound</SelectItem>
+                  <SelectItem value="outbound">Outbound</SelectItem>
+                  <SelectItem value="intertheater">Intertheater</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="pickup_date">Pickup Date</Label>
+              <Input
+                id="pickup_date"
+                type="date"
+                value={formData.pickup_date}
+                onChange={(e) => handleInputChange('pickup_date', e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="rdd">Required Delivery Date</Label>
+              <Input
+                id="rdd"
+                type="date"
+                value={formData.rdd}
+                onChange={(e) => handleInputChange('rdd', e.target.value)}
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="origin_rate_area">Origin Rate Area</Label>
+              <Select value={formData.origin_rate_area} onValueChange={(value) => handleInputChange('origin_rate_area', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select origin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rateAreas?.map((area) => (
+                    <SelectItem key={area.id} value={area.rate_area}>
+                      {area.rate_area} - {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="destination_rate_area">Destination Rate Area</Label>
+              <Select value={formData.destination_rate_area} onValueChange={(value) => handleInputChange('destination_rate_area', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select destination" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rateAreas?.map((area) => (
+                    <SelectItem key={area.id} value={area.rate_area}>
+                      {area.rate_area} - {area.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="estimated_cube">Estimated Cube (ft³)</Label>
+              <Input
+                id="estimated_cube"
+                type="number"
+                step="0.01"
+                value={formData.estimated_cube}
+                onChange={(e) => handleInputChange('estimated_cube', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="actual_cube">Actual Cube (ft³)</Label>
+              <Input
+                id="actual_cube"
+                type="number"
+                step="0.01"
+                value={formData.actual_cube}
+                onChange={(e) => handleInputChange('actual_cube', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="estimated_pieces">Estimated Pieces</Label>
+              <Input
+                id="estimated_pieces"
+                type="number"
+                value={formData.estimated_pieces}
+                onChange={(e) => handleInputChange('estimated_pieces', e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="actual_pieces">Actual Pieces</Label>
+              <Input
+                id="actual_pieces"
+                type="number"
+                value={formData.actual_pieces}
+                onChange={(e) => handleInputChange('actual_pieces', e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              Update Shipment
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ShipmentEditDialog;
