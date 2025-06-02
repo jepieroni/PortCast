@@ -35,7 +35,7 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         <h2 className="text-2xl font-bold">Port Management</h2>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 items-stretch">
+      <div className="grid lg:grid-cols-2 gap-6 items-start">
         <PortForm
           editingPort={editingPort}
           formData={formData}
