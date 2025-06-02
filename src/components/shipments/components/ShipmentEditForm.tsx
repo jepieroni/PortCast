@@ -15,7 +15,14 @@ interface ShipmentEditFormProps {
 }
 
 export const ShipmentEditForm = ({ shipment, onSubmit, onCancel }: ShipmentEditFormProps) => {
+  console.log('ShipmentEditForm rendered with shipment:', shipment);
+  
   const { rateAreas, ports, tsps } = useShipmentData();
+  console.log('ShipmentEditForm - Data loaded:', { 
+    rateAreasCount: rateAreas?.length, 
+    portsCount: ports?.length, 
+    tspsCount: tsps?.length 
+  });
   
   const {
     formData,
@@ -26,6 +33,8 @@ export const ShipmentEditForm = ({ shipment, onSubmit, onCancel }: ShipmentEditF
     handleDateInputBlur,
     handleDateSelect,
   } = useShipmentEditForm(shipment);
+
+  console.log('ShipmentEditForm - Current form data:', formData);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

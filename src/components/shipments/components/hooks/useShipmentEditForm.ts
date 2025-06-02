@@ -73,7 +73,8 @@ export const useShipmentEditForm = (shipment: any) => {
 
   useEffect(() => {
     if (shipment) {
-      console.log('Shipment data for editing:', shipment);
+      console.log('Original shipment data:', shipment);
+      
       const newFormData = {
         gbl_number: shipment.gbl_number || '',
         shipper_last_name: shipment.shipper_last_name || '',
@@ -93,21 +94,31 @@ export const useShipmentEditForm = (shipment: any) => {
         tsp_id: shipment.tsp_id || '',
       };
       
-      console.log('Setting form data to:', newFormData);
+      console.log('Form data being set in effect:', newFormData);
+      console.log('Critical fields - origin_rate_area:', newFormData.origin_rate_area, 'destination_rate_area:', newFormData.destination_rate_area, 'tsp_id:', newFormData.tsp_id);
       setFormData(newFormData);
       
       // Initialize date input values
       setPickupInputValue(formatDateForInput(newFormData.pickup_date));
       setRddInputValue(formatDateForInput(newFormData.rdd));
+      
+      console.log('Form data set complete');
     }
   }, [shipment]);
 
   const handleInputChange = (field: string, value: string) => {
-    console.log(`Updating field ${field} with value:`, value);
-    setFormData(prev => ({ ...prev, [field]: value }));
+    console.log(`handleInputChange called - field: ${field}, value: "${value}"`);
+    
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      console.log(`Updated form data for ${field}:`, updated);
+      return updated;
+    });
   };
 
   const handleDateInputChange = (field: string, value: string) => {
+    console.log(`handleDateInputChange called - field: ${field}, value: "${value}"`);
+    
     // Always update the input value to allow typing
     if (field === 'pickup_date') {
       setPickupInputValue(value);
@@ -127,6 +138,8 @@ export const useShipmentEditForm = (shipment: any) => {
   };
 
   const handleDateInputBlur = (field: string, value: string) => {
+    console.log(`handleDateInputBlur called - field: ${field}, value: "${value}"`);
+    
     // On blur, try to parse and format the date
     const parsedDate = parseDateString(value);
     if (parsedDate) {
@@ -144,6 +157,8 @@ export const useShipmentEditForm = (shipment: any) => {
   };
 
   const handleDateSelect = (field: string, date: Date | undefined) => {
+    console.log(`handleDateSelect called - field: ${field}, date:`, date);
+    
     if (date) {
       const isoDate = date.toISOString().split('T')[0];
       setFormData(prev => ({ ...prev, [field]: isoDate }));
