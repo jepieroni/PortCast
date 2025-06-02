@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -43,14 +42,16 @@ const ShipmentEdit = () => {
     
     try {
       await updateShipment(id, formData);
-      navigate('/'); // Navigate back to main dashboard instead of /shipments
+      // Navigate back to main dashboard and then to shipments
+      navigate('/', { state: { navigateTo: 'shipments' } });
     } catch (error) {
       console.error('Error updating shipment:', error);
     }
   };
 
   const handleCancel = () => {
-    navigate('/'); // Navigate back to main dashboard instead of /shipments
+    // Navigate back to main dashboard and then to shipments
+    navigate('/', { state: { navigateTo: 'shipments' } });
   };
 
   if (isLoading) {
