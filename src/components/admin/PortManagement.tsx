@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -291,7 +290,12 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
                   <SelectContent>
                     {portRegions.map((region) => (
                       <SelectItem key={region.id} value={region.id}>
-                        {region.name}
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{region.name}</span>
+                          {region.description && (
+                            <span className="text-sm text-gray-500">{region.description}</span>
+                          )}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
