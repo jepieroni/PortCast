@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -27,7 +26,7 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
     handleSubmit,
     fieldValidation,
     setFieldRef
-  } = useShipmentForm(onBack, onSuccess);
+  } = useShipmentForm(onBack, onSuccess, tsps);
 
   const shipmentTypeOptions = [
     { value: 'inbound', label: 'Inbound' },

@@ -17,26 +17,28 @@ const MainDashboard = ({ onCardClick }: MainDashboardProps) => {
         </p>
       </div>
       
-      <div className="grid md:grid-cols-3 gap-6">
-        {mainDashboardCards.map((card) => (
-          <Card 
-            key={card.id} 
-            className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105"
-            onClick={() => onCardClick(card.id)}
-          >
-            <CardHeader className={`${card.color} text-white rounded-t-lg`}>
-              <CardTitle className="flex items-center gap-2">
-                <Ship size={24} />
-                {card.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <CardDescription className="text-gray-600 text-base">
-                {card.description}
-              </CardDescription>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex justify-center">
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl">
+          {mainDashboardCards.map((card) => (
+            <Card 
+              key={card.id} 
+              className="cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-105"
+              onClick={() => onCardClick(card.id)}
+            >
+              <CardHeader className={`${card.color} text-white rounded-t-lg`}>
+                <CardTitle className="flex items-center gap-2">
+                  <Ship size={24} />
+                  {card.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <CardDescription className="text-gray-600 text-base">
+                  {card.description}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     </div>
   );

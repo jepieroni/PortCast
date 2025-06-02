@@ -20,10 +20,18 @@ export const useConsolidationData = (
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Calculate date range based on outlook days
+      // Calculate date range - include past 30 days and future outlook days
       const today = new Date();
+      const startDate = new Date(today);
+      startDate.setDate(today.getDate() - 30); // Include past 30 days
       const endDate = new Date(today);
       endDate.setDate(today.getDate() + outlookDays[0]);
+
+      console.log('Consolidation query date range:', {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+        type
+      });
 
       // Build query for consolidation data
       let query = supabase
@@ -33,15 +41,18 @@ export const useConsolidationData = (
           destination_rate_area,
           actual_cube,
           estimated_cube,
-          user_id
+          user_id,
+          pickup_date
         `)
         .eq('shipment_type', type)
-        .gte('pickup_date', today.toISOString().split('T')[0])
+        .gte('pickup_date', startDate.toISOString().split('T')[0])
         .lte('pickup_date', endDate.toISOString().split('T')[0]);
 
       const { data: shipments, error } = await query;
 
       if (error) throw error;
+
+      console.log('Consolidation shipments found:', shipments?.length || 0, shipments);
 
       // Group shipments by rate area combinations
       const groupedData: { [key: string]: ConsolidationGroup } = {};
@@ -67,7 +78,9 @@ export const useConsolidationData = (
         }
       });
 
-      return Object.values(groupedData);
+      const result = Object.values(groupedData);
+      console.log('Consolidation groups:', result);
+      return result;
     }
   });
 };

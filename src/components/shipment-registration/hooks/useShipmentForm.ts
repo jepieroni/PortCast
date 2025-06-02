@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { ShipmentFormData } from '../types';
 import { useShipmentValidation } from './useShipmentValidation';
@@ -6,7 +5,7 @@ import { useShipmentSubmission } from './useShipmentSubmission';
 import { useFieldValidation } from './useFieldValidation';
 import { shouldAllowActualEntry, formatFieldValue } from '../utils/shipmentUtils';
 
-export const useShipmentForm = (onBack: () => void, onSuccess?: () => void) => {
+export const useShipmentForm = (onBack: () => void, onSuccess?: () => void, tsps?: any[]) => {
   const [formData, setFormData] = useState<ShipmentFormData>({
     gblNumber: '',
     shipperLastName: '',
@@ -29,6 +28,13 @@ export const useShipmentForm = (onBack: () => void, onSuccess?: () => void) => {
   const { submitShipment } = useShipmentSubmission();
   const fieldValidation = useFieldValidation();
   const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  // Auto-populate TSP if only one available
+  useEffect(() => {
+    if (tsps && tsps.length === 1 && !formData.tspId) {
+      setFormData(prev => ({ ...prev, tspId: tsps[0].id }));
+    }
+  }, [tsps, formData.tspId]);
 
   // Check if pickup date allows actual entry
   useEffect(() => {
