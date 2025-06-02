@@ -35,24 +35,28 @@ const PortManagement = ({ onBack }: PortManagementProps) => {
         <h2 className="text-2xl font-bold">Port Management</h2>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
-        <PortForm
-          editingPort={editingPort}
-          formData={formData}
-          setFormData={setFormData}
-          rateAreas={rateAreas}
-          portRegions={portRegions}
-          handleSubmit={handleSubmit}
-          cancelEdit={cancelEdit}
-          refreshData={refreshData}
-        />
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="flex">
+          <PortForm
+            editingPort={editingPort}
+            formData={formData}
+            setFormData={setFormData}
+            rateAreas={rateAreas}
+            portRegions={portRegions}
+            handleSubmit={handleSubmit}
+            cancelEdit={cancelEdit}
+            refreshData={refreshData}
+          />
+        </div>
 
-        <PortList
-          ports={ports}
-          getPortRegion={getPortRegion}
-          handleEdit={handleEdit}
-          handleDelete={handleDelete}
-        />
+        <div className="flex">
+          <PortList
+            ports={ports}
+            getPortRegion={getPortRegion}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+          />
+        </div>
       </div>
     </div>
   );
