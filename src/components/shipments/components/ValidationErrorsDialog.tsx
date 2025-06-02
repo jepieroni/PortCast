@@ -21,6 +21,23 @@ const ValidationErrorsDialog = ({
 }: ValidationErrorsDialogProps) => {
   if (!record) return null;
 
+  // Helper function to safely get validation errors as array
+  const getValidationErrors = (): string[] => {
+    if (!record.validation_errors) return [];
+    if (Array.isArray(record.validation_errors)) return record.validation_errors;
+    if (typeof record.validation_errors === 'string') {
+      try {
+        const parsed = JSON.parse(record.validation_errors);
+        return Array.isArray(parsed) ? parsed : [record.validation_errors];
+      } catch {
+        return [record.validation_errors];
+      }
+    }
+    return [];
+  };
+
+  const validationErrors = getValidationErrors();
+
   const getActionButtons = (error: string) => {
     if (error.includes('Rate area') && error.includes('not found')) {
       const isOrigin = error.includes(record.raw_origin_rate_area);
@@ -106,7 +123,7 @@ const ValidationErrorsDialog = ({
 
           <div className="space-y-3">
             <h4 className="font-medium text-red-800">Errors Found:</h4>
-            {record.validation_errors?.map((error: string, index: number) => (
+            {validationErrors.map((error: string, index: number) => (
               <div key={index} className="p-3 bg-red-50 border border-red-200 rounded">
                 <div className="flex items-start gap-2">
                   <Badge variant="destructive" className="text-xs">

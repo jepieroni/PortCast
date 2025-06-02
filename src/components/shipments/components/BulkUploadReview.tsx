@@ -39,7 +39,23 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     validateAllRecords();
   }, [validateAllRecords]);
 
-  const getStatusBadge = (status: string, errors: any[]) => {
+  // Helper function to safely get validation errors as array
+  const getValidationErrors = (record: any): string[] => {
+    if (!record.validation_errors) return [];
+    if (Array.isArray(record.validation_errors)) return record.validation_errors;
+    if (typeof record.validation_errors === 'string') {
+      try {
+        const parsed = JSON.parse(record.validation_errors);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [record.validation_errors];
+      }
+    }
+    return [];
+  };
+
+  const getStatusBadge = (status: string, validationErrors: any) => {
+    const errors = getValidationErrors({ validation_errors: validationErrors });
     if (status === 'valid') {
       return <Badge className="bg-green-100 text-green-800">Valid</Badge>;
     } else if (status === 'invalid') {
@@ -173,31 +189,34 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
                 </tr>
               </thead>
               <tbody>
-                {stagingData.map((record) => (
-                  <tr key={record.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
-                      {getStatusBadge(record.validation_status, record.validation_errors)}
-                    </td>
-                    <td className="p-2 font-mono">{record.gbl_number}</td>
-                    <td className="p-2">{record.shipper_last_name}</td>
-                    <td className="p-2">{record.shipment_type}</td>
-                    <td className="p-2">{record.raw_origin_rate_area}</td>
-                    <td className="p-2">{record.raw_destination_rate_area}</td>
-                    <td className="p-2">
-                      <div className="flex gap-1">
-                        {record.validation_errors?.length > 0 && (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => handleShowErrors(record)}
-                          >
-                            View Errors
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {stagingData.map((record) => {
+                  const validationErrors = getValidationErrors(record);
+                  return (
+                    <tr key={record.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        {getStatusBadge(record.validation_status, record.validation_errors)}
+                      </td>
+                      <td className="p-2 font-mono">{record.gbl_number}</td>
+                      <td className="p-2">{record.shipper_last_name}</td>
+                      <td className="p-2">{record.shipment_type}</td>
+                      <td className="p-2">{record.raw_origin_rate_area}</td>
+                      <td className="p-2">{record.raw_destination_rate_area}</td>
+                      <td className="p-2">
+                        <div className="flex gap-1">
+                          {validationErrors.length > 0 && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => handleShowErrors(record)}
+                            >
+                              View Errors
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
