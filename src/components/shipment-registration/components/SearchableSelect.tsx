@@ -76,14 +76,15 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
               <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
+          <PopoverContent className="w-full p-0 z-[60]" align="start">
             <Command>
               <CommandInput
                 placeholder={`Search ${label.toLowerCase()}...`}
                 value={searchValue}
                 onValueChange={setSearchValue}
+                className="pointer-events-auto"
               />
-              <CommandList>
+              <CommandList className="max-h-64 overflow-y-auto">
                 <CommandEmpty>No results found.</CommandEmpty>
                 <CommandGroup>
                   {filteredOptions.map((option) => (
@@ -91,6 +92,7 @@ export const SearchableSelect = React.forwardRef<HTMLDivElement, SearchableSelec
                       key={option.value}
                       value={option.value}
                       onSelect={() => handleSelect(option.value)}
+                      className="cursor-pointer"
                     >
                       <Check
                         className={cn(
