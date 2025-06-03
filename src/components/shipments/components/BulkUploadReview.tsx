@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +48,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   } = useBulkUploadReview(uploadSessionId);
 
   // Run initial validation only once when component mounts and has data
-  React.useEffect(() => {
+  useEffect(() => {
     if (stagingData.length > 0 && !hasRunInitialValidation && !isValidating) {
       console.log('Running initial validation for', stagingData.length, 'records');
       setHasRunInitialValidation(true);
