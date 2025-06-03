@@ -76,7 +76,7 @@ export const useSampleDataGenerator = () => {
 
   const getRandomCube = (): number => {
     const min = 100;
-    const max = 4000;
+    const max = 2000;
     const increment = 50;
     const steps = Math.floor((max - min) / increment) + 1;
     const randomStep = Math.floor(Math.random() * steps);
