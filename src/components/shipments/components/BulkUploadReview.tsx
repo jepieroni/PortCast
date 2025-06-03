@@ -3,13 +3,19 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, CalendarIcon, AlertCircle, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
-import ValidationErrorsDialog from './ValidationErrorsDialog';
 import TranslationMappingDialog from './TranslationMappingDialog';
 import NewRateAreaDialog from './NewRateAreaDialog';
-import FieldEditDialog from './FieldEditDialog';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,14 +37,13 @@ interface BulkUploadReviewProps {
 const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadReviewProps) => {
   const { toast } = useToast();
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
-  const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [showNewRateAreaDialog, setShowNewRateAreaDialog] = useState(false);
-  const [showFieldEditDialog, setShowFieldEditDialog] = useState(false);
   const [translationType, setTranslationType] = useState<'port' | 'rate_area'>('port');
   const [translationField, setTranslationField] = useState<string>('');
-  const [editField, setEditField] = useState<string>('');
   const [hasRunInitialValidation, setHasRunInitialValidation] = useState(false);
+  const [editingRecords, setEditingRecords] = useState<Record<string, any>>({});
+  const [validatingRecords, setValidatingRecords] = useState<Set<string>>(new Set());
 
   const {
     stagingData,
@@ -49,6 +54,51 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     processValidShipments,
     refreshData
   } = useBulkUploadReview(uploadSessionId);
+
+  // Fetch reference data for dropdowns
+  const { data: ports = [] } = useQuery({
+    queryKey: ['ports'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ports')
+        .select('id, code, name')
+        .order('code');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: rateAreas = [] } = useQuery({
+    queryKey: ['rate_areas'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('rate_areas')
+        .select('rate_area, name, countries(name)')
+        .order('rate_area');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: tsps = [] } = useQuery({
+    queryKey: ['tsps'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user!.id)
+        .single();
+      
+      const { data, error } = await supabase
+        .from('tsps')
+        .select('id, name, scac_code')
+        .eq('organization_id', profile!.organization_id)
+        .order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
 
   // Run initial validation only once when component mounts and has data
   useEffect(() => {
@@ -74,6 +124,295 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     return [];
   };
 
+  const getFieldValidationError = (record: any, field: string): string | null => {
+    const errors = getValidationErrors(record);
+    return errors.find(error => {
+      const lowerError = error.toLowerCase();
+      const lowerField = field.toLowerCase();
+      
+      if (field === 'gbl_number') return lowerError.includes('gbl');
+      if (field === 'shipper_last_name') return lowerError.includes('shipper');
+      if (field === 'shipment_type') return lowerError.includes('shipment type');
+      if (field === 'raw_origin_rate_area') return lowerError.includes('origin') && lowerError.includes('rate area');
+      if (field === 'raw_destination_rate_area') return lowerError.includes('destination') && lowerError.includes('rate area');
+      if (field === 'raw_poe_code') return lowerError.includes('poe') || (lowerError.includes('port') && lowerError.includes('embarkation'));
+      if (field === 'raw_pod_code') return lowerError.includes('pod') || (lowerError.includes('port') && lowerError.includes('debarkation'));
+      if (field === 'raw_scac_code') return lowerError.includes('scac');
+      if (field === 'pickup_date') return lowerError.includes('pickup');
+      if (field === 'rdd') return lowerError.includes('rdd') || lowerError.includes('delivery');
+      
+      return false;
+    }) || null;
+  };
+
+  const getEditingValue = (record: any, field: string) => {
+    return editingRecords[record.id]?.[field] ?? record[field] ?? '';
+  };
+
+  const updateEditingValue = (recordId: string, field: string, value: any) => {
+    setEditingRecords(prev => ({
+      ...prev,
+      [recordId]: {
+        ...prev[recordId],
+        [field]: value
+      }
+    }));
+  };
+
+  const validateSingleRecord = async (record: any) => {
+    const recordId = record.id;
+    setValidatingRecords(prev => new Set(prev).add(recordId));
+
+    try {
+      // Get the edited values for this record
+      const editedValues = editingRecords[recordId] || {};
+      const updatedRecord = { ...record, ...editedValues };
+
+      // Update the staging record with new values
+      const { error: updateError } = await supabase
+        .from('shipment_uploads_staging')
+        .update({
+          ...editedValues,
+          validation_status: 'pending',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId);
+
+      if (updateError) throw updateError;
+
+      // Refresh data to trigger re-validation
+      await refreshData();
+
+      toast({
+        title: "Record updated",
+        description: "Validation will run automatically"
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update record",
+        variant: "destructive"
+      });
+    } finally {
+      setValidatingRecords(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(recordId);
+        return newSet;
+      });
+    }
+  };
+
+  const renderEditableField = (record: any, field: string, label: string) => {
+    const error = getFieldValidationError(record, field);
+    const hasError = !!error;
+    const value = getEditingValue(record, field);
+    const isInvalid = record.validation_status === 'invalid';
+
+    if (!isInvalid) {
+      // Show read-only value for valid records
+      return (
+        <span className="text-sm">
+          {field === 'pickup_date' || field === 'rdd' 
+            ? (value ? format(new Date(value), 'yyyy-MM-dd') : '') 
+            : value || '-'}
+        </span>
+      );
+    }
+
+    const inputClassName = `h-8 text-xs ${hasError ? 'border-red-500 bg-red-50' : ''}`;
+
+    // Date fields
+    if (field === 'pickup_date' || field === 'rdd') {
+      const dateValue = value ? new Date(value) : undefined;
+      return (
+        <div className="flex items-center gap-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="outline" 
+                className={`h-8 text-xs justify-start ${hasError ? 'border-red-500 bg-red-50' : ''}`}
+              >
+                <CalendarIcon className="mr-1 h-3 w-3" />
+                {dateValue ? format(dateValue, 'yyyy-MM-dd') : 'Select date'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={dateValue}
+                onSelect={(date) => updateEditingValue(record.id, field, date ? format(date, 'yyyy-MM-dd') : '')}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          {hasError && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
+    }
+
+    // Shipment type
+    if (field === 'shipment_type') {
+      return (
+        <div className="flex items-center gap-1">
+          <Select value={value} onValueChange={(val) => updateEditingValue(record.id, field, val)}>
+            <SelectTrigger className={inputClassName}>
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="I">Inbound</SelectItem>
+              <SelectItem value="O">Outbound</SelectItem>
+              <SelectItem value="T">Intertheater</SelectItem>
+            </SelectContent>
+          </Select>
+          {hasError && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
+    }
+
+    // Port fields
+    if (field === 'raw_poe_code' || field === 'raw_pod_code') {
+      return (
+        <div className="flex items-center gap-1">
+          <Select value={value} onValueChange={(val) => updateEditingValue(record.id, field, val)}>
+            <SelectTrigger className={inputClassName}>
+              <SelectValue placeholder="Port" />
+            </SelectTrigger>
+            <SelectContent>
+              {ports.map((port) => (
+                <SelectItem key={port.id} value={port.code}>
+                  {port.code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasError && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
+    }
+
+    // Rate area fields
+    if (field === 'raw_origin_rate_area' || field === 'raw_destination_rate_area') {
+      return (
+        <div className="flex items-center gap-1">
+          <Select value={value} onValueChange={(val) => updateEditingValue(record.id, field, val)}>
+            <SelectTrigger className={inputClassName}>
+              <SelectValue placeholder="Area" />
+            </SelectTrigger>
+            <SelectContent>
+              {rateAreas.map((area) => (
+                <SelectItem key={area.rate_area} value={area.rate_area}>
+                  {area.rate_area}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasError && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
+    }
+
+    // SCAC code
+    if (field === 'raw_scac_code') {
+      return (
+        <div className="flex items-center gap-1">
+          <Select value={value} onValueChange={(val) => updateEditingValue(record.id, field, val)}>
+            <SelectTrigger className={inputClassName}>
+              <SelectValue placeholder="SCAC" />
+            </SelectTrigger>
+            <SelectContent>
+              {tsps.map((tsp) => (
+                <SelectItem key={tsp.id} value={tsp.scac_code}>
+                  {tsp.scac_code}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasError && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      );
+    }
+
+    // Default text input
+    return (
+      <div className="flex items-center gap-1">
+        <Input
+          value={value}
+          onChange={(e) => updateEditingValue(record.id, field, e.target.value)}
+          className={inputClassName}
+          placeholder={label}
+        />
+        {hasError && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <AlertCircle size={14} className="text-red-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{error}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+    );
+  };
+
   const getStatusBadge = (status: string, validationErrors: any) => {
     const errors = getValidationErrors({ validation_errors: validationErrors });
     if (status === 'valid') {
@@ -85,31 +424,17 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }
   };
 
-  const handleShowErrors = (record: any) => {
-    setSelectedRecord(record);
-    setShowValidationDialog(true);
-  };
-
   const handleCreateTranslation = (record: any, type: 'port' | 'rate_area', field: string) => {
     setSelectedRecord(record);
     setTranslationType(type);
     setTranslationField(field);
-    setShowValidationDialog(false);
     setShowTranslationDialog(true);
   };
 
   const handleCreateRateArea = (record: any, field: string) => {
     setSelectedRecord(record);
     setTranslationField(field);
-    setShowValidationDialog(false);
     setShowNewRateAreaDialog(true);
-  };
-
-  const handleEditField = (record: any, field: string) => {
-    setSelectedRecord(record);
-    setEditField(field);
-    setShowValidationDialog(false);
-    setShowFieldEditDialog(true);
   };
 
   const handleProcessShipments = async () => {
@@ -243,31 +568,67 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
                   <th className="text-left p-2">Type</th>
                   <th className="text-left p-2">Origin</th>
                   <th className="text-left p-2">Destination</th>
+                  <th className="text-left p-2">POE</th>
+                  <th className="text-left p-2">POD</th>
+                  <th className="text-left p-2">SCAC</th>
+                  <th className="text-left p-2">Pickup</th>
+                  <th className="text-left p-2">RDD</th>
                   <th className="text-left p-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {stagingData.map((record) => {
-                  const validationErrors = getValidationErrors(record);
+                  const isValidating = validatingRecords.has(record.id);
                   return (
                     <tr key={record.id} className="border-b hover:bg-gray-50">
                       <td className="p-2">
                         {getStatusBadge(record.validation_status, record.validation_errors)}
                       </td>
-                      <td className="p-2 font-mono">{record.gbl_number}</td>
-                      <td className="p-2">{record.shipper_last_name}</td>
-                      <td className="p-2">{record.shipment_type}</td>
-                      <td className="p-2">{record.raw_origin_rate_area}</td>
-                      <td className="p-2">{record.raw_destination_rate_area}</td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'gbl_number', 'GBL Number')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'shipper_last_name', 'Shipper Name')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'shipment_type', 'Type')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'raw_origin_rate_area', 'Origin')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'raw_destination_rate_area', 'Destination')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'raw_poe_code', 'POE')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'raw_pod_code', 'POD')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'raw_scac_code', 'SCAC')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'pickup_date', 'Pickup Date')}
+                      </td>
+                      <td className="p-2">
+                        {renderEditableField(record, 'rdd', 'RDD')}
+                      </td>
                       <td className="p-2">
                         <div className="flex gap-1">
-                          {validationErrors.length > 0 && (
+                          {record.validation_status === 'invalid' && (
                             <Button 
                               size="sm" 
-                              variant="outline" 
-                              onClick={() => handleShowErrors(record)}
+                              variant="outline"
+                              onClick={() => validateSingleRecord(record)}
+                              disabled={isValidating}
+                              className="h-8"
                             >
-                              View Errors
+                              {isValidating ? (
+                                <RefreshCw size={14} className="animate-spin" />
+                              ) : (
+                                'Re-validate'
+                              )}
                             </Button>
                           )}
                         </div>
@@ -281,14 +642,14 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         </CardContent>
       </Card>
 
-      {/* Action Buttons - Now below the table */}
+      {/* Action Buttons */}
       <div className="flex justify-center gap-4 pt-4">
         <Button 
           variant="outline" 
           onClick={() => validateAllRecords()}
           disabled={isValidating}
         >
-          Re-validate
+          Re-validate All
         </Button>
         <Button 
           onClick={handleProcessShipments}
@@ -300,15 +661,6 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       </div>
 
       {/* Dialogs */}
-      <ValidationErrorsDialog
-        isOpen={showValidationDialog}
-        onClose={() => setShowValidationDialog(false)}
-        record={selectedRecord}
-        onCreateTranslation={handleCreateTranslation}
-        onCreateRateArea={handleCreateRateArea}
-        onEditField={handleEditField}
-      />
-
       <TranslationMappingDialog
         isOpen={showTranslationDialog}
         onClose={() => setShowTranslationDialog(false)}
@@ -323,14 +675,6 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         onClose={() => setShowNewRateAreaDialog(false)}
         record={selectedRecord}
         field={translationField}
-        onSuccess={refreshData}
-      />
-
-      <FieldEditDialog
-        isOpen={showFieldEditDialog}
-        onClose={() => setShowFieldEditDialog(false)}
-        record={selectedRecord}
-        field={editField}
         onSuccess={refreshData}
       />
     </div>
