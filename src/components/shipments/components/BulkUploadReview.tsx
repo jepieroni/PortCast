@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -158,7 +159,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
                   </AlertDialogAction>
                   <AlertDialogAction
                     onClick={onBack}
-                    variant="destructive"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   >
                     Leave Without Processing
                   </AlertDialogAction>
