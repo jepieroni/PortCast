@@ -122,7 +122,8 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
           continue;
         }
 
-        const targetField = field.replace('raw_', '').replace('_code', '_id');
+        // Map to correct target field names for staging table
+        const targetField = field === 'raw_poe_code' ? 'target_poe_id' : 'target_pod_id';
         
         // Check if port exists directly
         console.log(`Checking direct port match for: ${portCode}`);
