@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import TranslationMappingDialog from './TranslationMappingDialog';
 import NewRateAreaDialog from './NewRateAreaDialog';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { SearchableSelect } from '@/components/shipment-registration/components/SearchableSelect';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -60,7 +62,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ports')
-        .select('id, code, name')
+        .select('id, code, name, description')
         .order('code');
       if (error) throw error;
       return data;
@@ -215,6 +217,13 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
 
     // For valid records or invalid records where this specific field has no error, show read-only
     if (!isInvalid || !hasError) {
+      // Special handling for port fields to show code - name format
+      if (field === 'raw_poe_code' || field === 'raw_pod_code') {
+        const port = ports.find(p => p.code === value);
+        const displayValue = port ? `${port.code} - ${port.name}` : value || '-';
+        return <span className="text-sm">{displayValue}</span>;
+      }
+      
       return (
         <span className="text-sm">
           {field === 'pickup_date' || field === 'rdd' 
@@ -293,22 +302,28 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       );
     }
 
-    // Port fields
+    // Port fields with SearchableSelect
     if (field === 'raw_poe_code' || field === 'raw_pod_code') {
+      const portOptions = ports.map(port => ({
+        value: port.code,
+        label: `${port.code} - ${port.name}`,
+        searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
+      }));
+
       return (
         <div className="flex items-center gap-1">
-          <Select value={value} onValueChange={(val) => updateEditingValue(record.id, field, val)}>
-            <SelectTrigger className={inputClassName}>
-              <SelectValue placeholder="Port" />
-            </SelectTrigger>
-            <SelectContent>
-              {ports.map((port) => (
-                <SelectItem key={port.id} value={port.code}>
-                  {port.code}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="min-w-[200px]">
+            <SearchableSelect
+              label=""
+              value={value}
+              onChange={(val) => updateEditingValue(record.id, field, val)}
+              placeholder="Search ports..."
+              options={portOptions}
+              error=""
+              onFocus={() => {}}
+              className="w-full [&>div]:border-red-500 [&>div]:bg-red-50"
+            />
+          </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
