@@ -251,6 +251,11 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
   };
 
   const validateAllRecords = useCallback(async () => {
+    if (stagingData.length === 0) {
+      console.log('No staging data to validate');
+      return;
+    }
+
     setIsValidating(true);
     try {
       console.log('Starting validation for', stagingData.length, 'records');

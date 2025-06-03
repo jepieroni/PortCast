@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   const [showNewRateAreaDialog, setShowNewRateAreaDialog] = useState(false);
   const [translationType, setTranslationType] = useState<'port' | 'rate_area'>('port');
   const [translationField, setTranslationField] = useState<string>('');
+  const [hasRunInitialValidation, setHasRunInitialValidation] = useState(false);
 
   const {
     stagingData,
@@ -46,9 +47,14 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     refreshData
   } = useBulkUploadReview(uploadSessionId);
 
-  useEffect(() => {
-    validateAllRecords();
-  }, [validateAllRecords]);
+  // Run initial validation only once when component mounts and has data
+  React.useEffect(() => {
+    if (stagingData.length > 0 && !hasRunInitialValidation && !isValidating) {
+      console.log('Running initial validation for', stagingData.length, 'records');
+      setHasRunInitialValidation(true);
+      validateAllRecords();
+    }
+  }, [stagingData.length, hasRunInitialValidation, isValidating, validateAllRecords]);
 
   // Helper function to safely get validation errors as array
   const getValidationErrors = (record: any): string[] => {
@@ -117,7 +123,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }
   };
 
-  if (isValidating) {
+  if (isValidating && !hasRunInitialValidation) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
