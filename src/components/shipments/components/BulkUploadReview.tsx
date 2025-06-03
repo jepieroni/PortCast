@@ -11,6 +11,7 @@ import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, CalendarIcon, AlertCirc
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
+import { useFilteredPorts } from '@/hooks/useFilteredPorts';
 import TranslationMappingDialog from './TranslationMappingDialog';
 import NewRateAreaDialog from './NewRateAreaDialog';
 import AddPortFromReviewDialog from './AddPortFromReviewDialog';
@@ -331,9 +332,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       );
     }
 
-    // Port fields with SearchableSelect and Add Port option
+    // Port fields with SearchableSelect and Add Port option - with filtering
     if (field === 'raw_poe_code' || field === 'raw_pod_code') {
-      const portOptions = ports.map(port => ({
+      // Get the corresponding rate area for filtering
+      const rateAreaField = field === 'raw_poe_code' ? 'raw_origin_rate_area' : 'raw_destination_rate_area';
+      const selectedRateArea = getEditingValue(record, rateAreaField);
+      
+      // Filter ports based on rate area selection
+      const filteredPorts = useFilteredPorts(ports, selectedRateArea);
+      
+      const portOptions = filteredPorts.map(port => ({
         value: port.code,
         label: `${port.code} - ${port.name}`,
         searchableText: `${port.code} ${port.name} ${port.description || ''}`
@@ -346,11 +354,12 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               label=""
               value={value}
               onChange={(val) => updateEditingValue(record.id, field, val)}
-              placeholder="Search ports..."
+              placeholder={!selectedRateArea ? "Select rate area first" : "Search ports..."}
               options={portOptions}
               error=""
               onFocus={() => {}}
               className="w-full [&>div]:border-red-500 [&>div]:bg-red-50"
+              disabled={!selectedRateArea}
             />
           </div>
           <Button
