@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -9,8 +9,13 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+  const initialized = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initialized.current) return;
+    initialized.current = true;
+
     let mounted = true;
 
     const initializeAuth = async () => {
@@ -91,6 +96,7 @@ export const useAuth = () => {
 
     return () => {
       mounted = false;
+      initialized.current = false;
     };
   }, []);
 
