@@ -82,12 +82,12 @@ const SampleDataGenerator = () => {
               id="rowCount"
               type="number"
               min="1"
-              max="10000"
+              max="20"
               value={rowCount}
               onChange={(e) => setRowCount(parseInt(e.target.value) || 0)}
               placeholder="Enter number of rows"
             />
-            <p className="text-sm text-gray-500 mt-1">Maximum: 10,000 rows</p>
+            <p className="text-sm text-gray-500 mt-1">Maximum: 20 rows</p>
           </div>
           <div>
             <Label htmlFor="fileName">File Name</Label>
