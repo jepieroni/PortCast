@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -146,7 +145,12 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   };
 
   const getEditingValue = (record: any, field: string) => {
-    return editingRecords[record.id]?.[field] ?? record[field] ?? '';
+    // If the field has been explicitly edited, use the edited value (even if empty)
+    if (editingRecords[record.id] && field in editingRecords[record.id]) {
+      return editingRecords[record.id][field];
+    }
+    // Otherwise, use the original record value
+    return record[field] ?? '';
   };
 
   const updateEditingValue = (recordId: string, field: string, value: any) => {
