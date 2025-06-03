@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -307,7 +306,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       const portOptions = ports.map(port => ({
         value: port.code,
         label: `${port.code} - ${port.name}`,
-        searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
+        searchableText: `${port.code} ${port.name} ${port.description || ''}`
       }));
 
       return (
