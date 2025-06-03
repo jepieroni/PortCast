@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,17 @@ import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
 import ValidationErrorsDialog from './ValidationErrorsDialog';
 import TranslationMappingDialog from './TranslationMappingDialog';
 import NewRateAreaDialog from './NewRateAreaDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface BulkUploadReviewProps {
   uploadSessionId: string;
@@ -96,6 +106,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }
   };
 
+  const hasValidShipments = validationSummary.valid > 0;
+
+  const handleBackClick = () => {
+    // If there are valid shipments, the AlertDialog will handle this
+    // Otherwise, go back directly
+    if (!hasValidShipments) {
+      onBack();
+    }
+  };
+
   if (isValidating) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -111,28 +131,47 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft size={16} className="mr-2" />
-            Back to Upload
-          </Button>
+          {hasValidShipments ? (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline">
+                  <ArrowLeft size={16} className="mr-2" />
+                  Back to Upload
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Leave Upload Review?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You have {validationSummary.valid} validated shipment{validationSummary.valid !== 1 ? 's' : ''} ready to be processed. 
+                    If you go back now, you'll lose this progress and need to upload again.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Stay on Page</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleProcessShipments}
+                    disabled={isProcessing}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isProcessing ? 'Processing...' : `Process ${validationSummary.valid} Shipments`}
+                  </AlertDialogAction>
+                  <AlertDialogAction
+                    onClick={onBack}
+                    variant="destructive"
+                  >
+                    Leave Without Processing
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          ) : (
+            <Button variant="outline" onClick={handleBackClick}>
+              <ArrowLeft size={16} className="mr-2" />
+              Back to Upload
+            </Button>
+          )}
           <h2 className="text-2xl font-bold">Review Upload</h2>
-        </div>
-
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => validateAllRecords()}
-            disabled={isValidating}
-          >
-            Re-validate
-          </Button>
-          <Button 
-            onClick={handleProcessShipments}
-            disabled={validationSummary.valid === 0 || isProcessing}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {isProcessing ? 'Processing...' : `Process ${validationSummary.valid} Valid Shipments`}
-          </Button>
         </div>
       </div>
 
@@ -222,6 +261,24 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
           </div>
         </CardContent>
       </Card>
+
+      {/* Action Buttons - Now below the table */}
+      <div className="flex justify-center gap-4 pt-4">
+        <Button 
+          variant="outline" 
+          onClick={() => validateAllRecords()}
+          disabled={isValidating}
+        >
+          Re-validate
+        </Button>
+        <Button 
+          onClick={handleProcessShipments}
+          disabled={validationSummary.valid === 0 || isProcessing}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          {isProcessing ? 'Processing...' : `Process ${validationSummary.valid} Valid Shipments`}
+        </Button>
+      </div>
 
       {/* Dialogs */}
       <ValidationErrorsDialog
