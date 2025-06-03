@@ -223,7 +223,8 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
         .update({
           ...updates,
           validation_status: errors.length === 0 ? 'valid' : 'invalid',
-          validation_errors: errors
+          validation_errors: errors,
+          updated_at: new Date().toISOString()
         })
         .eq('id', record.id);
 
@@ -242,7 +243,8 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
         .from('shipment_uploads_staging')
         .update({
           validation_status: 'invalid',
-          validation_errors: errors
+          validation_errors: errors,
+          updated_at: new Date().toISOString()
         })
         .eq('id', record.id);
     }
@@ -253,11 +255,9 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
     try {
       console.log('Starting validation for', stagingData.length, 'records');
       
-      // Validate each record
+      // Validate all records, not just pending ones
       for (const record of stagingData) {
-        if (record.validation_status === 'pending') {
-          await validateRecord(record);
-        }
+        await validateRecord(record);
       }
       
       console.log('Validation complete, refreshing data');

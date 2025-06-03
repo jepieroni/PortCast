@@ -15,6 +15,7 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [uploadSessionId, setUploadSessionId] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
   
   const {
     uploadFile,
@@ -22,18 +23,54 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
     uploadError
   } = useBulkUpload();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const validateFileType = (file: File) => {
+    const allowedTypes = [
+      'text/csv',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ];
+    const allowedExtensions = ['.csv', '.xls', '.xlsx'];
+    
+    return allowedTypes.includes(file.type) || 
+           allowedExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+  };
+
+  const handleFileChange = (selectedFile: File) => {
+    if (!validateFileType(selectedFile)) {
+      toast({
+        title: "Invalid file type",
+        description: "Please select a CSV or Excel file (.csv, .xls, .xlsx)",
+        variant: "destructive"
+      });
+      return;
+    }
+    setFile(selectedFile);
+  };
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.type !== 'text/csv' && !selectedFile.name.endsWith('.csv')) {
-        toast({
-          title: "Invalid file type",
-          description: "Please select a CSV file",
-          variant: "destructive"
-        });
-        return;
-      }
-      setFile(selectedFile);
+      handleFileChange(selectedFile);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    
+    const droppedFile = event.dataTransfer.files[0];
+    if (droppedFile) {
+      handleFileChange(droppedFile);
     }
   };
 
@@ -76,22 +113,31 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload size={20} />
-              Upload CSV File
+              Upload File
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <div 
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                isDragOver 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
               <input
                 type="file"
-                accept=".csv"
-                onChange={handleFileChange}
+                accept=".csv,.xls,.xlsx"
+                onChange={handleInputChange}
                 className="hidden"
-                id="csv-upload"
+                id="file-upload"
               />
-              <label htmlFor="csv-upload" className="cursor-pointer">
+              <label htmlFor="file-upload" className="cursor-pointer">
                 <FileSpreadsheet size={48} className="mx-auto mb-4 text-gray-400" />
-                <p className="text-lg font-medium">Choose CSV file</p>
-                <p className="text-sm text-gray-500">Click to select a CSV file with shipment data</p>
+                <p className="text-lg font-medium">Choose file or drag and drop</p>
+                <p className="text-sm text-gray-500">CSV or Excel files (.csv, .xls, .xlsx)</p>
               </label>
             </div>
             
@@ -124,7 +170,7 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
 
         <Card>
           <CardHeader>
-            <CardTitle>CSV Format Requirements</CardTitle>
+            <CardTitle>File Format Requirements</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-sm space-y-2">
@@ -132,7 +178,7 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
               <ul className="list-disc list-inside space-y-1 text-gray-600">
                 <li>gbl_number</li>
                 <li>shipper_last_name</li>
-                <li>shipment_type (inbound/outbound/intertheater)</li>
+                <li>shipment_type (I=Inbound, O=Outbound, T=Intertheater)</li>
                 <li>origin_rate_area</li>
                 <li>destination_rate_area</li>
                 <li>pickup_date (YYYY-MM-DD)</li>
