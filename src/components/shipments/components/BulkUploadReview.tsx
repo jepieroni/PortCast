@@ -9,6 +9,7 @@ import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
 import ValidationErrorsDialog from './ValidationErrorsDialog';
 import TranslationMappingDialog from './TranslationMappingDialog';
 import NewRateAreaDialog from './NewRateAreaDialog';
+import FieldEditDialog from './FieldEditDialog';
 import {
   AlertDialog,
   AlertDialogAction,

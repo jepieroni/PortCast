@@ -2,7 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Plus, Link } from 'lucide-react';
+import { AlertCircle, Plus, Link, Edit } from 'lucide-react';
 
 interface ValidationErrorsDialogProps {
   isOpen: boolean;
@@ -10,6 +10,7 @@ interface ValidationErrorsDialogProps {
   record: any;
   onCreateTranslation: (record: any, type: 'port' | 'rate_area', field: string) => void;
   onCreateRateArea: (record: any, field: string) => void;
+  onEditField: (record: any, field: string) => void;
 }
 
 const ValidationErrorsDialog = ({ 
@@ -17,7 +18,8 @@ const ValidationErrorsDialog = ({
   onClose, 
   record, 
   onCreateTranslation,
-  onCreateRateArea 
+  onCreateRateArea,
+  onEditField
 }: ValidationErrorsDialogProps) => {
   if (!record) return null;
 
@@ -39,12 +41,21 @@ const ValidationErrorsDialog = ({
   const validationErrors = getValidationErrors();
 
   const getActionButtons = (error: string) => {
+    // Rate area errors
     if (error.includes('Rate area') && error.includes('not found')) {
       const isOrigin = error.includes(record.raw_origin_rate_area);
       const field = isOrigin ? 'raw_origin_rate_area' : 'raw_destination_rate_area';
       
       return (
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditField(record, field)}
+          >
+            <Edit size={14} className="mr-1" />
+            Edit Value
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -65,12 +76,21 @@ const ValidationErrorsDialog = ({
       );
     }
 
+    // Port code errors
     if (error.includes('Port code') && error.includes('not found')) {
       const isPOE = error.includes(record.raw_poe_code);
       const field = isPOE ? 'raw_poe_code' : 'raw_pod_code';
       
       return (
-        <div className="flex gap-2 mt-2">
+        <div className="flex gap-2 mt-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditField(record, field)}
+          >
+            <Edit size={14} className="mr-1" />
+            Edit Value
+          </Button>
           <Button
             size="sm"
             variant="outline"
@@ -83,7 +103,123 @@ const ValidationErrorsDialog = ({
       );
     }
 
-    return null;
+    // Required field errors
+    if (error.includes('is required')) {
+      let field = '';
+      if (error.includes('GBL number')) field = 'gbl_number';
+      else if (error.includes('Shipper last name')) field = 'shipper_last_name';
+      else if (error.includes('Shipment type')) field = 'shipment_type';
+      else if (error.includes('Pickup date')) field = 'pickup_date';
+      else if (error.includes('RDD')) field = 'rdd';
+      else if (error.includes('poe code') || error.includes('pod code')) {
+        field = error.toLowerCase().includes('poe') ? 'raw_poe_code' : 'raw_pod_code';
+      }
+      else if (error.includes('origin rate area') || error.includes('raw_origin_rate_area')) field = 'raw_origin_rate_area';
+      else if (error.includes('destination rate area') || error.includes('raw_destination_rate_area')) field = 'raw_destination_rate_area';
+      else if (error.includes('SCAC code')) field = 'raw_scac_code';
+
+      if (field) {
+        return (
+          <div className="flex gap-2 mt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onEditField(record, field)}
+            >
+              <Edit size={14} className="mr-1" />
+              Add Missing Value
+            </Button>
+          </div>
+        );
+      }
+    }
+
+    // SCAC code errors
+    if (error.includes('SCAC code') && error.includes('not found')) {
+      return (
+        <div className="flex gap-2 mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditField(record, 'raw_scac_code')}
+          >
+            <Edit size={14} className="mr-1" />
+            Edit SCAC Code
+          </Button>
+        </div>
+      );
+    }
+
+    // Date validation errors
+    if (error.includes('date') && (error.includes('format') || error.includes('Invalid'))) {
+      const field = error.toLowerCase().includes('pickup') ? 'pickup_date' : 'rdd';
+      return (
+        <div className="flex gap-2 mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditField(record, field)}
+          >
+            <Edit size={14} className="mr-1" />
+            Fix Date
+          </Button>
+        </div>
+      );
+    }
+
+    // Date logic errors
+    if (error.includes('Pickup date cannot be after RDD')) {
+      return (
+        <div className="flex gap-2 mt-2 flex-wrap">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditField(record, 'pickup_date')}
+          >
+            <Edit size={14} className="mr-1" />
+            Edit Pickup Date
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditField(record, 'rdd')}
+          >
+            <Edit size={14} className="mr-1" />
+            Edit RDD
+          </Button>
+        </div>
+      );
+    }
+
+    // GBL format errors
+    if (error.includes('GBL Number must be in format')) {
+      return (
+        <div className="flex gap-2 mt-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onEditField(record, 'gbl_number')}
+          >
+            <Edit size={14} className="mr-1" />
+            Fix GBL Format
+          </Button>
+        </div>
+      );
+    }
+
+    // Default edit button for any other errors
+    return (
+      <div className="flex gap-2 mt-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onEditField(record, 'gbl_number')}
+        >
+          <Edit size={14} className="mr-1" />
+          Edit Record
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -118,6 +254,12 @@ const ValidationErrorsDialog = ({
             </div>
             <div>
               <span className="font-medium">SCAC Code:</span> {record.raw_scac_code}
+            </div>
+            <div>
+              <span className="font-medium">Pickup Date:</span> {record.pickup_date}
+            </div>
+            <div>
+              <span className="font-medium">RDD:</span> {record.rdd}
             </div>
           </div>
 
