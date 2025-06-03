@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -7,6 +6,28 @@ export const useBulkUpload = () => {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const cleanupOldStagingRecords = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      console.log('Cleaning up old staging records for user:', user.id);
+      
+      const { error } = await supabase
+        .from('shipment_uploads_staging')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error cleaning up staging records:', error);
+      } else {
+        console.log('Old staging records cleaned up successfully');
+      }
+    } catch (error) {
+      console.error('Cleanup error:', error);
+    }
+  };
 
   const parseCSV = (csvText: string) => {
     const lines = csvText.split('\n').filter(line => line.trim());
@@ -52,6 +73,9 @@ export const useBulkUpload = () => {
     setUploadError(null);
 
     try {
+      // Clean up old staging records first
+      await cleanupOldStagingRecords();
+
       // Read and parse CSV
       const csvText = await file.text();
       const parsedData = parseCSV(csvText);
@@ -70,6 +94,8 @@ export const useBulkUpload = () => {
 
       // Generate upload session ID
       const uploadSessionId = crypto.randomUUID();
+
+      console.log('Starting new upload session:', uploadSessionId);
 
       // Process and insert staging data
       const stagingRecords = parsedData.map(row => ({
@@ -101,6 +127,7 @@ export const useBulkUpload = () => {
 
       if (error) throw error;
 
+      console.log('Upload completed successfully with session:', uploadSessionId);
       return uploadSessionId;
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to upload file';
