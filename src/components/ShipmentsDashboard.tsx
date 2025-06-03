@@ -6,7 +6,6 @@ import ShipmentTable from './shipments/ShipmentTable';
 import ShipmentFilters from './shipments/ShipmentFilters';
 import BulkShipmentUpload from './shipments/BulkShipmentUpload';
 import { useShipments } from '@/hooks/useShipments';
-import { useNavigation } from '@/hooks/useNavigation';
 
 interface ShipmentsDashboardProps {
   onBack: () => void;
@@ -14,7 +13,6 @@ interface ShipmentsDashboardProps {
 }
 
 const ShipmentsDashboard = ({ onBack, onAddShipment }: ShipmentsDashboardProps) => {
-  const { goToMain } = useNavigation();
   const [filters, setFilters] = useState({
     search: '',
     shipmentType: '',
@@ -35,7 +33,7 @@ const ShipmentsDashboard = ({ onBack, onAddShipment }: ShipmentsDashboardProps) 
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={goToMain}>
+          <Button variant="outline" onClick={onBack}>
             <ArrowLeft size={16} className="mr-2" />
             Back to Dashboard
           </Button>
