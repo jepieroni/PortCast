@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, CalendarIcon, AlertCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, ArrowLeft, CalendarIcon, AlertCircle, RefreshCw, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
 import TranslationMappingDialog from './TranslationMappingDialog';
 import NewRateAreaDialog from './NewRateAreaDialog';
+import AddPortFromReviewDialog from './AddPortFromReviewDialog';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { SearchableSelect } from '@/components/shipment-registration/components/SearchableSelect';
@@ -39,6 +40,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   const [selectedRecord, setSelectedRecord] = useState<any>(null);
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [showNewRateAreaDialog, setShowNewRateAreaDialog] = useState(false);
+  const [showAddPortDialog, setShowAddPortDialog] = useState(false);
   const [translationType, setTranslationType] = useState<'port' | 'rate_area'>('port');
   const [translationField, setTranslationField] = useState<string>('');
   const [hasRunInitialValidation, setHasRunInitialValidation] = useState(false);
@@ -56,7 +58,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   } = useBulkUploadReview(uploadSessionId);
 
   // Fetch reference data for dropdowns
-  const { data: ports = [] } = useQuery({
+  const { data: ports = [], refetch: refetchPorts } = useQuery({
     queryKey: ['ports'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -145,6 +147,30 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }) || null;
   };
 
+  // Enhanced function to check if field has any validation issues
+  const hasFieldIssue = (record: any, field: string): boolean => {
+    // Always allow editing if record is invalid
+    if (record.validation_status === 'invalid') {
+      const error = getFieldValidationError(record, field);
+      // Show as editable if there's an error OR if the field is empty/null for required fields
+      if (error) return true;
+      
+      // For rate area fields, also check if the value doesn't exist in our rate areas
+      if ((field === 'raw_origin_rate_area' || field === 'raw_destination_rate_area') && record[field]) {
+        const rateAreaExists = rateAreas.some(ra => ra.rate_area === record[field]);
+        if (!rateAreaExists) return true;
+      }
+      
+      // For port fields, check if the value doesn't exist in our ports
+      if ((field === 'raw_poe_code' || field === 'raw_pod_code') && record[field]) {
+        const portExists = ports.some(p => p.code === record[field]);
+        if (!portExists) return true;
+      }
+    }
+    
+    return false;
+  };
+
   const getEditingValue = (record: any, field: string) => {
     // If the field has been explicitly edited, use the edited value (even if empty)
     if (editingRecords[record.id] && field in editingRecords[record.id]) {
@@ -210,12 +236,12 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
 
   const renderEditableField = (record: any, field: string, label: string) => {
     const error = getFieldValidationError(record, field);
-    const hasError = !!error;
-    const value = getEditingValue(record, field);
     const isInvalid = record.validation_status === 'invalid';
+    const hasIssue = hasFieldIssue(record, field);
+    const value = getEditingValue(record, field);
 
-    // For valid records or invalid records where this specific field has no error, show read-only
-    if (!isInvalid || !hasError) {
+    // For valid records or invalid records where this specific field has no issue, show read-only
+    if (!isInvalid || !hasIssue) {
       // Special handling for port fields to show code - name format
       if (field === 'raw_poe_code' || field === 'raw_pod_code') {
         const port = ports.find(p => p.code === value);
@@ -232,7 +258,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       );
     }
 
-    // For invalid records where this field has an error, show editable input
+    // For invalid records where this field has an issue, show editable input
     const inputClassName = `h-8 text-xs border-red-500 bg-red-50`;
 
     // Date fields
@@ -259,16 +285,18 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               />
             </PopoverContent>
           </Popover>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <AlertCircle size={14} className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{error}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {error && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       );
     }
@@ -287,21 +315,23 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               <SelectItem value="T">Intertheater</SelectItem>
             </SelectContent>
           </Select>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <AlertCircle size={14} className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{error}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {error && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       );
     }
 
-    // Port fields with SearchableSelect
+    // Port fields with SearchableSelect and Add Port option
     if (field === 'raw_poe_code' || field === 'raw_pod_code') {
       const portOptions = ports.map(port => ({
         value: port.code,
@@ -311,7 +341,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
 
       return (
         <div className="flex items-center gap-1">
-          <div className="min-w-[200px]">
+          <div className="min-w-[180px]">
             <SearchableSelect
               label=""
               value={value}
@@ -323,16 +353,27 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               className="w-full [&>div]:border-red-500 [&>div]:bg-red-50"
             />
           </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <AlertCircle size={14} className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{error}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowAddPortDialog(true)}
+            className="h-8 px-2"
+            title="Add new port"
+          >
+            <Plus size={14} />
+          </Button>
+          {error && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       );
     }
@@ -353,16 +394,18 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               ))}
             </SelectContent>
           </Select>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <AlertCircle size={14} className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{error}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {error && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       );
     }
@@ -383,16 +426,18 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               ))}
             </SelectContent>
           </Select>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <AlertCircle size={14} className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{error}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          {error && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <AlertCircle size={14} className="text-red-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">{error}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
         </div>
       );
     }
@@ -406,16 +451,18 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
           className={inputClassName}
           placeholder={label}
         />
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <AlertCircle size={14} className="text-red-500" />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">{error}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        {error && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <AlertCircle size={14} className="text-red-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{error}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
     );
   };
@@ -683,6 +730,15 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         record={selectedRecord}
         field={translationField}
         onSuccess={refreshData}
+      />
+
+      <AddPortFromReviewDialog
+        isOpen={showAddPortDialog}
+        onClose={() => setShowAddPortDialog(false)}
+        onPortAdded={() => {
+          refetchPorts();
+          refreshData();
+        }}
       />
     </div>
   );
