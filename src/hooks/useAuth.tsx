@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -9,12 +10,13 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-  const initialized = useRef(false);
+  const initializingRef = useRef(false);
+  const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Prevent multiple initializations
-    if (initialized.current) return;
-    initialized.current = true;
+    // Prevent multiple simultaneous initializations
+    if (initializingRef.current) return;
+    initializingRef.current = true;
 
     let mounted = true;
 
@@ -22,6 +24,12 @@ export const useAuth = () => {
       try {
         console.log('Initializing auth...');
         
+        // Clean up any existing subscription first
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        }
+
         // Set up auth state listener FIRST
         const {
           data: { subscription },
@@ -55,6 +63,8 @@ export const useAuth = () => {
           }
         });
 
+        subscriptionRef.current = subscription;
+
         // THEN check for existing session
         const { data: { session }, error } = await supabase.auth.getSession();
         
@@ -63,6 +73,7 @@ export const useAuth = () => {
         if (error) {
           console.error('Error getting session:', error);
           setLoading(false);
+          initializingRef.current = false;
           return;
         }
 
@@ -78,9 +89,6 @@ export const useAuth = () => {
           setLoading(false);
         }
 
-        return () => {
-          subscription.unsubscribe();
-        };
       } catch (error) {
         console.error('Unexpected error during auth initialization:', error);
         if (mounted) {
@@ -89,6 +97,10 @@ export const useAuth = () => {
           setIsOrgAdmin(false);
           setLoading(false);
         }
+      } finally {
+        if (mounted) {
+          initializingRef.current = false;
+        }
       }
     };
 
@@ -96,7 +108,11 @@ export const useAuth = () => {
 
     return () => {
       mounted = false;
-      initialized.current = false;
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+      // Don't reset initializingRef here to prevent rapid re-initialization
     };
   }, []);
 
@@ -165,3 +181,4 @@ export const useAuth = () => {
     handleSignOut
   };
 };
+
