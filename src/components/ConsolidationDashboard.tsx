@@ -48,7 +48,7 @@ const ConsolidationDashboard = ({
         </div>
       </div>
 
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+      <div className="p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">Outlook Range:</span>
           <span className="text-sm text-gray-600">{outlookDays[0]} days</span>
