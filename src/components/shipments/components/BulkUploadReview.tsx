@@ -389,7 +389,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
             <SelectContent>
               {rateAreas.map((area) => (
                 <SelectItem key={area.rate_area} value={area.rate_area}>
-                  {area.rate_area}
+                  {area.rate_area} - {area.name || area.countries?.name}
                 </SelectItem>
               ))}
             </SelectContent>
