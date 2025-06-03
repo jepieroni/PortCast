@@ -1,21 +1,27 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// Global singleton to prevent multiple auth initializations
+// Module-level singleton - only one instance ever exists
+let authManagerInstance: AuthManager | null = null;
+
 class AuthManager {
-  private static instance: AuthManager;
   private isInitialized = false;
   private isInitializing = false;
   private subscription: any = null;
   private callbacks: Set<(authState: any) => void> = new Set();
+  private currentAuthState: any = { user: null, loading: true };
 
   static getInstance(): AuthManager {
-    if (!AuthManager.instance) {
-      AuthManager.instance = new AuthManager();
+    if (!authManagerInstance) {
+      authManagerInstance = new AuthManager();
     }
-    return AuthManager.instance;
+    return authManagerInstance;
+  }
+
+  getCurrentState() {
+    return this.currentAuthState;
   }
 
   async initialize() {
@@ -45,8 +51,8 @@ class AuthManager {
           loading: false
         };
 
-        // Notify all subscribers
-        this.callbacks.forEach(callback => callback(authState));
+        this.currentAuthState = authState;
+        this.notifyCallbacks(authState);
       });
 
       this.subscription = subscription;
@@ -56,7 +62,9 @@ class AuthManager {
       
       if (error) {
         console.error('Error getting session:', error);
-        this.notifyCallbacks({ user: null, event: 'SIGNED_OUT', loading: false });
+        const authState = { user: null, event: 'SIGNED_OUT', loading: false };
+        this.currentAuthState = authState;
+        this.notifyCallbacks(authState);
         return;
       }
 
@@ -68,12 +76,15 @@ class AuthManager {
         loading: false
       };
 
+      this.currentAuthState = authState;
       this.notifyCallbacks(authState);
       this.isInitialized = true;
 
     } catch (error) {
       console.error('Unexpected error during auth initialization:', error);
-      this.notifyCallbacks({ user: null, event: 'SIGNED_OUT', loading: false });
+      const authState = { user: null, event: 'SIGNED_OUT', loading: false };
+      this.currentAuthState = authState;
+      this.notifyCallbacks(authState);
     } finally {
       this.isInitializing = false;
     }
@@ -81,6 +92,9 @@ class AuthManager {
 
   subscribe(callback: (authState: any) => void) {
     this.callbacks.add(callback);
+    
+    // Immediately call with current state
+    callback(this.currentAuthState);
     
     // Initialize if not already done
     if (!this.isInitialized && !this.isInitializing) {
@@ -104,6 +118,7 @@ class AuthManager {
     this.callbacks.clear();
     this.isInitialized = false;
     this.isInitializing = false;
+    this.currentAuthState = { user: null, loading: true };
   }
 }
 
@@ -113,10 +128,11 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-  const authManager = useRef(AuthManager.getInstance());
 
   useEffect(() => {
-    const unsubscribe = authManager.current.subscribe(async (authState) => {
+    const authManager = AuthManager.getInstance();
+    
+    const unsubscribe = authManager.subscribe(async (authState) => {
       const { user, event } = authState;
 
       if (event === 'SIGNED_OUT' || !user) {
