@@ -1,126 +1,9 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-
-// Module-level singleton - only one instance ever exists
-let authManagerInstance: AuthManager | null = null;
-
-class AuthManager {
-  private isInitialized = false;
-  private isInitializing = false;
-  private subscription: any = null;
-  private callbacks: Set<(authState: any) => void> = new Set();
-  private currentAuthState: any = { user: null, loading: true };
-
-  static getInstance(): AuthManager {
-    if (!authManagerInstance) {
-      authManagerInstance = new AuthManager();
-    }
-    return authManagerInstance;
-  }
-
-  getCurrentState() {
-    return this.currentAuthState;
-  }
-
-  async initialize() {
-    if (this.isInitialized || this.isInitializing) {
-      return;
-    }
-
-    this.isInitializing = true;
-    console.log('Initializing auth manager...');
-
-    try {
-      // Clean up any existing subscription
-      if (this.subscription) {
-        this.subscription.unsubscribe();
-        this.subscription = null;
-      }
-
-      // Set up auth state listener
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('Auth state change:', event, session?.user?.id || 'No session');
-        
-        const authState = {
-          user: session?.user || null,
-          event,
-          loading: false
-        };
-
-        this.currentAuthState = authState;
-        this.notifyCallbacks(authState);
-      });
-
-      this.subscription = subscription;
-
-      // Check for existing session
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error getting session:', error);
-        const authState = { user: null, event: 'SIGNED_OUT', loading: false };
-        this.currentAuthState = authState;
-        this.notifyCallbacks(authState);
-        return;
-      }
-
-      console.log('Initial session:', session?.user?.id || 'No session');
-      
-      const authState = {
-        user: session?.user || null,
-        event: session ? 'INITIAL_SESSION' : 'SIGNED_OUT',
-        loading: false
-      };
-
-      this.currentAuthState = authState;
-      this.notifyCallbacks(authState);
-      this.isInitialized = true;
-
-    } catch (error) {
-      console.error('Unexpected error during auth initialization:', error);
-      const authState = { user: null, event: 'SIGNED_OUT', loading: false };
-      this.currentAuthState = authState;
-      this.notifyCallbacks(authState);
-    } finally {
-      this.isInitializing = false;
-    }
-  }
-
-  subscribe(callback: (authState: any) => void) {
-    this.callbacks.add(callback);
-    
-    // Immediately call with current state
-    callback(this.currentAuthState);
-    
-    // Initialize if not already done
-    if (!this.isInitialized && !this.isInitializing) {
-      this.initialize();
-    }
-
-    return () => {
-      this.callbacks.delete(callback);
-    };
-  }
-
-  private notifyCallbacks(authState: any) {
-    this.callbacks.forEach(callback => callback(authState));
-  }
-
-  cleanup() {
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-      this.subscription = null;
-    }
-    this.callbacks.clear();
-    this.isInitialized = false;
-    this.isInitializing = false;
-    this.currentAuthState = { user: null, loading: true };
-  }
-}
+import { AuthManager } from '@/services/authManager';
+import { checkUserRole, type UserRoles } from '@/services/userRoleService';
+import { signOut } from '@/services/authService';
 
 export const useAuth = () => {
   const { toast } = useToast();
@@ -148,7 +31,7 @@ export const useAuth = () => {
         console.log('User signed in');
         setUser(user);
         if (user) {
-          await checkUserRole(user.id);
+          await handleUserRoleCheck(user.id);
         } else {
           setLoading(false);
         }
@@ -158,26 +41,11 @@ export const useAuth = () => {
     return unsubscribe;
   }, []);
 
-  const checkUserRole = async (userId: string) => {
+  const handleUserRoleCheck = async (userId: string): Promise<void> => {
     try {
-      console.log('Checking user role for:', userId);
-      const { data: roleData, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking user role:', error);
-      }
-
-      const isGlobalAdminUser = roleData?.role === 'global_admin';
-      const isOrgAdminUser = roleData?.role === 'org_admin';
-      
-      console.log('User roles:', { isGlobalAdmin: isGlobalAdminUser, isOrgAdmin: isOrgAdminUser });
-      
-      setIsGlobalAdmin(isGlobalAdminUser);
-      setIsOrgAdmin(isOrgAdminUser);
+      const roles: UserRoles = await checkUserRole(userId);
+      setIsGlobalAdmin(roles.isGlobalAdmin);
+      setIsOrgAdmin(roles.isOrgAdmin);
     } catch (error) {
       console.error('Error checking user role:', error);
       setIsGlobalAdmin(false);
@@ -187,18 +55,9 @@ export const useAuth = () => {
     }
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (): Promise<void> => {
     try {
-      console.log('Starting sign out process...');
-      
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Sign out error:', error);
-        throw error;
-      }
-      
-      console.log('Sign out completed successfully');
+      await signOut();
       
       toast({
         title: "Signed out",
