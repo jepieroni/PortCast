@@ -19,6 +19,17 @@ export const BasicFields = ({ formData, rateAreas, onInputChange }: BasicFieldsP
   console.log('BasicFields formData:', formData);
   console.log('Available rate areas:', rateAreas);
 
+  // Only allow changes if we have data to work with, and don't clear existing values
+  const handleSelectChange = (field: string, value: string) => {
+    // Don't clear existing values if we don't have rate areas loaded yet
+    if (!value && rateAreas.length === 0 && formData[field as keyof typeof formData]) {
+      console.log(`BasicFields - Preventing clear of ${field} while rate areas are loading`);
+      return;
+    }
+    console.log(`BasicFields - Select change: ${field} = "${value}"`);
+    onInputChange(field, value);
+  };
+
   return (
     <>
       <div>
@@ -43,7 +54,10 @@ export const BasicFields = ({ formData, rateAreas, onInputChange }: BasicFieldsP
 
       <div>
         <Label htmlFor="shipment_type">Shipment Type *</Label>
-        <Select value={formData.shipment_type} onValueChange={(value) => onInputChange('shipment_type', value)}>
+        <Select 
+          value={formData.shipment_type} 
+          onValueChange={(value) => handleSelectChange('shipment_type', value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
@@ -57,7 +71,10 @@ export const BasicFields = ({ formData, rateAreas, onInputChange }: BasicFieldsP
 
       <div>
         <Label htmlFor="origin_rate_area">Origin Rate Area *</Label>
-        <Select value={formData.origin_rate_area} onValueChange={(value) => onInputChange('origin_rate_area', value)}>
+        <Select 
+          value={formData.origin_rate_area} 
+          onValueChange={(value) => handleSelectChange('origin_rate_area', value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select origin" />
           </SelectTrigger>
@@ -73,7 +90,10 @@ export const BasicFields = ({ formData, rateAreas, onInputChange }: BasicFieldsP
 
       <div>
         <Label htmlFor="destination_rate_area">Destination Rate Area *</Label>
-        <Select value={formData.destination_rate_area} onValueChange={(value) => onInputChange('destination_rate_area', value)}>
+        <Select 
+          value={formData.destination_rate_area} 
+          onValueChange={(value) => handleSelectChange('destination_rate_area', value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select destination" />
           </SelectTrigger>
