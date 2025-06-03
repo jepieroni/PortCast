@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Users, Building2, AlertCircle, Trash2, Ship, MapPin, Globe, FileSpreadsheet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import SampleDataGenerator from './admin/SampleDataGenerator';
@@ -43,13 +45,19 @@ const AdminStats = ({
           .select('*', { count: 'exact', head: true });
         setOrganizationCount(organizations || 0);
 
-        const { count: accessRequests } = await supabase
-          .from('access_requests')
+        const { count: orgRequests } = await supabase
+          .from('organization_requests')
           .select('*', { count: 'exact', head: true })
           .eq('status', 'pending');
-        setAccessRequestCount(accessRequests || 0);
+        
+        const { count: userRequests } = await supabase
+          .from('user_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending');
+        
+        setAccessRequestCount((orgRequests || 0) + (userRequests || 0));
 
-          const { count: cleanupCandidates } = await supabase
+        const { count: cleanupCandidates } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true })
           .is('deactivated_at', null)
