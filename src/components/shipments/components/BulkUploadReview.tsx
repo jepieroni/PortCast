@@ -34,8 +34,10 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [showNewRateAreaDialog, setShowNewRateAreaDialog] = useState(false);
+  const [showFieldEditDialog, setShowFieldEditDialog] = useState(false);
   const [translationType, setTranslationType] = useState<'port' | 'rate_area'>('port');
   const [translationField, setTranslationField] = useState<string>('');
+  const [editField, setEditField] = useState<string>('');
   const [hasRunInitialValidation, setHasRunInitialValidation] = useState(false);
 
   const {
@@ -92,13 +94,22 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     setSelectedRecord(record);
     setTranslationType(type);
     setTranslationField(field);
+    setShowValidationDialog(false);
     setShowTranslationDialog(true);
   };
 
   const handleCreateRateArea = (record: any, field: string) => {
     setSelectedRecord(record);
     setTranslationField(field);
+    setShowValidationDialog(false);
     setShowNewRateAreaDialog(true);
+  };
+
+  const handleEditField = (record: any, field: string) => {
+    setSelectedRecord(record);
+    setEditField(field);
+    setShowValidationDialog(false);
+    setShowFieldEditDialog(true);
   };
 
   const handleProcessShipments = async () => {
@@ -295,6 +306,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         record={selectedRecord}
         onCreateTranslation={handleCreateTranslation}
         onCreateRateArea={handleCreateRateArea}
+        onEditField={handleEditField}
       />
 
       <TranslationMappingDialog
@@ -311,6 +323,14 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         onClose={() => setShowNewRateAreaDialog(false)}
         record={selectedRecord}
         field={translationField}
+        onSuccess={refreshData}
+      />
+
+      <FieldEditDialog
+        isOpen={showFieldEditDialog}
+        onClose={() => setShowFieldEditDialog(false)}
+        record={selectedRecord}
+        field={editField}
         onSuccess={refreshData}
       />
     </div>
