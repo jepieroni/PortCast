@@ -17,10 +17,10 @@ const SampleDataGenerator = () => {
   const { generateSampleData } = useSampleDataGenerator();
 
   const handleGenerate = async () => {
-    if (rowCount < 1 || rowCount > 10000) {
+    if (rowCount < 1 || rowCount > 20) {
       toast({
         title: "Invalid row count",
-        description: "Please enter a number between 1 and 10,000",
+        description: "Please enter a number between 1 and 20",
         variant: "destructive"
       });
       return;
