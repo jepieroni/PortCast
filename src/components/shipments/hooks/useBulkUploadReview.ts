@@ -38,17 +38,32 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
     const updates: any = {};
 
     try {
+      console.log('Validating record:', record.gbl_number);
+      
       // Get user's organization for translations
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('organization_id')
-        .eq('id', user!.id)
+        .eq('id', user.id)
         .single();
+
+      if (!profile?.organization_id) {
+        throw new Error('User organization not found');
+      }
 
       // Validate and translate rate areas
       for (const field of ['raw_origin_rate_area', 'raw_destination_rate_area']) {
         const rateAreaCode = record[field];
+        if (!rateAreaCode) {
+          errors.push(`${field.replace('raw_', '').replace('_', ' ')} is required`);
+          continue;
+        }
+
         const targetField = field.replace('raw_', '');
         
         // Check if rate area exists directly
@@ -56,7 +71,7 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
           .from('rate_areas')
           .select('rate_area')
           .eq('rate_area', rateAreaCode)
-          .single();
+          .maybeSingle();
 
         if (directRateArea) {
           updates[targetField] = directRateArea.rate_area;
@@ -67,9 +82,9 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
         const { data: translation } = await supabase
           .from('rate_area_translations')
           .select('rate_area_id')
-          .eq('organization_id', profile!.organization_id)
+          .eq('organization_id', profile.organization_id)
           .eq('external_rate_area_code', rateAreaCode)
-          .single();
+          .maybeSingle();
 
         if (translation) {
           updates[targetField] = translation.rate_area_id;
@@ -81,6 +96,11 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
       // Validate and translate ports
       for (const field of ['raw_poe_code', 'raw_pod_code']) {
         const portCode = record[field];
+        if (!portCode) {
+          errors.push(`${field.replace('raw_', '').replace('_', ' ')} is required`);
+          continue;
+        }
+
         const targetField = field.replace('raw_', '').replace('_code', '_id');
         
         // Check if port exists directly
@@ -88,7 +108,7 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
           .from('ports')
           .select('id')
           .eq('code', portCode)
-          .single();
+          .maybeSingle();
 
         if (directPort) {
           updates[targetField] = directPort.id;
@@ -99,9 +119,9 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
         const { data: translation } = await supabase
           .from('port_code_translations')
           .select('port_id')
-          .eq('organization_id', profile!.organization_id)
+          .eq('organization_id', profile.organization_id)
           .eq('external_port_code', portCode)
-          .single();
+          .maybeSingle();
 
         if (translation) {
           updates[targetField] = translation.port_id;
@@ -111,23 +131,49 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
       }
 
       // Validate and find TSP
-      const { data: tsp } = await supabase
-        .from('tsps')
-        .select('id')
-        .eq('scac_code', record.raw_scac_code)
-        .eq('organization_id', profile!.organization_id)
-        .single();
-
-      if (tsp) {
-        updates.tsp_id = tsp.id;
+      if (!record.raw_scac_code) {
+        errors.push('SCAC code is required');
       } else {
-        errors.push(`SCAC code '${record.raw_scac_code}' not found in your organization`);
+        const { data: tsp } = await supabase
+          .from('tsps')
+          .select('id')
+          .eq('scac_code', record.raw_scac_code)
+          .eq('organization_id', profile.organization_id)
+          .maybeSingle();
+
+        if (tsp) {
+          updates.tsp_id = tsp.id;
+        } else {
+          errors.push(`SCAC code '${record.raw_scac_code}' not found in your organization`);
+        }
       }
 
       // Validate dates
-      if (new Date(record.pickup_date) > new Date(record.rdd)) {
-        errors.push('Pickup date cannot be after RDD');
+      if (!record.pickup_date || !record.rdd) {
+        if (!record.pickup_date) errors.push('Pickup date is required');
+        if (!record.rdd) errors.push('RDD is required');
+      } else {
+        const pickupDate = new Date(record.pickup_date);
+        const rddDate = new Date(record.rdd);
+        
+        if (isNaN(pickupDate.getTime())) {
+          errors.push('Invalid pickup date format');
+        }
+        if (isNaN(rddDate.getTime())) {
+          errors.push('Invalid RDD format');
+        }
+        
+        if (!isNaN(pickupDate.getTime()) && !isNaN(rddDate.getTime()) && pickupDate > rddDate) {
+          errors.push('Pickup date cannot be after RDD');
+        }
       }
+
+      // Validate required fields
+      if (!record.gbl_number) errors.push('GBL number is required');
+      if (!record.shipper_last_name) errors.push('Shipper last name is required');
+      if (!record.shipment_type) errors.push('Shipment type is required');
+
+      console.log('Validation complete for', record.gbl_number, 'errors:', errors.length);
 
       // Update record
       const { error: updateError } = await supabase
@@ -139,11 +185,14 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
         })
         .eq('id', record.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw updateError;
+      }
 
-    } catch (error) {
-      console.error('Validation error:', error);
-      errors.push('Validation failed due to system error');
+    } catch (error: any) {
+      console.error('Validation error for record', record.gbl_number, ':', error);
+      errors.push(`Validation failed: ${error.message || 'System error'}`);
       
       await supabase
         .from('shipment_uploads_staging')
@@ -158,18 +207,22 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
   const validateAllRecords = useCallback(async () => {
     setIsValidating(true);
     try {
+      console.log('Starting validation for', stagingData.length, 'records');
+      
       // Validate each record
       for (const record of stagingData) {
         if (record.validation_status === 'pending') {
           await validateRecord(record);
         }
       }
+      
+      console.log('Validation complete, refreshing data');
       await refetch();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Batch validation error:', error);
       toast({
         title: "Validation Error",
-        description: "Failed to validate some records",
+        description: error.message || "Failed to validate some records",
         variant: "destructive"
       });
     } finally {
@@ -181,6 +234,12 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
     setIsProcessing(true);
     try {
       const validRecords = stagingData.filter(r => r.validation_status === 'valid');
+      
+      if (validRecords.length === 0) {
+        throw new Error('No valid records to process');
+      }
+
+      console.log('Processing', validRecords.length, 'valid records');
       
       // Insert valid records into shipments table
       const shipmentData = validRecords.map(record => ({
@@ -204,18 +263,29 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
         .from('shipments')
         .insert(shipmentData);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
 
       // Clean up staging data for this session
-      await supabase
+      const { error: deleteError } = await supabase
         .from('shipment_uploads_staging')
         .delete()
         .eq('upload_session_id', uploadSessionId);
 
+      if (deleteError) {
+        console.error('Cleanup error:', deleteError);
+        // Don't throw here as the main operation succeeded
+      }
+
       // Invalidate shipments query to refresh the main table
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
 
+      console.log('Processing complete');
+
     } catch (error: any) {
+      console.error('Processing error:', error);
       toast({
         title: "Processing Error",
         description: error.message || "Failed to process shipments",
