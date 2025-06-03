@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RefreshCw } from 'lucide-react';
 import EditableField from './EditableField';
 
@@ -61,34 +62,34 @@ const ShipmentReviewTable = ({
       <CardHeader>
         <CardTitle>Shipment Records</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left p-2">Status</th>
-                <th className="text-left p-2">GBL</th>
-                <th className="text-left p-2">Shipper</th>
-                <th className="text-left p-2">Type</th>
-                <th className="text-left p-2">Origin</th>
-                <th className="text-left p-2">Destination</th>
-                <th className="text-left p-2">POE</th>
-                <th className="text-left p-2">POD</th>
-                <th className="text-left p-2">SCAC</th>
-                <th className="text-left p-2">Pickup</th>
-                <th className="text-left p-2">RDD</th>
-                <th className="text-left p-2">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+      <CardContent className="p-0">
+        <div className="w-full overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-20">Status</TableHead>
+                <TableHead className="min-w-32">GBL</TableHead>
+                <TableHead className="min-w-32">Shipper</TableHead>
+                <TableHead className="w-16">Type</TableHead>
+                <TableHead className="min-w-40">Origin</TableHead>
+                <TableHead className="min-w-40">Destination</TableHead>
+                <TableHead className="min-w-48">POE</TableHead>
+                <TableHead className="min-w-48">POD</TableHead>
+                <TableHead className="w-20">SCAC</TableHead>
+                <TableHead className="min-w-32">Pickup</TableHead>
+                <TableHead className="min-w-32">RDD</TableHead>
+                <TableHead className="w-28">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {stagingData.map((record) => {
                 const isValidating = validatingRecords.has(record.id);
                 return (
-                  <tr key={record.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
+                  <TableRow key={record.id}>
+                    <TableCell>
                       {getStatusBadge(record.validation_status, record.validation_errors)}
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="gbl_number"
@@ -102,8 +103,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="shipper_last_name"
@@ -117,8 +118,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="shipment_type"
@@ -132,8 +133,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="raw_origin_rate_area"
@@ -147,8 +148,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="raw_destination_rate_area"
@@ -162,8 +163,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="raw_poe_code"
@@ -177,8 +178,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="raw_pod_code"
@@ -192,8 +193,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="raw_scac_code"
@@ -207,8 +208,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="pickup_date"
@@ -222,8 +223,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <EditableField
                         record={record}
                         field="rdd"
@@ -237,8 +238,8 @@ const ShipmentReviewTable = ({
                         hasFieldIssue={hasFieldIssue}
                         onAddPortClick={onAddPortClick}
                       />
-                    </td>
-                    <td className="p-2">
+                    </TableCell>
+                    <TableCell>
                       <div className="flex gap-1">
                         {record.validation_status === 'invalid' && (
                           <Button 
@@ -246,22 +247,22 @@ const ShipmentReviewTable = ({
                             variant="outline"
                             onClick={() => validateSingleRecord(record)}
                             disabled={isValidating}
-                            className="h-8"
+                            className="h-8 text-xs"
                           >
                             {isValidating ? (
-                              <RefreshCw size={14} className="animate-spin" />
+                              <RefreshCw size={12} className="animate-spin" />
                             ) : (
                               'Re-validate'
                             )}
                           </Button>
                         )}
                       </div>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </CardContent>
     </Card>
