@@ -1,8 +1,111 @@
 
-
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+
+// Global singleton to prevent multiple auth initializations
+class AuthManager {
+  private static instance: AuthManager;
+  private isInitialized = false;
+  private isInitializing = false;
+  private subscription: any = null;
+  private callbacks: Set<(authState: any) => void> = new Set();
+
+  static getInstance(): AuthManager {
+    if (!AuthManager.instance) {
+      AuthManager.instance = new AuthManager();
+    }
+    return AuthManager.instance;
+  }
+
+  async initialize() {
+    if (this.isInitialized || this.isInitializing) {
+      return;
+    }
+
+    this.isInitializing = true;
+    console.log('Initializing auth manager...');
+
+    try {
+      // Clean up any existing subscription
+      if (this.subscription) {
+        this.subscription.unsubscribe();
+        this.subscription = null;
+      }
+
+      // Set up auth state listener
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.id || 'No session');
+        
+        const authState = {
+          user: session?.user || null,
+          event,
+          loading: false
+        };
+
+        // Notify all subscribers
+        this.callbacks.forEach(callback => callback(authState));
+      });
+
+      this.subscription = subscription;
+
+      // Check for existing session
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error getting session:', error);
+        this.notifyCallbacks({ user: null, event: 'SIGNED_OUT', loading: false });
+        return;
+      }
+
+      console.log('Initial session:', session?.user?.id || 'No session');
+      
+      const authState = {
+        user: session?.user || null,
+        event: session ? 'INITIAL_SESSION' : 'SIGNED_OUT',
+        loading: false
+      };
+
+      this.notifyCallbacks(authState);
+      this.isInitialized = true;
+
+    } catch (error) {
+      console.error('Unexpected error during auth initialization:', error);
+      this.notifyCallbacks({ user: null, event: 'SIGNED_OUT', loading: false });
+    } finally {
+      this.isInitializing = false;
+    }
+  }
+
+  subscribe(callback: (authState: any) => void) {
+    this.callbacks.add(callback);
+    
+    // Initialize if not already done
+    if (!this.isInitialized && !this.isInitializing) {
+      this.initialize();
+    }
+
+    return () => {
+      this.callbacks.delete(callback);
+    };
+  }
+
+  private notifyCallbacks(authState: any) {
+    this.callbacks.forEach(callback => callback(authState));
+  }
+
+  cleanup() {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+      this.subscription = null;
+    }
+    this.callbacks.clear();
+    this.isInitialized = false;
+    this.isInitializing = false;
+  }
+}
 
 export const useAuth = () => {
   const { toast } = useToast();
@@ -10,110 +113,33 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
-  const initializingRef = useRef(false);
-  const subscriptionRef = useRef<any>(null);
+  const authManager = useRef(AuthManager.getInstance());
 
   useEffect(() => {
-    // Prevent multiple simultaneous initializations
-    if (initializingRef.current) return;
-    initializingRef.current = true;
+    const unsubscribe = authManager.current.subscribe(async (authState) => {
+      const { user, event } = authState;
 
-    let mounted = true;
+      if (event === 'SIGNED_OUT' || !user) {
+        console.log('User signed out, clearing state');
+        setUser(null);
+        setIsGlobalAdmin(false);
+        setIsOrgAdmin(false);
+        setLoading(false);
+        return;
+      }
 
-    const initializeAuth = async () => {
-      try {
-        console.log('Initializing auth...');
-        
-        // Clean up any existing subscription first
-        if (subscriptionRef.current) {
-          subscriptionRef.current.unsubscribe();
-          subscriptionRef.current = null;
-        }
-
-        // Set up auth state listener FIRST
-        const {
-          data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log('Auth state change:', event, session?.user?.id || 'No session');
-          
-          if (!mounted) return;
-
-          if (event === 'SIGNED_OUT' || !session) {
-            console.log('User signed out, clearing state');
-            setUser(null);
-            setIsGlobalAdmin(false);
-            setIsOrgAdmin(false);
-            setLoading(false);
-            return;
-          }
-
-          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-            console.log('User signed in');
-            setUser(session.user);
-            if (session.user) {
-              // Use setTimeout to prevent blocking the auth state change
-              setTimeout(() => {
-                if (mounted) {
-                  checkUserRole(session.user.id);
-                }
-              }, 0);
-            } else {
-              setLoading(false);
-            }
-          }
-        });
-
-        subscriptionRef.current = subscription;
-
-        // THEN check for existing session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-
-        if (error) {
-          console.error('Error getting session:', error);
-          setLoading(false);
-          initializingRef.current = false;
-          return;
-        }
-
-        console.log('Initial session:', session?.user?.id || 'No session');
-
-        if (session?.user) {
-          setUser(session.user);
-          await checkUserRole(session.user.id);
+      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        console.log('User signed in');
+        setUser(user);
+        if (user) {
+          await checkUserRole(user.id);
         } else {
-          setUser(null);
-          setIsGlobalAdmin(false);
-          setIsOrgAdmin(false);
           setLoading(false);
         }
-
-      } catch (error) {
-        console.error('Unexpected error during auth initialization:', error);
-        if (mounted) {
-          setUser(null);
-          setIsGlobalAdmin(false);
-          setIsOrgAdmin(false);
-          setLoading(false);
-        }
-      } finally {
-        if (mounted) {
-          initializingRef.current = false;
-        }
       }
-    };
+    });
 
-    initializeAuth();
-
-    return () => {
-      mounted = false;
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
-      }
-      // Don't reset initializingRef here to prevent rapid re-initialization
-    };
+    return unsubscribe;
   }, []);
 
   const checkUserRole = async (userId: string) => {
@@ -181,4 +207,3 @@ export const useAuth = () => {
     handleSignOut
   };
 };
-
