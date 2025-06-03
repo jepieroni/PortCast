@@ -25,7 +25,7 @@ const ConsolidationDashboard = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-6">
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={onBack}>
             <ArrowLeft size={16} className="mr-2" />
@@ -34,7 +34,7 @@ const ConsolidationDashboard = ({
           <h2 className="text-2xl font-bold capitalize">{type} Consolidations</h2>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 ml-auto">
           {['inbound', 'outbound', 'intertheater'].map((tab) => (
             <Button
               key={tab}
