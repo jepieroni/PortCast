@@ -213,8 +213,8 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     const value = getEditingValue(record, field);
     const isInvalid = record.validation_status === 'invalid';
 
-    if (!isInvalid) {
-      // Show read-only value for valid records
+    // For valid records or invalid records where this specific field has no error, show read-only
+    if (!isInvalid || !hasError) {
       return (
         <span className="text-sm">
           {field === 'pickup_date' || field === 'rdd' 
@@ -224,7 +224,8 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       );
     }
 
-    const inputClassName = `h-8 text-xs ${hasError ? 'border-red-500 bg-red-50' : ''}`;
+    // For invalid records where this field has an error, show editable input
+    const inputClassName = `h-8 text-xs border-red-500 bg-red-50`;
 
     // Date fields
     if (field === 'pickup_date' || field === 'rdd') {
@@ -235,7 +236,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
             <PopoverTrigger asChild>
               <Button 
                 variant="outline" 
-                className={`h-8 text-xs justify-start ${hasError ? 'border-red-500 bg-red-50' : ''}`}
+                className={`h-8 text-xs justify-start ${inputClassName}`}
               >
                 <CalendarIcon className="mr-1 h-3 w-3" />
                 {dateValue ? format(dateValue, 'yyyy-MM-dd') : 'Select date'}
@@ -250,18 +251,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               />
             </PopoverContent>
           </Popover>
-          {hasError && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertCircle size={14} className="text-red-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">{error}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <AlertCircle size={14} className="text-red-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{error}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       );
     }
@@ -280,18 +279,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               <SelectItem value="T">Intertheater</SelectItem>
             </SelectContent>
           </Select>
-          {hasError && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertCircle size={14} className="text-red-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">{error}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <AlertCircle size={14} className="text-red-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{error}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       );
     }
@@ -312,18 +309,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               ))}
             </SelectContent>
           </Select>
-          {hasError && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertCircle size={14} className="text-red-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">{error}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <AlertCircle size={14} className="text-red-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{error}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       );
     }
@@ -344,18 +339,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               ))}
             </SelectContent>
           </Select>
-          {hasError && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertCircle size={14} className="text-red-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">{error}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <AlertCircle size={14} className="text-red-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{error}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       );
     }
@@ -376,18 +369,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
               ))}
             </SelectContent>
           </Select>
-          {hasError && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger>
-                  <AlertCircle size={14} className="text-red-500" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">{error}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <AlertCircle size={14} className="text-red-500" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">{error}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       );
     }
@@ -401,18 +392,16 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
           className={inputClassName}
           placeholder={label}
         />
-        {hasError && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger>
-                <AlertCircle size={14} className="text-red-500" />
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">{error}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <AlertCircle size={14} className="text-red-500" />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">{error}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   };
