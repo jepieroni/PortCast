@@ -10,7 +10,7 @@ import { useSampleDataGenerator } from './hooks/useSampleDataGenerator';
 
 const SampleDataGenerator = () => {
   const { toast } = useToast();
-  const [rowCount, setRowCount] = useState(100);
+  const [rowCount, setRowCount] = useState(10);
   const [fileName, setFileName] = useState('sample_shipments.csv');
   const [isGenerating, setIsGenerating] = useState(false);
   
