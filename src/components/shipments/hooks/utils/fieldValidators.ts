@@ -5,8 +5,8 @@ export const validateRequiredFields = (record: any): string[] => {
   if (!record.gbl_number) errors.push('GBL number is required');
   if (!record.shipper_last_name) errors.push('Shipper last name is required');
   
-  // Check for sentinel values and invalid shipment types
-  if (!record.shipment_type || record.shipment_type === 'invalid') {
+  // Check for null or invalid shipment types
+  if (!record.shipment_type) {
     errors.push('Shipment type is required');
   } else if (!['inbound', 'outbound', 'intertheater'].includes(record.shipment_type)) {
     errors.push('Invalid shipment type');

@@ -2,10 +2,10 @@
 import type { ParsedRow } from './csvParser';
 
 export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, organizationId: string, userId: string) => {
-  // For shipment_type, use sentinel value if invalid to satisfy NOT NULL constraint
+  // For shipment_type, use null if invalid since the column allows nullable values
   let shipmentType = row.shipment_type;
   if (!shipmentType || (typeof shipmentType === 'string' && ['inbound', 'outbound', 'intertheater'].indexOf(shipmentType) === -1)) {
-    shipmentType = 'invalid'; // Sentinel value - will be caught by validation
+    shipmentType = null; // Use null instead of 'invalid' to avoid enum constraint violation
   }
 
   // Handle dates - use sentinel dates for invalid dates to satisfy NOT NULL constraint
