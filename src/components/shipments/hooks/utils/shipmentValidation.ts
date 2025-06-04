@@ -1,3 +1,4 @@
+import { parseDateString } from '../../../shipment-registration/components/hooks/utils/dateParser';
 
 export const mapShipmentType = (type: string): { mappedType: string | null; isValid: boolean } => {
   if (!type || typeof type !== 'string' || type.trim() === '') {
