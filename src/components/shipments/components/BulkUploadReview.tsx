@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
@@ -184,21 +183,39 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       // Close the edit dialog
       setEditingRecord(null);
 
-      console.log('Record updated, forcing complete data refresh and validation');
+      console.log('Record updated, now waiting for fresh data and validation');
 
-      // Force a complete refresh and validation
+      // Force a complete refresh and validation with proper data flow
       try {
         // First refresh the data to get the updated record
+        console.log('Starting data refresh...');
         await refreshData();
         
-        // Wait a bit longer to ensure the data is fully refreshed
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Wait longer to ensure the React Query cache is fully updated
+        console.log('Waiting for data to fully refresh...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Now validate all records with the fresh data
-        console.log('Triggering validation after data refresh');
-        await validateAllRecords();
+        // Now validate - but use a fresh call to get the latest staging data
+        console.log('Fetching fresh staging data for validation...');
+        const { data: freshStagingData, error: fetchError } = await supabase
+          .from('shipment_uploads_staging')
+          .select('*')
+          .eq('upload_session_id', uploadSessionId)
+          .order('created_at');
         
-        console.log('Validation completed for updated record');
+        if (fetchError) throw fetchError;
+        
+        console.log('Fresh staging data count:', freshStagingData?.length || 0);
+        console.log('Triggering validation with fresh data...');
+        
+        // Import the validation function directly to use with fresh data
+        const { useBulkValidation } = await import('../hooks/useBulkValidation');
+        const { validateAllRecords: directValidateAll } = useBulkValidation();
+        
+        // Run validation on the fresh data
+        await directValidateAll(freshStagingData || [], refreshData);
+        
+        console.log('Validation completed successfully');
       } catch (error) {
         console.error('Error during validation:', error);
       } finally {
