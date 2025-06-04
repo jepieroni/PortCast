@@ -7,7 +7,7 @@ import TranslationMappingDialog from './TranslationMappingDialog';
 import NewRateAreaDialog from './NewRateAreaDialog';
 import AddPortFromReviewDialog from './AddPortFromReviewDialog';
 import ValidationSummaryCards from './ValidationSummaryCards';
-import ShipmentReviewTable from './ShipmentReviewTable';
+import SimplifiedReviewTable from './SimplifiedReviewTable';
 import ReviewActionButtons from './ReviewActionButtons';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,8 +38,8 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   const [translationType, setTranslationType] = useState<'port' | 'rate_area'>('port');
   const [translationField, setTranslationField] = useState<string>('');
   const [hasRunInitialValidation, setHasRunInitialValidation] = useState(false);
-  const [editingRecords, setEditingRecords] = useState<Record<string, any>>({});
   const [validatingRecords, setValidatingRecords] = useState<Set<string>>(new Set());
+  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   const {
     stagingData,
@@ -105,153 +105,57 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }
   }, [stagingData.length, hasRunInitialValidation, isValidating, validateAllRecords]);
 
-  // Helper function to check if pickup date needs attention
-  const checkPickupDateWarning = (pickupDate: string): string | null => {
-    if (!pickupDate) return null;
-    
-    const pickup = new Date(pickupDate);
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    const sixtyDaysFromNow = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
-    
-    if (pickup < thirtyDaysAgo) {
-      return `Pickup date is more than 30 days in the past (${pickup.toLocaleDateString()})`;
-    }
-    if (pickup > sixtyDaysFromNow) {
-      return `Pickup date is more than 60 days in the future (${pickup.toLocaleDateString()})`;
-    }
-    return null;
+  const handleViewEditClick = (record: any) => {
+    console.log('Opening edit dialog for record:', record.gbl_number);
+    setEditingRecord(record);
   };
 
-  // Helper function to safely get validation errors as array
-  const getValidationErrors = (record: any): string[] => {
-    if (!record.validation_errors) return [];
-    if (Array.isArray(record.validation_errors)) return record.validation_errors;
-    if (typeof record.validation_errors === 'string') {
-      try {
-        const parsed = JSON.parse(record.validation_errors);
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [record.validation_errors];
-      }
-    }
-    return [];
-  };
+  const handleEditComplete = async (updatedData: any) => {
+    if (!editingRecord) return;
 
-  const getFieldValidationError = (record: any, field: string): string | null => {
-    const errors = getValidationErrors(record);
+    console.log('Updating staging record with new data:', updatedData);
     
-    // Check for pickup date warnings
-    if (field === 'pickup_date') {
-      const dateWarning = checkPickupDateWarning(record.pickup_date);
-      if (dateWarning) return dateWarning;
-    }
-    
-    return errors.find(error => {
-      const lowerError = error.toLowerCase();
-      const lowerField = field.toLowerCase();
-      
-      if (field === 'gbl_number') return lowerError.includes('gbl');
-      if (field === 'shipper_last_name') return lowerError.includes('shipper');
-      if (field === 'shipment_type') return lowerError.includes('shipment type');
-      if (field === 'raw_origin_rate_area') return lowerError.includes('origin') && lowerError.includes('rate area');
-      if (field === 'raw_destination_rate_area') return lowerError.includes('destination') && lowerError.includes('rate area');
-      if (field === 'raw_poe_code') return lowerError.includes('poe') || (lowerError.includes('port') && lowerError.includes('embarkation'));
-      if (field === 'raw_pod_code') return lowerError.includes('pod') || (lowerError.includes('port') && lowerError.includes('debarkation'));
-      if (field === 'raw_scac_code') return lowerError.includes('scac');
-      if (field === 'pickup_date') return lowerError.includes('pickup');
-      if (field === 'rdd') return lowerError.includes('rdd') || lowerError.includes('delivery');
-      
-      return false;
-    }) || null;
-  };
-
-  // Enhanced function to check if field has validation issues and should be editable
-  const hasFieldIssue = (record: any, field: string): boolean => {
-    // If record is being validated or is pending, don't allow editing yet
-    if (validatingRecords.has(record.id) || record.validation_status === 'pending') {
-      return false;
-    }
-
-    // Check for pickup date warnings
-    if (field === 'pickup_date') {
-      const dateWarning = checkPickupDateWarning(record.pickup_date);
-      if (dateWarning) return true;
-    }
-    
-    // For invalid records, check if this specific field has a validation error
-    if (record.validation_status === 'invalid') {
-      const error = getFieldValidationError(record, field);
-      if (error) return true;
-    }
-    
-    // Check if field is empty or contains placeholder values
-    const fieldValue = record[field];
-    if (!fieldValue || fieldValue.trim() === '' || fieldValue === '1900-01-01') {
-      return true;
-    }
-    
-    // For rate area fields, check if the value doesn't exist in our rate areas
-    if ((field === 'raw_origin_rate_area' || field === 'raw_destination_rate_area') && fieldValue) {
-      const rateAreaExists = rateAreas.some(ra => ra.rate_area === fieldValue);
-      if (!rateAreaExists) return true;
-    }
-    
-    // For port fields, check if the value doesn't exist in our ports
-    if ((field === 'raw_poe_code' || field === 'raw_pod_code') && fieldValue) {
-      const portExists = ports.some(p => p.code === fieldValue);
-      if (!portExists) return true;
-    }
-    
-    return false;
-  };
-
-  const getEditingValue = (record: any, field: string) => {
-    // If the field has been explicitly edited, use the edited value (even if empty)
-    if (editingRecords[record.id] && field in editingRecords[record.id]) {
-      return editingRecords[record.id][field];
-    }
-    // Otherwise, use the original record value, but show empty string for default dates
-    const value = record[field] ?? '';
-    if ((field === 'pickup_date' || field === 'rdd') && value === '1900-01-01') {
-      return '';
-    }
-    return value;
-  };
-
-  const updateEditingValue = (recordId: string, field: string, value: any) => {
-    setEditingRecords(prev => ({
-      ...prev,
-      [recordId]: {
-        ...prev[recordId],
-        [field]: value
-      }
-    }));
-  };
-
-  const validateSingleRecord = async (record: any) => {
-    const recordId = record.id;
-    setValidatingRecords(prev => new Set(prev).add(recordId));
-
     try {
-      // Get the edited values for this record
-      const editedValues = editingRecords[recordId] || {};
-      const updatedRecord = { ...record, ...editedValues };
-
       // Update the staging record with new values
       const { error: updateError } = await supabase
         .from('shipment_uploads_staging')
         .update({
-          ...editedValues,
+          gbl_number: updatedData.gblNumber,
+          shipper_last_name: updatedData.shipperLastName,
+          shipment_type: updatedData.shipmentType,
+          pickup_date: updatedData.pickupDate,
+          rdd: updatedData.rdd,
+          estimated_cube: updatedData.estimatedCube,
+          actual_cube: updatedData.actualCube,
+          raw_origin_rate_area: updatedData.originRateArea,
+          raw_destination_rate_area: updatedData.destinationRateArea,
+          raw_poe_code: updatedData.targetPoeId, // Note: these might need port code lookup
+          raw_pod_code: updatedData.targetPodId, // Note: these might need port code lookup
+          raw_scac_code: updatedData.tspId, // Note: this might need SCAC code lookup
           validation_status: 'pending',
           updated_at: new Date().toISOString()
         })
-        .eq('id', recordId);
+        .eq('id', editingRecord.id);
 
       if (updateError) throw updateError;
 
+      // Mark this record as validating
+      setValidatingRecords(prev => new Set(prev).add(editingRecord.id));
+
+      // Close the edit dialog
+      setEditingRecord(null);
+
       // Refresh data to trigger re-validation
       await refreshData();
+
+      // Remove from validating set after a delay (validation should complete by then)
+      setTimeout(() => {
+        setValidatingRecords(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(editingRecord.id);
+          return newSet;
+        });
+      }, 3000);
 
       toast({
         title: "Record updated",
@@ -259,16 +163,11 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       });
 
     } catch (error: any) {
+      console.error('Error updating staging record:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to update record",
         variant: "destructive"
-      });
-    } finally {
-      setValidatingRecords(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(recordId);
-        return newSet;
       });
     }
   };
@@ -358,31 +257,47 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       {/* Summary Cards */}
       <ValidationSummaryCards validationSummary={validationSummary} />
 
-      {/* Data Table */}
-      <ShipmentReviewTable
+      {/* Simplified Data Table */}
+      <SimplifiedReviewTable
         stagingData={stagingData}
-        ports={ports}
-        rateAreas={rateAreas}
-        tsps={tsps}
         validatingRecords={validatingRecords}
-        getEditingValue={getEditingValue}
-        updateEditingValue={updateEditingValue}
-        getFieldValidationError={getFieldValidationError}
-        hasFieldIssue={hasFieldIssue}
-        validateSingleRecord={validateSingleRecord}
-        onAddPortClick={() => setShowAddPortDialog(true)}
+        onViewEditClick={handleViewEditClick}
       />
 
-      {/* Action Buttons */}
-      <ReviewActionButtons
-        validationSummary={validationSummary}
-        isValidating={isValidating}
-        isProcessing={isProcessing}
-        onValidateAll={validateAllRecords}
-        onProcessShipments={handleProcessShipments}
-      />
+      {/* Action Buttons - Remove the "Re-validate All" button */}
+      <div className="flex justify-end gap-4">
+        <Button
+          onClick={handleProcessShipments}
+          disabled={validationSummary.valid === 0 || isProcessing}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          {isProcessing ? 'Processing...' : `Process ${validationSummary.valid} Valid Shipments`}
+        </Button>
+      </div>
 
-      {/* Dialogs */}
+      {/* Edit Record Dialog - We'll need to create this component */}
+      {editingRecord && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">
+              {editingRecord.validation_status === 'invalid' ? 'Fix Errors' : 'Edit Details'} - {editingRecord.gbl_number}
+            </h3>
+            {/* TODO: This should be the ShipmentEditForm component with proper error highlighting */}
+            <div className="flex justify-end gap-4 mt-6">
+              <Button variant="outline" onClick={() => setEditingRecord(null)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                // TODO: Call handleEditComplete with form data
+                setEditingRecord(null);
+              }}>
+                Update Shipment
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <TranslationMappingDialog
         isOpen={showTranslationDialog}
         onClose={() => setShowTranslationDialog(false)}

@@ -2,20 +2,15 @@
 import type { ParsedRow } from './csvParser';
 
 export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, organizationId: string, userId: string) => {
-  // For shipment_type, use a default value if it's invalid to avoid constraint violation
-  // The validation_status will be 'pending' initially, then 'invalid' if there are validation errors after validation
+  // For shipment_type, use null if invalid to force validation failure
   let shipmentType = row.shipment_type;
   if (!shipmentType || (typeof shipmentType === 'string' && ['inbound', 'outbound', 'intertheater'].indexOf(shipmentType) === -1)) {
-    // Use 'inbound' as a safe default to avoid constraint violation
-    // The record will be marked as invalid during validation if this was an error
-    shipmentType = 'inbound';
+    shipmentType = null; // This will cause validation to fail
   }
 
-  // Handle null dates by providing a default date to avoid NOT NULL constraint violations
-  // Use a recognizable default date (1900-01-01) that can be identified as invalid
-  const defaultDate = '1900-01-01';
-  const pickupDate = row.parsed_pickup_date || defaultDate;
-  const rddDate = row.parsed_rdd || defaultDate;
+  // Handle dates - use null for invalid dates to force validation failure
+  const pickupDate = row.parsed_pickup_date || null;
+  const rddDate = row.parsed_rdd || null;
 
   return {
     upload_session_id: uploadSessionId,
@@ -28,8 +23,8 @@ export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, orga
     destination_rate_area: '', // Will be populated during validation
     pickup_date: pickupDate,
     rdd: rddDate,
-    estimated_cube: row.parsed_estimated_cube,
-    actual_cube: row.parsed_actual_cube,
+    estimated_cube: row.parsed_estimated_cube || null,
+    actual_cube: row.parsed_actual_cube || null,
     remaining_cube: null, // We don't care about this during import
     raw_poe_code: row.poe_code || '',
     raw_pod_code: row.pod_code || '',

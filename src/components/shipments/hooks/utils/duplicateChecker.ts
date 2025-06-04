@@ -7,6 +7,18 @@ export const checkForDuplicateGBLs = async (parsedData: ParsedRow[]): Promise<Pa
   
   if (gblNumbers.length === 0) return parsedData;
 
+  // Check for duplicates within the same file first
+  const gblCounts = new Map<string, number>();
+  const duplicateGBLsInFile = new Set<string>();
+  
+  gblNumbers.forEach(gbl => {
+    const count = gblCounts.get(gbl) || 0;
+    gblCounts.set(gbl, count + 1);
+    if (count > 0) {
+      duplicateGBLsInFile.add(gbl);
+    }
+  });
+
   // Check for existing GBLs in the shipments table
   const { data: existingShipments, error } = await supabase
     .from('shipments')
@@ -20,12 +32,21 @@ export const checkForDuplicateGBLs = async (parsedData: ParsedRow[]): Promise<Pa
 
   const existingGBLs = new Set(existingShipments?.map(s => s.gbl_number) || []);
   
-  // Mark records with existing GBLs in database but don't filter them out
+  // Mark records with duplicate issues
   const dataWithDuplicateFlags = parsedData.map(row => {
-    if (row.gbl_number && existingGBLs.has(row.gbl_number)) {
-      console.log(`Found existing GBL in database: ${row.gbl_number}`);
-      row._validation_errors = row._validation_errors || [];
-      row._validation_errors.push(`GBL number already exists in database: ${row.gbl_number}`);
+    if (row.gbl_number) {
+      // Check for duplicates within the same file
+      if (duplicateGBLsInFile.has(row.gbl_number)) {
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push(`Duplicate GBL number in this file: ${row.gbl_number}`);
+      }
+      
+      // Check for existing GBLs in database
+      if (existingGBLs.has(row.gbl_number)) {
+        console.log(`Found existing GBL in database: ${row.gbl_number}`);
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push(`GBL number already exists in database: ${row.gbl_number}`);
+      }
     }
     return row;
   });

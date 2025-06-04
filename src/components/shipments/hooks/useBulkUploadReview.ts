@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +59,74 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
 
       console.log('User organization ID:', profile.organization_id);
 
+      // Validate required fields first
+      if (!record.gbl_number) errors.push('GBL number is required');
+      if (!record.shipper_last_name) errors.push('Shipper last name is required');
+      if (!record.shipment_type) {
+        errors.push('Shipment type is required');
+      } else if (!['inbound', 'outbound', 'intertheater'].includes(record.shipment_type)) {
+        errors.push('Invalid shipment type');
+      }
+
+      // Validate dates with strict requirements
+      if (!record.pickup_date) {
+        errors.push('Pickup date is required');
+      } else {
+        const pickupDate = new Date(record.pickup_date);
+        if (isNaN(pickupDate.getTime())) {
+          errors.push('Invalid pickup date format');
+        } else {
+          // Check if pickup date is too old
+          const today = new Date();
+          const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+          
+          if (pickupDate < thirtyDaysAgo) {
+            errors.push(`Pickup date is more than 30 days in the past (${pickupDate.toLocaleDateString()})`);
+          }
+        }
+      }
+
+      if (!record.rdd) {
+        errors.push('Required delivery date is required');
+      } else {
+        const rddDate = new Date(record.rdd);
+        if (isNaN(rddDate.getTime())) {
+          errors.push('Invalid RDD format');
+        }
+      }
+
+      // Validate cube requirements based on pickup date
+      if (record.pickup_date) {
+        const pickupDate = new Date(record.pickup_date);
+        if (!isNaN(pickupDate.getTime())) {
+          const today = new Date();
+          const isPickupInPast = pickupDate <= today;
+          const hasEstimated = record.estimated_cube && record.estimated_cube > 0;
+          const hasActual = record.actual_cube && record.actual_cube > 0;
+
+          if (hasEstimated && hasActual) {
+            errors.push('Cannot have both estimated and actual cube - choose one based on pickup date');
+          } else if (!hasEstimated && !hasActual) {
+            if (isPickupInPast) {
+              errors.push('Actual cube is required when pickup date is today or in the past');
+            } else {
+              errors.push('Estimated cube is required when pickup date is in the future');
+            }
+          } else if (hasActual && !isPickupInPast) {
+            errors.push('Cannot have actual cube when pickup date is in the future - use estimated cube instead');
+          } else if (hasEstimated && isPickupInPast) {
+            errors.push('Should use actual cube when pickup date is today or in the past');
+          }
+        }
+      } else {
+        // If no valid pickup date, we still need some cube value
+        const hasEstimated = record.estimated_cube && record.estimated_cube > 0;
+        const hasActual = record.actual_cube && record.actual_cube > 0;
+        if (!hasEstimated && !hasActual) {
+          errors.push('Either estimated cube or actual cube is required');
+        }
+      }
+
       // Validate and translate rate areas
       for (const field of ['raw_origin_rate_area', 'raw_destination_rate_area']) {
         const rateAreaCode = record[field];
@@ -112,7 +179,7 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
         }
       }
 
-      // Validate and translate ports
+      // Validate and translate ports with translation prompts
       for (const field of ['raw_poe_code', 'raw_pod_code']) {
         const portCode = record[field];
         console.log(`Validating ${field}:`, portCode);
@@ -161,7 +228,7 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
           updates[targetField] = translation.port_id;
         } else {
           console.log(`No port translation found for ${portCode}`);
-          errors.push(`Port code '${portCode}' not found and no translation configured`);
+          errors.push(`Port code '${portCode}' not found and no translation configured. Would you like to create a translation?`);
         }
       }
 
@@ -189,31 +256,6 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
           errors.push(`SCAC code '${record.raw_scac_code}' not found in your organization`);
         }
       }
-
-      // Validate dates
-      if (!record.pickup_date || !record.rdd) {
-        if (!record.pickup_date) errors.push('Pickup date is required');
-        if (!record.rdd) errors.push('RDD is required');
-      } else {
-        const pickupDate = new Date(record.pickup_date);
-        const rddDate = new Date(record.rdd);
-        
-        if (isNaN(pickupDate.getTime())) {
-          errors.push('Invalid pickup date format');
-        }
-        if (isNaN(rddDate.getTime())) {
-          errors.push('Invalid RDD format');
-        }
-        
-        if (!isNaN(pickupDate.getTime()) && !isNaN(rddDate.getTime()) && pickupDate > rddDate) {
-          errors.push('Pickup date cannot be after RDD');
-        }
-      }
-
-      // Validate required fields
-      if (!record.gbl_number) errors.push('GBL number is required');
-      if (!record.shipper_last_name) errors.push('Shipper last name is required');
-      if (!record.shipment_type) errors.push('Shipment type is required');
 
       console.log(`Validation complete for ${record.gbl_number}. Errors: ${errors.length}, Updates:`, updates);
 
