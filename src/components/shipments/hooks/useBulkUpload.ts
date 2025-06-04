@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -101,7 +100,12 @@ export const useBulkUpload = () => {
       headers.forEach((header, index) => {
         // Safely access the value and ensure it's a string
         const rawValue = values[index];
-        const value = typeof rawValue === 'string' ? rawValue : (rawValue || '').toString();
+        let value = '';
+        
+        if (rawValue !== undefined && rawValue !== null) {
+          value = String(rawValue);
+        }
+        
         row[header] = value;
       });
 
