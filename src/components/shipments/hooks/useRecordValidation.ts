@@ -12,6 +12,10 @@ export const useRecordValidation = () => {
       // Get user's organization for translations
       const organizationId = await getUserOrganization();
 
+      // First, preserve any existing validation errors (like duplicates)
+      const existingErrors = Array.isArray(record.validation_errors) ? record.validation_errors : [];
+      console.log('Existing validation errors for', record.gbl_number, ':', existingErrors);
+
       // Perform field validations
       const requiredFieldErrors = validateRequiredFields(record);
       const dateErrors = validateDates(record);
@@ -37,8 +41,8 @@ export const useRecordValidation = () => {
         tspUpdates
       });
 
-      // Combine all errors and updates
-      const allErrors = [
+      // Combine existing errors with new validation errors
+      const newValidationErrors = [
         ...requiredFieldErrors,
         ...dateErrors,
         ...cubeErrors,
@@ -46,6 +50,9 @@ export const useRecordValidation = () => {
         ...portErrors,
         ...tspErrors
       ];
+
+      // Combine existing errors (like duplicates) with new validation errors
+      const allErrors = [...existingErrors, ...newValidationErrors];
 
       const allUpdates = {
         ...rateAreaUpdates,
@@ -55,7 +62,8 @@ export const useRecordValidation = () => {
 
       const finalStatus = allErrors.length === 0 ? 'valid' : 'invalid';
 
-      console.log(`Validation complete for ${record.gbl_number}. Status: ${finalStatus}, Errors: ${allErrors.length}, Updates:`, allUpdates);
+      console.log(`Validation complete for ${record.gbl_number}. Status: ${finalStatus}, Total Errors: ${allErrors.length} (${existingErrors.length} existing + ${newValidationErrors.length} new), Updates:`, allUpdates);
+      console.log('All errors for', record.gbl_number, ':', allErrors);
 
       // Update record with final status and results
       await updateStagingRecord(
