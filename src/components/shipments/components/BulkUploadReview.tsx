@@ -106,22 +106,43 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     console.log('Updating staging record with new data:', updatedData);
     
     try {
-      // Map form field names to staging table column names
+      // Helper function to safely parse integer values
+      const parseIntegerValue = (value: any): number | null => {
+        if (!value || value === '') return null;
+        const parsed = parseInt(String(value));
+        return isNaN(parsed) ? null : parsed;
+      };
+
+      // Helper function to get port code from port ID
+      const getPortCodeFromId = (portId: string): string | null => {
+        if (!portId) return null;
+        const port = ports.find(p => p.id === portId);
+        return port ? port.code : portId; // fallback to original value if not found
+      };
+
+      // Helper function to get SCAC code from TSP ID
+      const getScacCodeFromTspId = (tspId: string): string | null => {
+        if (!tspId) return null;
+        const tsp = tsps.find(t => t.id === tspId);
+        return tsp ? tsp.scac_code : tspId; // fallback to original value if not found
+      };
+
+      // Map form field names to staging table column names with proper type conversion
       const mappedData = {
         gbl_number: updatedData.gblNumber || updatedData.gbl_number,
         shipper_last_name: updatedData.shipperLastName || updatedData.shipper_last_name,
         shipment_type: updatedData.shipmentType || updatedData.shipment_type,
         pickup_date: updatedData.pickupDate || updatedData.pickup_date,
         rdd: updatedData.rdd,
-        estimated_cube: updatedData.estimatedCube ? parseInt(updatedData.estimatedCube) : null,
-        actual_cube: updatedData.actualCube ? parseInt(updatedData.actualCube) : null,
-        remaining_cube: updatedData.remainingCube ? parseInt(updatedData.remainingCube) : null,
+        estimated_cube: parseIntegerValue(updatedData.estimatedCube || updatedData.estimated_cube),
+        actual_cube: parseIntegerValue(updatedData.actualCube || updatedData.actual_cube),
+        remaining_cube: parseIntegerValue(updatedData.remainingCube || updatedData.remaining_cube),
         raw_origin_rate_area: updatedData.originRateArea || updatedData.origin_rate_area,
         raw_destination_rate_area: updatedData.destinationRateArea || updatedData.destination_rate_area,
-        // For ports and TSP, we need to get the actual codes/names, not just IDs
-        raw_poe_code: updatedData.targetPoeId || updatedData.raw_poe_code,
-        raw_pod_code: updatedData.targetPodId || updatedData.raw_pod_code,
-        raw_scac_code: updatedData.tspId || updatedData.raw_scac_code,
+        // Convert IDs back to codes for validation
+        raw_poe_code: getPortCodeFromId(updatedData.targetPoeId || updatedData.target_poe_id),
+        raw_pod_code: getPortCodeFromId(updatedData.targetPodId || updatedData.target_pod_id),
+        raw_scac_code: getScacCodeFromTspId(updatedData.tspId || updatedData.tsp_id),
         validation_status: 'pending', // Reset to pending to trigger re-validation
         validation_errors: [],
         updated_at: new Date().toISOString()
