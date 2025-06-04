@@ -12,9 +12,11 @@ export const useRecordValidation = () => {
       // Get user's organization for translations
       const organizationId = await getUserOrganization();
 
-      // First, preserve any existing validation errors (like duplicates)
-      const existingErrors = Array.isArray(record.validation_errors) ? record.validation_errors : [];
-      console.log('Existing validation errors for', record.gbl_number, ':', existingErrors);
+      // IMPORTANT: Only preserve duplicate errors, clear other validation errors
+      const existingErrors = Array.isArray(record.validation_errors) 
+        ? record.validation_errors.filter((error: string) => error.toLowerCase().includes('duplicate'))
+        : [];
+      console.log('Existing duplicate errors for', record.gbl_number, ':', existingErrors);
 
       // Perform field validations
       const requiredFieldErrors = validateRequiredFields(record);
@@ -41,7 +43,7 @@ export const useRecordValidation = () => {
         tspUpdates
       });
 
-      // Combine existing errors with new validation errors
+      // Combine only new validation errors (not old stale ones)
       const newValidationErrors = [
         ...requiredFieldErrors,
         ...dateErrors,
@@ -51,7 +53,7 @@ export const useRecordValidation = () => {
         ...tspErrors
       ];
 
-      // Combine existing errors (like duplicates) with new validation errors
+      // Combine only duplicate errors with new validation errors
       const allErrors = [...existingErrors, ...newValidationErrors];
 
       const allUpdates = {
@@ -62,7 +64,7 @@ export const useRecordValidation = () => {
 
       const finalStatus = allErrors.length === 0 ? 'valid' : 'invalid';
 
-      console.log(`Validation complete for ${record.gbl_number}. Status: ${finalStatus}, Total Errors: ${allErrors.length} (${existingErrors.length} existing + ${newValidationErrors.length} new), Updates:`, allUpdates);
+      console.log(`Validation complete for ${record.gbl_number}. Status: ${finalStatus}, Total Errors: ${allErrors.length} (${existingErrors.length} duplicate + ${newValidationErrors.length} new), Updates:`, allUpdates);
       console.log('All errors for', record.gbl_number, ':', allErrors);
 
       // Update record with final status and results
