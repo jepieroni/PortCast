@@ -61,16 +61,16 @@ export const mapShipmentToFormData = (shipment: any): ShipmentEditFormData => {
     // Use the processed rate areas first, fall back to raw values if needed
     origin_rate_area: shipment.origin_rate_area || shipment.raw_origin_rate_area || '',
     destination_rate_area: shipment.destination_rate_area || shipment.raw_destination_rate_area || '',
-    // CRITICAL: Ensure date fields are preserved exactly as they are - never set to empty
-    pickup_date: shipment.pickup_date || '',
-    rdd: shipment.rdd || '',
+    // CRITICAL: Explicitly preserve date fields - use direct assignment to avoid falsy issues
+    pickup_date: shipment.pickup_date ? String(shipment.pickup_date) : '',
+    rdd: shipment.rdd ? String(shipment.rdd) : '',
     estimated_cube: shipment.estimated_cube?.toString() || '',
     actual_cube: shipment.actual_cube?.toString() || '',
     remaining_cube: shipment.remaining_cube?.toString() || '',
-    // CRITICAL: Handle null values properly for port/tsp IDs - convert null to empty string but preserve existing values
-    target_poe_id: shipment.target_poe_id || '',
-    target_pod_id: shipment.target_pod_id || '',
-    tsp_id: shipment.tsp_id || '',
+    // Handle null values properly for port/tsp IDs - convert null to empty string but preserve existing values
+    target_poe_id: shipment.target_poe_id ? String(shipment.target_poe_id) : '',
+    target_pod_id: shipment.target_pod_id ? String(shipment.target_pod_id) : '',
+    tsp_id: shipment.tsp_id ? String(shipment.tsp_id) : '',
   };
 
   console.log('mapShipmentToFormData - Mapped form data:', mappedData);
