@@ -25,12 +25,15 @@ export const validateRequiredFields = (record: any): string[] => {
     }
   }
 
-  // Validate rate areas
-  if (!record.origin_rate_area || (typeof record.origin_rate_area === 'string' && record.origin_rate_area.trim() === '')) {
+  // Validate rate areas - check both translated and raw values
+  const hasOriginRateArea = record.origin_rate_area || record.raw_origin_rate_area;
+  const hasDestinationRateArea = record.destination_rate_area || record.raw_destination_rate_area;
+
+  if (!hasOriginRateArea || (typeof hasOriginRateArea === 'string' && hasOriginRateArea.trim() === '')) {
     errors.push('Origin rate area is required');
   }
 
-  if (!record.destination_rate_area || (typeof record.destination_rate_area === 'string' && record.destination_rate_area.trim() === '')) {
+  if (!hasDestinationRateArea || (typeof hasDestinationRateArea === 'string' && hasDestinationRateArea.trim() === '')) {
     errors.push('Destination rate area is required');
   }
 
