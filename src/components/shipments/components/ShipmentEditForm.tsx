@@ -45,34 +45,57 @@ export const ShipmentEditForm = ({
     handleDateSelect,
   } = useShipmentEditForm(shipment);
 
-  // Helper function to check if a field has validation errors
+  // Helper function to check if a field has validation errors - more precise matching
   const hasFieldError = (field: string): boolean => {
     if (!isFixingErrors || !validationErrors.length) return false;
     
     return validationErrors.some(error => {
       const errorLower = error.toLowerCase();
       
-      // Comprehensive field mappings to catch various error message patterns
-      const fieldMappings: Record<string, string[]> = {
-        'gbl_number': ['gbl', 'number', 'gbl number'],
-        'shipper_last_name': ['shipper', 'last name', 'shipper last name'],
-        'shipment_type': ['shipment type', 'type', 'shipment_type'],
-        'pickup_date': ['pickup', 'pickup date', 'pickup_date', 'pick up', 'pick-up'],
-        'rdd': ['rdd', 'delivery', 'required delivery', 'delivery date', 'required delivery date'],
-        'origin_rate_area': ['origin', 'origin rate', 'origin rate area', 'origin_rate_area'],
-        'destination_rate_area': ['destination', 'destination rate', 'destination rate area', 'destination_rate_area'],
-        'target_poe_id': ['poe', 'port of embarkation', 'embarkation', 'origin port'],
-        'target_pod_id': ['pod', 'port of debarkation', 'debarkation', 'destination port'],
-        'tsp_id': ['tsp', 'scac', 'transport', 'carrier'],
-        'estimated_cube': ['estimated', 'estimated cube', 'cube'],
-        'actual_cube': ['actual', 'actual cube', 'cube']
-      };
-      
-      const keywords = fieldMappings[field.toLowerCase()] || [field.toLowerCase()];
-      return keywords.some(keyword => {
-        // Check if the keyword appears in the error message
-        return errorLower.includes(keyword);
-      });
+      // Very specific field error matching to avoid false positives
+      switch (field.toLowerCase()) {
+        case 'gbl_number':
+          return errorLower.includes('gbl number') || errorLower.includes('gbl_number');
+        
+        case 'shipper_last_name':
+          return errorLower.includes('shipper last name') || errorLower.includes('shipper_last_name');
+        
+        case 'shipment_type':
+          return (errorLower.includes('shipment type') || errorLower.includes('shipment_type')) &&
+                 !errorLower.includes('rate area') && !errorLower.includes('port') && !errorLower.includes('tsp');
+        
+        case 'pickup_date':
+          return errorLower.includes('pickup date') || errorLower.includes('pickup_date');
+        
+        case 'rdd':
+          return (errorLower.includes('rdd') || errorLower.includes('delivery date') || errorLower.includes('required delivery')) &&
+                 !errorLower.includes('rate area');
+        
+        case 'origin_rate_area':
+          return errorLower.includes('origin rate area') || errorLower.includes('origin_rate_area');
+        
+        case 'destination_rate_area':
+          return errorLower.includes('destination rate area') || errorLower.includes('destination_rate_area');
+        
+        case 'target_poe_id':
+          return errorLower.includes('poe') || errorLower.includes('port of embarkation') || errorLower.includes('origin port');
+        
+        case 'target_pod_id':
+          return errorLower.includes('pod') || errorLower.includes('port of debarkation') || errorLower.includes('destination port');
+        
+        case 'tsp_id':
+          return (errorLower.includes('tsp') || errorLower.includes('scac') || errorLower.includes('transport') || errorLower.includes('carrier')) &&
+                 !errorLower.includes('rate area') && !errorLower.includes('port');
+        
+        case 'estimated_cube':
+          return errorLower.includes('estimated cube') || errorLower.includes('estimated_cube');
+        
+        case 'actual_cube':
+          return errorLower.includes('actual cube') || errorLower.includes('actual_cube');
+        
+        default:
+          return false;
+      }
     });
   };
 
