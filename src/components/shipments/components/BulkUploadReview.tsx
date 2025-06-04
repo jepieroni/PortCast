@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
@@ -127,28 +126,40 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         return tsp ? tsp.scac_code : tspId; // fallback to original value if not found
       };
 
-      // Map form field names to staging table column names with proper type conversion
+      // Comprehensive field mapping - checking all possible form field names
       const mappedData = {
-        gbl_number: updatedData.gblNumber || updatedData.gbl_number,
-        shipper_last_name: updatedData.shipperLastName || updatedData.shipper_last_name,
-        shipment_type: updatedData.shipmentType || updatedData.shipment_type,
-        pickup_date: updatedData.pickupDate || updatedData.pickup_date,
-        rdd: updatedData.rdd,
-        estimated_cube: parseIntegerValue(updatedData.estimatedCube || updatedData.estimated_cube),
-        actual_cube: parseIntegerValue(updatedData.actualCube || updatedData.actual_cube),
-        remaining_cube: parseIntegerValue(updatedData.remainingCube || updatedData.remaining_cube),
-        raw_origin_rate_area: updatedData.originRateArea || updatedData.origin_rate_area,
-        raw_destination_rate_area: updatedData.destinationRateArea || updatedData.destination_rate_area,
-        // Convert IDs back to codes for validation
-        raw_poe_code: getPortCodeFromId(updatedData.targetPoeId || updatedData.target_poe_id),
-        raw_pod_code: getPortCodeFromId(updatedData.targetPodId || updatedData.target_pod_id),
-        raw_scac_code: getScacCodeFromTspId(updatedData.tspId || updatedData.tsp_id),
-        validation_status: 'pending', // Reset to pending to trigger re-validation
+        // Basic info fields - check both camelCase and snake_case variants
+        gbl_number: updatedData.gbl_number || updatedData.gblNumber || editingRecord.gbl_number,
+        shipper_last_name: updatedData.shipper_last_name || updatedData.shipperLastName || editingRecord.shipper_last_name,
+        shipment_type: updatedData.shipment_type || updatedData.shipmentType || editingRecord.shipment_type,
+        
+        // Date fields - these should already be in correct format from form
+        pickup_date: updatedData.pickup_date || updatedData.pickupDate || editingRecord.pickup_date,
+        rdd: updatedData.rdd || editingRecord.rdd,
+        
+        // Volume fields - parse all integer variants
+        estimated_cube: parseIntegerValue(updatedData.estimated_cube || updatedData.estimatedCube),
+        actual_cube: parseIntegerValue(updatedData.actual_cube || updatedData.actualCube),
+        remaining_cube: parseIntegerValue(updatedData.remaining_cube || updatedData.remainingCube),
+        
+        // Rate areas - check both variants and fall back to existing values
+        raw_origin_rate_area: updatedData.origin_rate_area || updatedData.originRateArea || editingRecord.raw_origin_rate_area,
+        raw_destination_rate_area: updatedData.destination_rate_area || updatedData.destinationRateArea || editingRecord.raw_destination_rate_area,
+        
+        // Port codes - convert IDs back to codes for validation, with comprehensive fallbacks
+        raw_poe_code: getPortCodeFromId(updatedData.target_poe_id || updatedData.targetPoeId) || editingRecord.raw_poe_code,
+        raw_pod_code: getPortCodeFromId(updatedData.target_pod_id || updatedData.targetPodId) || editingRecord.raw_pod_code,
+        
+        // SCAC code - convert TSP ID back to SCAC code for validation
+        raw_scac_code: getScacCodeFromTspId(updatedData.tsp_id || updatedData.tspId) || editingRecord.raw_scac_code,
+        
+        // Reset validation to trigger re-validation
+        validation_status: 'pending',
         validation_errors: [],
         updated_at: new Date().toISOString()
       };
 
-      console.log('Mapped data for staging update:', mappedData);
+      console.log('Comprehensive mapped data for staging update:', mappedData);
 
       // Update the staging record with new values
       const { error: updateError } = await supabase
