@@ -166,27 +166,32 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }) || null;
   };
 
-  // Enhanced function to check if field has any validation issues or is empty/missing
+  // Enhanced function to check if field has validation issues and should be editable
   const hasFieldIssue = (record: any, field: string): boolean => {
+    // If record is being validated or is pending, don't allow editing yet
+    if (validatingRecords.has(record.id) || record.validation_status === 'pending') {
+      return false;
+    }
+
     // Check for pickup date warnings
     if (field === 'pickup_date') {
       const dateWarning = checkPickupDateWarning(record.pickup_date);
       if (dateWarning) return true;
     }
     
-    // Always allow editing if record is invalid OR if field is empty/missing
+    // For invalid records, check if this specific field has a validation error
     if (record.validation_status === 'invalid') {
       const error = getFieldValidationError(record, field);
       if (error) return true;
     }
     
-    // Check if field is empty or missing (show as editable)
+    // Check if field is empty or contains placeholder values
     const fieldValue = record[field];
     if (!fieldValue || fieldValue.trim() === '' || fieldValue === '1900-01-01') {
       return true;
     }
     
-    // For rate area fields, also check if the value doesn't exist in our rate areas
+    // For rate area fields, check if the value doesn't exist in our rate areas
     if ((field === 'raw_origin_rate_area' || field === 'raw_destination_rate_area') && fieldValue) {
       const rateAreaExists = rateAreas.some(ra => ra.rate_area === fieldValue);
       if (!rateAreaExists) return true;

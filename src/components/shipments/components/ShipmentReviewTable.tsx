@@ -48,7 +48,7 @@ const ShipmentReviewTable = ({
   };
 
   const getStatusBadge = (status: string, validationErrors: any, recordId: string) => {
-    // Show loading badge if record is currently being validated
+    // Always show loading badge if record is currently being validated
     if (validatingRecords.has(recordId)) {
       return (
         <Badge variant="secondary" className="animate-pulse">
@@ -58,20 +58,19 @@ const ShipmentReviewTable = ({
       );
     }
 
-    // Show loading badge for any record that hasn't been fully validated yet
-    // This includes 'pending' status and 'invalid' records that might still be processing
+    // Show loading badge for pending status (initial state before validation)
     if (status === 'pending') {
       return (
         <Badge variant="secondary" className="animate-pulse">
           <Loader2 size={12} className="animate-spin mr-1" />
-          Pending
+          Pending...
         </Badge>
       );
     }
 
     // Only show static badges for records that have completed validation
     if (status === 'valid') {
-      return <Badge className="bg-green-100 text-green-800">Valid</Badge>;
+      return <Badge className="bg-green-100 text-green-800 border-green-200">Valid</Badge>;
     } else if (status === 'invalid') {
       return <Badge variant="destructive">Invalid</Badge>;
     } else {
@@ -89,35 +88,38 @@ const ShipmentReviewTable = ({
     <Card>
       <CardHeader>
         <CardTitle>Shipment Records</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          Review and edit shipment data. Fields with issues are highlighted in red and can be edited.
+        </p>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="w-full overflow-x-auto">
+        <div className="w-full overflow-x-auto max-h-[600px] overflow-y-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 bg-background z-10 shadow-sm">
               <TableRow>
-                <TableHead className="w-20">Status</TableHead>
-                <TableHead className="min-w-32">GBL</TableHead>
-                <TableHead className="min-w-32">Shipper</TableHead>
-                <TableHead className="w-16">Type</TableHead>
-                <TableHead className="min-w-40">Origin</TableHead>
-                <TableHead className="min-w-40">Destination</TableHead>
-                <TableHead className="min-w-48">POE</TableHead>
-                <TableHead className="min-w-48">POD</TableHead>
-                <TableHead className="w-20">SCAC</TableHead>
-                <TableHead className="min-w-32">Pickup</TableHead>
-                <TableHead className="min-w-32">RDD</TableHead>
-                <TableHead className="w-28">Actions</TableHead>
+                <TableHead className="w-24 min-w-24">Status</TableHead>
+                <TableHead className="w-32 min-w-32">GBL</TableHead>
+                <TableHead className="w-40 min-w-40">Shipper</TableHead>
+                <TableHead className="w-20 min-w-20">Type</TableHead>
+                <TableHead className="w-48 min-w-48">Origin</TableHead>
+                <TableHead className="w-48 min-w-48">Destination</TableHead>
+                <TableHead className="w-52 min-w-52">POE</TableHead>
+                <TableHead className="w-52 min-w-52">POD</TableHead>
+                <TableHead className="w-24 min-w-24">SCAC</TableHead>
+                <TableHead className="w-36 min-w-36">Pickup</TableHead>
+                <TableHead className="w-36 min-w-36">RDD</TableHead>
+                <TableHead className="w-32 min-w-32">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {stagingData.map((record) => {
                 const isValidating = validatingRecords.has(record.id);
                 return (
-                  <TableRow key={record.id}>
-                    <TableCell>
+                  <TableRow key={record.id} className="hover:bg-muted/50">
+                    <TableCell className="p-2">
                       {getStatusBadge(record.validation_status, record.validation_errors, record.id)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="gbl_number"
@@ -132,7 +134,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="shipper_last_name"
@@ -147,7 +149,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="shipment_type"
@@ -162,7 +164,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="raw_origin_rate_area"
@@ -177,7 +179,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="raw_destination_rate_area"
@@ -192,7 +194,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="raw_poe_code"
@@ -207,7 +209,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="raw_pod_code"
@@ -222,7 +224,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="raw_scac_code"
@@ -237,7 +239,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="pickup_date"
@@ -252,7 +254,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <EditableField
                         record={record}
                         field="rdd"
@@ -267,7 +269,7 @@ const ShipmentReviewTable = ({
                         onAddPortClick={onAddPortClick}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="p-2">
                       <div className="flex gap-1">
                         {record.validation_status === 'invalid' && (
                           <Button 
@@ -275,7 +277,7 @@ const ShipmentReviewTable = ({
                             variant="outline"
                             onClick={() => validateSingleRecord(record)}
                             disabled={isValidating}
-                            className="h-8 text-xs"
+                            className="h-8 text-xs px-2"
                           >
                             {isValidating ? (
                               <RefreshCw size={12} className="animate-spin" />
@@ -292,6 +294,11 @@ const ShipmentReviewTable = ({
             </TableBody>
           </Table>
         </div>
+        {stagingData.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            No shipment records to display
+          </div>
+        )}
       </CardContent>
     </Card>
   );

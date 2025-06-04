@@ -3,11 +3,11 @@ import type { ParsedRow } from './csvParser';
 
 export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, organizationId: string, userId: string) => {
   // For shipment_type, use a default value if it's invalid to avoid constraint violation
-  // The validation_status will be 'invalid' anyway if there are validation errors
+  // The validation_status will be 'pending' initially, then 'invalid' if there are validation errors after validation
   let shipmentType = row.shipment_type;
   if (!shipmentType || (typeof shipmentType === 'string' && ['inbound', 'outbound', 'intertheater'].indexOf(shipmentType) === -1)) {
     // Use 'inbound' as a safe default to avoid constraint violation
-    // The record will still be marked as invalid due to validation errors
+    // The record will be marked as invalid during validation if this was an error
     shipmentType = 'inbound';
   }
 
@@ -36,7 +36,8 @@ export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, orga
     raw_origin_rate_area: row.origin_rate_area || '',
     raw_destination_rate_area: row.destination_rate_area || '',
     raw_scac_code: row.scac_code || '',
-    validation_status: row._validation_errors && row._validation_errors.length > 0 ? 'invalid' : 'pending',
+    // Start with 'pending' status - records will be validated asynchronously
+    validation_status: 'pending',
     validation_errors: row._validation_errors || []
   };
 };
