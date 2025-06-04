@@ -47,7 +47,7 @@ export const DateFieldGroup = ({
           <Input
             id="pickup_date"
             type="date"
-            value={pickupInputValue}
+            value={formData.pickup_date || ''}
             onChange={(e) => onDateInputChange('pickup_date', e.target.value)}
             onBlur={() => onDateInputBlur('pickup_date')}
             className={cn("flex-1", hasFieldError?.('pickup_date') && "border-red-500 focus:border-red-500")}
@@ -64,6 +64,7 @@ export const DateFieldGroup = ({
                 selected={pickupDate}
                 onSelect={(date) => onDateSelect('pickup_date', date)}
                 initialFocus
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
@@ -76,7 +77,7 @@ export const DateFieldGroup = ({
           <Input
             id="rdd"
             type="date"
-            value={rddInputValue}
+            value={formData.rdd || ''}
             onChange={(e) => onDateInputChange('rdd', e.target.value)}
             onBlur={() => onDateInputBlur('rdd')}
             className={cn("flex-1", hasFieldError?.('rdd') && "border-red-500 focus:border-red-500")}
@@ -93,6 +94,7 @@ export const DateFieldGroup = ({
                 selected={rddDate}
                 onSelect={(date) => onDateSelect('rdd', date)}
                 initialFocus
+                className="p-3 pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
