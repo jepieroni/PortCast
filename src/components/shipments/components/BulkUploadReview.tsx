@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -167,7 +166,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }) || null;
   };
 
-  // Enhanced function to check if field has any validation issues
+  // Enhanced function to check if field has any validation issues or is empty/missing
   const hasFieldIssue = (record: any, field: string): boolean => {
     // Check for pickup date warnings
     if (field === 'pickup_date') {
@@ -175,23 +174,28 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       if (dateWarning) return true;
     }
     
-    // Always allow editing if record is invalid
+    // Always allow editing if record is invalid OR if field is empty/missing
     if (record.validation_status === 'invalid') {
       const error = getFieldValidationError(record, field);
-      // Show as editable if there's an error OR if the field is empty/null for required fields
       if (error) return true;
-      
-      // For rate area fields, also check if the value doesn't exist in our rate areas
-      if ((field === 'raw_origin_rate_area' || field === 'raw_destination_rate_area') && record[field]) {
-        const rateAreaExists = rateAreas.some(ra => ra.rate_area === record[field]);
-        if (!rateAreaExists) return true;
-      }
-      
-      // For port fields, check if the value doesn't exist in our ports
-      if ((field === 'raw_poe_code' || field === 'raw_pod_code') && record[field]) {
-        const portExists = ports.some(p => p.code === record[field]);
-        if (!portExists) return true;
-      }
+    }
+    
+    // Check if field is empty or missing (show as editable)
+    const fieldValue = record[field];
+    if (!fieldValue || fieldValue.trim() === '' || fieldValue === '1900-01-01') {
+      return true;
+    }
+    
+    // For rate area fields, also check if the value doesn't exist in our rate areas
+    if ((field === 'raw_origin_rate_area' || field === 'raw_destination_rate_area') && fieldValue) {
+      const rateAreaExists = rateAreas.some(ra => ra.rate_area === fieldValue);
+      if (!rateAreaExists) return true;
+    }
+    
+    // For port fields, check if the value doesn't exist in our ports
+    if ((field === 'raw_poe_code' || field === 'raw_pod_code') && fieldValue) {
+      const portExists = ports.some(p => p.code === fieldValue);
+      if (!portExists) return true;
     }
     
     return false;
@@ -202,8 +206,12 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     if (editingRecords[record.id] && field in editingRecords[record.id]) {
       return editingRecords[record.id][field];
     }
-    // Otherwise, use the original record value
-    return record[field] ?? '';
+    // Otherwise, use the original record value, but show empty string for default dates
+    const value = record[field] ?? '';
+    if ((field === 'pickup_date' || field === 'rdd') && value === '1900-01-01') {
+      return '';
+    }
+    return value;
   };
 
   const updateEditingValue = (recordId: string, field: string, value: any) => {
@@ -306,7 +314,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
                   Back to Upload
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="max-w-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Leave Upload Review?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -314,18 +322,18 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
                     If you go back now, you'll lose this progress and need to upload again.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Stay on Page</AlertDialogCancel>
+                <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <AlertDialogCancel className="w-full sm:w-auto">Stay on Page</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleProcessShipments}
                     disabled={isProcessing}
-                    className="bg-green-600 hover:bg-green-700"
+                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
                   >
                     {isProcessing ? 'Processing...' : `Process ${validationSummary.valid} Shipments`}
                   </AlertDialogAction>
                   <AlertDialogAction
                     onClick={onBack}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
                   >
                     Leave Without Processing
                   </AlertDialogAction>

@@ -31,15 +31,20 @@ export const useBulkUpload = () => {
   };
 
   const mapShipmentType = (type: string): string => {
+    if (!type || type.trim() === '') return 'inbound'; // Default fallback
+    
     const typeMap: { [key: string]: string } = {
       'I': 'inbound',
       'O': 'outbound', 
       'T': 'intertheater',
       'i': 'inbound',
       'o': 'outbound',
-      't': 'intertheater'
+      't': 'intertheater',
+      'inbound': 'inbound',
+      'outbound': 'outbound',
+      'intertheater': 'intertheater'
     };
-    return typeMap[type] || type;
+    return typeMap[type.trim()] || 'inbound'; // Default fallback
   };
 
   const parseExcelFile = async (file: File): Promise<any[]> => {
@@ -91,7 +96,7 @@ export const useBulkUpload = () => {
       });
 
       // Check for duplicate GBLs within the file
-      if (row.gbl_number) {
+      if (row.gbl_number && row.gbl_number.trim() !== '') {
         if (fileGBLs.has(row.gbl_number)) {
           duplicateGBLsInFile.add(row.gbl_number);
           row._validation_errors = row._validation_errors || [];
@@ -101,23 +106,43 @@ export const useBulkUpload = () => {
         }
       }
 
-      // Map shipment type
-      if (row.shipment_type) {
-        row.shipment_type = mapShipmentType(row.shipment_type);
-      }
+      // Map shipment type with fallback
+      row.shipment_type = mapShipmentType(row.shipment_type);
 
       // Handle cube logic: if actual_cube is present but remaining_cube is not, copy actual_cube to remaining_cube
       if (row.actual_cube && !row.remaining_cube) {
         row.remaining_cube = row.actual_cube;
       }
 
-      // Only validate truly required fields (don't reject for blank optional fields)
-      const criticalRequiredFields = ['gbl_number', 'shipper_last_name', 'shipment_type', 'pickup_date', 'rdd'];
-      const missingCriticalFields = criticalRequiredFields.filter(col => !row[col] || row[col].trim() === '');
-      
-      if (missingCriticalFields.length > 0) {
+      // Validate required fields and track issues but don't reject the record
+      if (!row.gbl_number || row.gbl_number.trim() === '') {
         row._validation_errors = row._validation_errors || [];
-        row._validation_errors.push(`Missing critical required fields: ${missingCriticalFields.join(', ')}`);
+        row._validation_errors.push('GBL number is required');
+      }
+      
+      if (!row.shipper_last_name || row.shipper_last_name.trim() === '') {
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push('Shipper last name is required');
+      }
+
+      if (!row.pickup_date || row.pickup_date.trim() === '') {
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push('Pickup date is required');
+      }
+
+      if (!row.rdd || row.rdd.trim() === '') {
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push('RDD is required');
+      }
+
+      if (!row.origin_rate_area || row.origin_rate_area.trim() === '') {
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push('Origin rate area is required');
+      }
+
+      if (!row.destination_rate_area || row.destination_rate_area.trim() === '') {
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push('Destination rate area is required');
       }
 
       data.push(row);
@@ -132,7 +157,7 @@ export const useBulkUpload = () => {
   };
 
   const checkForDuplicateGBLs = async (parsedData: any[]) => {
-    const gblNumbers = parsedData.map(row => row.gbl_number).filter(Boolean);
+    const gblNumbers = parsedData.map(row => row.gbl_number).filter(gbl => gbl && gbl.trim() !== '');
     
     if (gblNumbers.length === 0) return parsedData;
 
@@ -151,7 +176,7 @@ export const useBulkUpload = () => {
     
     // Mark records with existing GBLs in database but don't filter them out
     const dataWithDuplicateFlags = parsedData.map(row => {
-      if (existingGBLs.has(row.gbl_number)) {
+      if (row.gbl_number && existingGBLs.has(row.gbl_number)) {
         console.log(`Found existing GBL in database: ${row.gbl_number}`);
         row._validation_errors = row._validation_errors || [];
         row._validation_errors.push(`GBL number already exists in database: ${row.gbl_number}`);
