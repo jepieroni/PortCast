@@ -31,9 +31,9 @@ export const useBulkUpload = () => {
     }
   };
 
-  const mapShipmentType = (type: string): { mappedType: string; isValid: boolean } => {
+  const mapShipmentType = (type: string): { mappedType: string | null; isValid: boolean } => {
     if (!type || typeof type !== 'string' || type.trim() === '') {
-      return { mappedType: '', isValid: false };
+      return { mappedType: null, isValid: false };
     }
     
     const cleanType = type.trim();
@@ -51,7 +51,7 @@ export const useBulkUpload = () => {
     
     const mappedType = typeMap[cleanType];
     return {
-      mappedType: mappedType || '',
+      mappedType: mappedType || null,
       isValid: !!mappedType
     };
   };
@@ -61,26 +61,30 @@ export const useBulkUpload = () => {
       return { parsedDate: null, error: `${fieldName} is required` };
     }
 
-    // Try to parse the date
-    const parsed = parseDateString(dateStr.trim());
-    if (!parsed) {
-      return { parsedDate: null, error: `Invalid ${fieldName} format. Use MM/DD/YY or MM/DD/YYYY` };
-    }
-
-    // Check if pickup date is too old (more than 30 days ago)
-    if (fieldName.toLowerCase().includes('pickup')) {
-      const today = new Date();
-      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-      
-      if (parsed < thirtyDaysAgo) {
-        return { 
-          parsedDate: parsed.toISOString().split('T')[0], 
-          error: `Pickup date is more than 30 days in the past (${parsed.toLocaleDateString()})` 
-        };
+    try {
+      // Try to parse the date
+      const parsed = parseDateString(dateStr.trim());
+      if (!parsed) {
+        return { parsedDate: null, error: `Invalid ${fieldName} format. Use MM/DD/YY or MM/DD/YYYY` };
       }
-    }
 
-    return { parsedDate: parsed.toISOString().split('T')[0], error: null };
+      // Check if pickup date is too old (more than 30 days ago)
+      if (fieldName.toLowerCase().includes('pickup')) {
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+        
+        if (parsed < thirtyDaysAgo) {
+          return { 
+            parsedDate: null, 
+            error: `Pickup date is more than 30 days in the past (${parsed.toLocaleDateString()})` 
+          };
+        }
+      }
+
+      return { parsedDate: parsed.toISOString().split('T')[0], error: null };
+    } catch (error) {
+      return { parsedDate: null, error: `Invalid ${fieldName} format: ${dateStr}` };
+    }
   };
 
   const parseAndValidateCube = (cubeStr: string, fieldName: string): { parsedCube: number | null; error: string | null } => {
@@ -88,12 +92,16 @@ export const useBulkUpload = () => {
       return { parsedCube: null, error: null };
     }
 
-    const numValue = parseInt(cubeStr.trim());
-    if (isNaN(numValue) || numValue < 0) {
-      return { parsedCube: null, error: `Invalid ${fieldName} - must be a positive number` };
-    }
+    try {
+      const numValue = parseInt(cubeStr.trim());
+      if (isNaN(numValue) || numValue < 0) {
+        return { parsedCube: null, error: `Invalid ${fieldName} - must be a positive number` };
+      }
 
-    return { parsedCube: numValue, error: null };
+      return { parsedCube: numValue, error: null };
+    } catch (error) {
+      return { parsedCube: null, error: `Invalid ${fieldName} format: ${cubeStr}` };
+    }
   };
 
   const validateCubeLogic = (estimatedCube: number | null, actualCube: number | null, pickupDate: Date | null): string[] => {
@@ -217,14 +225,13 @@ export const useBulkUpload = () => {
         row._validation_errors.push('Shipper last name is required');
       }
 
-      // Validate and map shipment type
+      // Validate and map shipment type - CRITICAL: Handle empty/blank values properly
       const shipmentTypeResult = mapShipmentType(row.shipment_type || '');
       if (!shipmentTypeResult.isValid) {
         row._validation_errors.push('Invalid or missing shipment type. Use I/O/T or inbound/outbound/intertheater');
-        row.shipment_type = ''; // Clear invalid type
-      } else {
-        row.shipment_type = shipmentTypeResult.mappedType;
       }
+      // IMPORTANT: Always set to the mapped type OR null (never empty string for enum field)
+      row.shipment_type = shipmentTypeResult.mappedType;
 
       // Validate required text fields
       const requiredTextFields = [
@@ -241,7 +248,7 @@ export const useBulkUpload = () => {
         }
       });
 
-      // Validate dates
+      // Validate dates - with proper error handling
       const pickupResult = parseAndValidateDate(row.pickup_date || '', 'Pickup date');
       const rddResult = parseAndValidateDate(row.rdd || '', 'Required delivery date');
 
@@ -252,7 +259,7 @@ export const useBulkUpload = () => {
         row._validation_errors.push(rddResult.error);
       }
 
-      // Store parsed dates (or null if invalid)
+      // Store parsed dates (or null if invalid/missing)
       row.parsed_pickup_date = pickupResult.parsedDate;
       row.parsed_rdd = rddResult.parsedDate;
 
@@ -375,7 +382,8 @@ export const useBulkUpload = () => {
           user_id: user.id,
           gbl_number: row.gbl_number || '',
           shipper_last_name: row.shipper_last_name || '',
-          shipment_type: row.shipment_type || '',
+          // CRITICAL: Only set shipment_type if it's valid, otherwise leave null
+          shipment_type: row.shipment_type, // This will be null for invalid types
           origin_rate_area: '',  // Will be populated during validation
           destination_rate_area: '', // Will be populated during validation
           pickup_date: row.parsed_pickup_date, // Use parsed date or null
