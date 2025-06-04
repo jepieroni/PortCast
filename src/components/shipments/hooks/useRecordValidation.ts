@@ -7,7 +7,7 @@ import { getUserOrganization, updateStagingRecord, markRecordAsInvalid } from '.
 export const useRecordValidation = () => {
   const validateRecord = async (record: any) => {
     try {
-      console.log('Starting validation for record:', record.gbl_number);
+      console.log('Starting validation for record:', record.gbl_number, 'with ID:', record.id);
       
       // Get user's organization for translations
       const organizationId = await getUserOrganization();
@@ -17,10 +17,25 @@ export const useRecordValidation = () => {
       const dateErrors = validateDates(record);
       const cubeErrors = validateCubeRequirements(record);
 
+      console.log('Field validation results for', record.gbl_number, ':', {
+        requiredFieldErrors,
+        dateErrors,
+        cubeErrors
+      });
+
       // Perform translation validations
       const { errors: rateAreaErrors, updates: rateAreaUpdates } = await validateAndTranslateRateAreas(record, organizationId);
       const { errors: portErrors, updates: portUpdates } = await validateAndTranslatePorts(record, organizationId);
       const { errors: tspErrors, updates: tspUpdates } = await validateAndFindTsp(record, organizationId);
+
+      console.log('Translation validation results for', record.gbl_number, ':', {
+        rateAreaErrors,
+        portErrors,
+        tspErrors,
+        rateAreaUpdates,
+        portUpdates,
+        tspUpdates
+      });
 
       // Combine all errors and updates
       const allErrors = [
@@ -38,23 +53,30 @@ export const useRecordValidation = () => {
         ...tspUpdates
       };
 
-      console.log(`Validation complete for ${record.gbl_number}. Errors: ${allErrors.length}, Updates:`, allUpdates);
+      const finalStatus = allErrors.length === 0 ? 'valid' : 'invalid';
 
-      // Update record
+      console.log(`Validation complete for ${record.gbl_number}. Status: ${finalStatus}, Errors: ${allErrors.length}, Updates:`, allUpdates);
+
+      // Update record with final status and results
       await updateStagingRecord(
         record.id,
         allUpdates,
-        allErrors.length === 0 ? 'valid' : 'invalid',
+        finalStatus,
         allErrors
       );
 
-      console.log(`Record ${record.gbl_number} updated successfully`);
+      console.log(`Record ${record.gbl_number} updated successfully with status: ${finalStatus}`);
 
     } catch (error: any) {
       console.error('Validation error for record', record.gbl_number, ':', error);
       const errors = [`Validation failed: ${error.message || 'System error'}`];
       
-      await markRecordAsInvalid(record.id, errors);
+      try {
+        await markRecordAsInvalid(record.id, errors);
+        console.log(`Record ${record.gbl_number} marked as invalid due to validation error`);
+      } catch (markError) {
+        console.error('Failed to mark record as invalid:', markError);
+      }
     }
   };
 

@@ -513,7 +513,7 @@ export type Database = {
           raw_scac_code: string | null
           rdd: string
           remaining_cube: number | null
-          shipment_type: Database["public"]["Enums"]["shipment_type"]
+          shipment_type: Database["public"]["Enums"]["shipment_type"] | null
           shipper_last_name: string
           target_pod_id: string | null
           target_poe_id: string | null
@@ -541,7 +541,7 @@ export type Database = {
           raw_scac_code?: string | null
           rdd: string
           remaining_cube?: number | null
-          shipment_type: Database["public"]["Enums"]["shipment_type"]
+          shipment_type?: Database["public"]["Enums"]["shipment_type"] | null
           shipper_last_name: string
           target_pod_id?: string | null
           target_poe_id?: string | null
@@ -569,7 +569,7 @@ export type Database = {
           raw_scac_code?: string | null
           rdd?: string
           remaining_cube?: number | null
-          shipment_type?: Database["public"]["Enums"]["shipment_type"]
+          shipment_type?: Database["public"]["Enums"]["shipment_type"] | null
           shipper_last_name?: string
           target_pod_id?: string | null
           target_poe_id?: string | null

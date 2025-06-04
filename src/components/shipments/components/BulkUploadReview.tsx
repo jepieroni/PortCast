@@ -106,25 +106,33 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     console.log('Updating staging record with new data:', updatedData);
     
     try {
+      // Map form field names to staging table column names
+      const mappedData = {
+        gbl_number: updatedData.gblNumber || updatedData.gbl_number,
+        shipper_last_name: updatedData.shipperLastName || updatedData.shipper_last_name,
+        shipment_type: updatedData.shipmentType || updatedData.shipment_type,
+        pickup_date: updatedData.pickupDate || updatedData.pickup_date,
+        rdd: updatedData.rdd,
+        estimated_cube: updatedData.estimatedCube ? parseInt(updatedData.estimatedCube) : null,
+        actual_cube: updatedData.actualCube ? parseInt(updatedData.actualCube) : null,
+        remaining_cube: updatedData.remainingCube ? parseInt(updatedData.remainingCube) : null,
+        raw_origin_rate_area: updatedData.originRateArea || updatedData.origin_rate_area,
+        raw_destination_rate_area: updatedData.destinationRateArea || updatedData.destination_rate_area,
+        // For ports and TSP, we need to get the actual codes/names, not just IDs
+        raw_poe_code: updatedData.targetPoeId || updatedData.raw_poe_code,
+        raw_pod_code: updatedData.targetPodId || updatedData.raw_pod_code,
+        raw_scac_code: updatedData.tspId || updatedData.raw_scac_code,
+        validation_status: 'pending', // Reset to pending to trigger re-validation
+        validation_errors: [],
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Mapped data for staging update:', mappedData);
+
       // Update the staging record with new values
       const { error: updateError } = await supabase
         .from('shipment_uploads_staging')
-        .update({
-          gbl_number: updatedData.gblNumber,
-          shipper_last_name: updatedData.shipperLastName,
-          shipment_type: updatedData.shipmentType,
-          pickup_date: updatedData.pickupDate,
-          rdd: updatedData.rdd,
-          estimated_cube: updatedData.estimatedCube,
-          actual_cube: updatedData.actualCube,
-          raw_origin_rate_area: updatedData.originRateArea,
-          raw_destination_rate_area: updatedData.destinationRateArea,
-          raw_poe_code: updatedData.targetPoeId,
-          raw_pod_code: updatedData.targetPodId,
-          raw_scac_code: updatedData.tspId,
-          validation_status: 'pending',
-          updated_at: new Date().toISOString()
-        })
+        .update(mappedData)
         .eq('id', editingRecord.id);
 
       if (updateError) throw updateError;
@@ -135,17 +143,25 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       // Close the edit dialog
       setEditingRecord(null);
 
-      // Refresh data to trigger re-validation
+      // Refresh data to get updated record
       await refreshData();
 
-      // Remove from validating set after a delay (validation should complete by then)
-      setTimeout(() => {
-        setValidatingRecords(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(editingRecord.id);
-          return newSet;
-        });
-      }, 3000);
+      // Trigger validation for the specific record after a short delay
+      setTimeout(async () => {
+        try {
+          console.log('Triggering validation for updated record:', editingRecord.gbl_number);
+          await validateAllRecords();
+        } catch (error) {
+          console.error('Error during validation:', error);
+        } finally {
+          // Remove from validating set
+          setValidatingRecords(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(editingRecord.id);
+            return newSet;
+          });
+        }
+      }, 500);
 
       toast({
         title: "Record updated",
@@ -154,6 +170,14 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
 
     } catch (error: any) {
       console.error('Error updating staging record:', error);
+      
+      // Remove from validating set on error
+      setValidatingRecords(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(editingRecord.id);
+        return newSet;
+      });
+      
       toast({
         title: "Error",
         description: error.message || "Failed to update record",

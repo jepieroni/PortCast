@@ -29,6 +29,8 @@ export const updateStagingRecord = async (
   validationStatus: 'valid' | 'invalid', 
   validationErrors: string[]
 ): Promise<void> => {
+  console.log('Updating staging record:', recordId, 'with status:', validationStatus, 'and updates:', updates);
+  
   const { error: updateError } = await supabase
     .from('shipment_uploads_staging')
     .update({
@@ -40,16 +42,20 @@ export const updateStagingRecord = async (
     .eq('id', recordId);
 
   if (updateError) {
-    console.error('Update error:', updateError);
+    console.error('Update error for record', recordId, ':', updateError);
     throw updateError;
   }
+  
+  console.log('Successfully updated staging record:', recordId, 'with status:', validationStatus);
 };
 
 export const markRecordAsInvalid = async (
   recordId: string, 
   errors: string[]
 ): Promise<void> => {
-  await supabase
+  console.log('Marking record as invalid:', recordId, 'with errors:', errors);
+  
+  const { error } = await supabase
     .from('shipment_uploads_staging')
     .update({
       validation_status: 'invalid',
@@ -57,4 +63,11 @@ export const markRecordAsInvalid = async (
       updated_at: new Date().toISOString()
     })
     .eq('id', recordId);
+    
+  if (error) {
+    console.error('Error marking record as invalid:', error);
+    throw error;
+  }
+  
+  console.log('Successfully marked record as invalid:', recordId);
 };
