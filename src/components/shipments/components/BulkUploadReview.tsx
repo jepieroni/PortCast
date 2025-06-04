@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
@@ -183,11 +184,20 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       // Close the edit dialog
       setEditingRecord(null);
 
-      console.log('Record updated, triggering immediate refresh and validation');
+      console.log('Record updated, forcing complete data refresh and validation');
 
-      // Trigger immediate validation of all records which will include the updated one
+      // Force a complete refresh and validation
       try {
+        // First refresh the data to get the updated record
+        await refreshData();
+        
+        // Wait a bit longer to ensure the data is fully refreshed
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Now validate all records with the fresh data
+        console.log('Triggering validation after data refresh');
         await validateAllRecords();
+        
         console.log('Validation completed for updated record');
       } catch (error) {
         console.error('Error during validation:', error);
