@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { parseDateString } from './utils/dateParser';
@@ -15,7 +16,7 @@ export const useDateInputs = (
   const [rddInputValue, setRddInputValue] = useState('');
 
   const initializeDateInputs = useCallback((newFormData: ShipmentEditFormData) => {
-    // Ensure we preserve the actual date values from the form data
+    // Format the dates for display, ensuring we preserve the original values
     const pickupFormatted = newFormData.pickup_date ? formatDateForInput(newFormData.pickup_date) : '';
     const rddFormatted = newFormData.rdd ? formatDateForInput(newFormData.rdd) : '';
     
@@ -71,8 +72,8 @@ export const useDateInputs = (
       const isoDate = parsedDate.toISOString().split('T')[0];
       setFormData(prev => ({ ...prev, [field]: isoDate }));
       
-      // Update input to show formatted version
-      const formatted = format(parsedDate, 'MM/dd/yy');
+      // Update input to show formatted version using our corrected formatter
+      const formatted = formatDateForInput(isoDate);
       if (field === 'pickup_date') {
         setPickupInputValue(formatted);
       } else if (field === 'rdd') {
@@ -89,8 +90,8 @@ export const useDateInputs = (
       const isoDate = date.toISOString().split('T')[0];
       setFormData(prev => ({ ...prev, [field]: isoDate }));
       
-      // Update input value to show formatted date
-      const formatted = format(date, 'MM/dd/yy');
+      // Update input value to show formatted date using our corrected formatter
+      const formatted = formatDateForInput(isoDate);
       if (field === 'pickup_date') {
         setPickupInputValue(formatted);
       } else if (field === 'rdd') {
