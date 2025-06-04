@@ -51,26 +51,28 @@ export const ShipmentEditForm = ({
     
     return validationErrors.some(error => {
       const errorLower = error.toLowerCase();
-      const fieldLower = field.toLowerCase();
       
-      // Map form field names to potential error keywords
+      // Comprehensive field mappings to catch various error message patterns
       const fieldMappings: Record<string, string[]> = {
-        'gbl_number': ['gbl', 'number'],
-        'shipper_last_name': ['shipper', 'last name'],
-        'shipment_type': ['shipment type', 'type'],
-        'pickup_date': ['pickup', 'date'],
-        'rdd': ['rdd', 'delivery'],
-        'origin_rate_area': ['origin', 'rate area'],
-        'destination_rate_area': ['destination', 'rate area'],
-        'target_poe_id': ['poe', 'port of embarkation'],
-        'target_pod_id': ['pod', 'port of debarkation'],
-        'tsp_id': ['tsp', 'scac'],
-        'estimated_cube': ['estimated', 'cube'],
-        'actual_cube': ['actual', 'cube']
+        'gbl_number': ['gbl', 'number', 'gbl number'],
+        'shipper_last_name': ['shipper', 'last name', 'shipper last name'],
+        'shipment_type': ['shipment type', 'type', 'shipment_type'],
+        'pickup_date': ['pickup', 'pickup date', 'pickup_date', 'pick up', 'pick-up'],
+        'rdd': ['rdd', 'delivery', 'required delivery', 'delivery date', 'required delivery date'],
+        'origin_rate_area': ['origin', 'origin rate', 'origin rate area', 'origin_rate_area'],
+        'destination_rate_area': ['destination', 'destination rate', 'destination rate area', 'destination_rate_area'],
+        'target_poe_id': ['poe', 'port of embarkation', 'embarkation', 'origin port'],
+        'target_pod_id': ['pod', 'port of debarkation', 'debarkation', 'destination port'],
+        'tsp_id': ['tsp', 'scac', 'transport', 'carrier'],
+        'estimated_cube': ['estimated', 'estimated cube', 'cube'],
+        'actual_cube': ['actual', 'actual cube', 'cube']
       };
       
-      const keywords = fieldMappings[fieldLower] || [fieldLower];
-      return keywords.some(keyword => errorLower.includes(keyword));
+      const keywords = fieldMappings[field.toLowerCase()] || [field.toLowerCase()];
+      return keywords.some(keyword => {
+        // Check if the keyword appears in the error message
+        return errorLower.includes(keyword);
+      });
     });
   };
 
@@ -78,6 +80,9 @@ export const ShipmentEditForm = ({
     isInitialized,
     formData: {
       gbl_number: formData.gbl_number,
+      shipment_type: formData.shipment_type,
+      pickup_date: formData.pickup_date,
+      rdd: formData.rdd,
       origin_rate_area: formData.origin_rate_area,
       destination_rate_area: formData.destination_rate_area,
       tsp_id: formData.tsp_id,
@@ -85,6 +90,27 @@ export const ShipmentEditForm = ({
       target_pod_id: formData.target_pod_id
     }
   });
+
+  // Debug error highlighting
+  if (isFixingErrors && validationErrors.length > 0) {
+    console.log('ShipmentEditForm - Error highlighting debug:', {
+      validationErrors,
+      fieldErrorStates: {
+        gbl_number: hasFieldError('gbl_number'),
+        shipper_last_name: hasFieldError('shipper_last_name'),
+        shipment_type: hasFieldError('shipment_type'),
+        pickup_date: hasFieldError('pickup_date'),
+        rdd: hasFieldError('rdd'),
+        origin_rate_area: hasFieldError('origin_rate_area'),
+        destination_rate_area: hasFieldError('destination_rate_area'),
+        target_poe_id: hasFieldError('target_poe_id'),
+        target_pod_id: hasFieldError('target_pod_id'),
+        tsp_id: hasFieldError('tsp_id'),
+        estimated_cube: hasFieldError('estimated_cube'),
+        actual_cube: hasFieldError('actual_cube')
+      }
+    });
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

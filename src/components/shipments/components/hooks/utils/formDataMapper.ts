@@ -35,14 +35,30 @@ export const createInitialFormData = (): ShipmentEditFormData => ({
 });
 
 export const mapShipmentToFormData = (shipment: any): ShipmentEditFormData => {
-  if (!shipment) return createInitialFormData();
+  if (!shipment) {
+    console.log('mapShipmentToFormData - No shipment provided, returning initial data');
+    return createInitialFormData();
+  }
 
-  return {
+  console.log('mapShipmentToFormData - Input shipment data:', {
+    gbl_number: shipment.gbl_number,
+    pickup_date: shipment.pickup_date,
+    rdd: shipment.rdd,
+    shipment_type: shipment.shipment_type,
+    origin_rate_area: shipment.origin_rate_area,
+    destination_rate_area: shipment.destination_rate_area,
+    raw_origin_rate_area: shipment.raw_origin_rate_area,
+    raw_destination_rate_area: shipment.raw_destination_rate_area
+  });
+
+  const mappedData = {
     gbl_number: shipment.gbl_number || '',
     shipper_last_name: shipment.shipper_last_name || '',
     shipment_type: shipment.shipment_type || '',
-    origin_rate_area: shipment.origin_rate_area || '',
-    destination_rate_area: shipment.destination_rate_area || '',
+    // Use the processed rate areas first, fall back to raw values if needed
+    origin_rate_area: shipment.origin_rate_area || shipment.raw_origin_rate_area || '',
+    destination_rate_area: shipment.destination_rate_area || shipment.raw_destination_rate_area || '',
+    // Ensure date fields are preserved exactly as they are
     pickup_date: shipment.pickup_date || '',
     rdd: shipment.rdd || '',
     estimated_cube: shipment.estimated_cube?.toString() || '',
@@ -52,4 +68,7 @@ export const mapShipmentToFormData = (shipment: any): ShipmentEditFormData => {
     target_pod_id: shipment.target_pod_id || '',
     tsp_id: shipment.tsp_id || '',
   };
+
+  console.log('mapShipmentToFormData - Mapped form data:', mappedData);
+  return mappedData;
 };

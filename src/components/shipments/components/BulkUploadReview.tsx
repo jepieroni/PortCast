@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
@@ -103,6 +104,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     if (!editingRecord) return;
 
     console.log('Updating staging record with new data:', updatedData);
+    console.log('Original record data:', editingRecord);
     
     try {
       // Helper function to safely parse integer values
@@ -126,32 +128,34 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         return tsp ? tsp.scac_code : tspId; // fallback to original value if not found
       };
 
-      // Comprehensive field mapping - checking all possible form field names
+      // Build the update data by preserving existing values and only updating changed fields
       const mappedData = {
-        // Basic info fields - check both camelCase and snake_case variants
-        gbl_number: updatedData.gbl_number || updatedData.gblNumber || editingRecord.gbl_number,
-        shipper_last_name: updatedData.shipper_last_name || updatedData.shipperLastName || editingRecord.shipper_last_name,
-        shipment_type: updatedData.shipment_type || updatedData.shipmentType || editingRecord.shipment_type,
+        // Basic info fields - preserve existing if not provided in update
+        gbl_number: updatedData.gbl_number || editingRecord.gbl_number,
+        shipper_last_name: updatedData.shipper_last_name || editingRecord.shipper_last_name,
+        shipment_type: updatedData.shipment_type || editingRecord.shipment_type,
         
-        // Date fields - these should already be in correct format from form
-        pickup_date: updatedData.pickup_date || updatedData.pickupDate || editingRecord.pickup_date,
+        // Date fields - CRITICAL: preserve existing values if update is empty/null
+        pickup_date: updatedData.pickup_date || editingRecord.pickup_date,
         rdd: updatedData.rdd || editingRecord.rdd,
         
         // Volume fields - parse all integer variants
-        estimated_cube: parseIntegerValue(updatedData.estimated_cube || updatedData.estimatedCube),
-        actual_cube: parseIntegerValue(updatedData.actual_cube || updatedData.actualCube),
-        remaining_cube: parseIntegerValue(updatedData.remaining_cube || updatedData.remainingCube),
+        estimated_cube: parseIntegerValue(updatedData.estimated_cube) ?? editingRecord.estimated_cube,
+        actual_cube: parseIntegerValue(updatedData.actual_cube) ?? editingRecord.actual_cube,
+        remaining_cube: parseIntegerValue(updatedData.remaining_cube) ?? editingRecord.remaining_cube,
         
-        // Rate areas - check both variants and fall back to existing values
-        raw_origin_rate_area: updatedData.origin_rate_area || updatedData.originRateArea || editingRecord.raw_origin_rate_area,
-        raw_destination_rate_area: updatedData.destination_rate_area || updatedData.destinationRateArea || editingRecord.raw_destination_rate_area,
+        // Rate areas - preserve both raw and processed values
+        raw_origin_rate_area: updatedData.origin_rate_area || editingRecord.raw_origin_rate_area,
+        raw_destination_rate_area: updatedData.destination_rate_area || editingRecord.raw_destination_rate_area,
+        origin_rate_area: updatedData.origin_rate_area || editingRecord.origin_rate_area,
+        destination_rate_area: updatedData.destination_rate_area || editingRecord.destination_rate_area,
         
-        // Port codes - convert IDs back to codes for validation, with comprehensive fallbacks
-        raw_poe_code: getPortCodeFromId(updatedData.target_poe_id || updatedData.targetPoeId) || editingRecord.raw_poe_code,
-        raw_pod_code: getPortCodeFromId(updatedData.target_pod_id || updatedData.targetPodId) || editingRecord.raw_pod_code,
+        // Port codes - convert IDs back to codes for validation, preserve existing if not changed
+        raw_poe_code: getPortCodeFromId(updatedData.target_poe_id) || editingRecord.raw_poe_code,
+        raw_pod_code: getPortCodeFromId(updatedData.target_pod_id) || editingRecord.raw_pod_code,
         
         // SCAC code - convert TSP ID back to SCAC code for validation
-        raw_scac_code: getScacCodeFromTspId(updatedData.tsp_id || updatedData.tspId) || editingRecord.raw_scac_code,
+        raw_scac_code: getScacCodeFromTspId(updatedData.tsp_id) || editingRecord.raw_scac_code,
         
         // Reset validation to trigger re-validation
         validation_status: 'pending',
@@ -160,6 +164,11 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       };
 
       console.log('Comprehensive mapped data for staging update:', mappedData);
+      console.log('Critical field preservation check:', {
+        pickup_date: { original: editingRecord.pickup_date, updated: updatedData.pickup_date, final: mappedData.pickup_date },
+        rdd: { original: editingRecord.rdd, updated: updatedData.rdd, final: mappedData.rdd },
+        shipment_type: { original: editingRecord.shipment_type, updated: updatedData.shipment_type, final: mappedData.shipment_type }
+      });
 
       // Update the staging record with new values
       const { error: updateError } = await supabase

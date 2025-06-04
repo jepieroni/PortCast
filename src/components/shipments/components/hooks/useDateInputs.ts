@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { format } from 'date-fns';
 import { parseDateString } from './utils/dateParser';
@@ -16,12 +15,15 @@ export const useDateInputs = (
   const [rddInputValue, setRddInputValue] = useState('');
 
   const initializeDateInputs = useCallback((newFormData: ShipmentEditFormData) => {
-    const pickupFormatted = formatDateForInput(newFormData.pickup_date);
-    const rddFormatted = formatDateForInput(newFormData.rdd);
+    // Ensure we preserve the actual date values from the form data
+    const pickupFormatted = newFormData.pickup_date ? formatDateForInput(newFormData.pickup_date) : '';
+    const rddFormatted = newFormData.rdd ? formatDateForInput(newFormData.rdd) : '';
     
-    console.log('useDateInputs - Setting date inputs:', {
-      pickup: pickupFormatted,
-      rdd: rddFormatted
+    console.log('useDateInputs - Initializing date inputs:', {
+      pickup_date_raw: newFormData.pickup_date,
+      pickup_formatted: pickupFormatted,
+      rdd_raw: newFormData.rdd,
+      rdd_formatted: rddFormatted
     });
     
     setPickupInputValue(pickupFormatted);
@@ -38,14 +40,22 @@ export const useDateInputs = (
       setRddInputValue(value);
     }
 
+    // If empty, clear the form data field
     if (value === '') {
       setFormData(prev => ({ ...prev, [field]: '' }));
       return;
     }
     
+    // Try to parse the date and update form data if valid
     const parsedDate = parseDateString(value);
     if (parsedDate) {
-      setFormData(prev => ({ ...prev, [field]: parsedDate.toISOString().split('T')[0] }));
+      const isoDate = parsedDate.toISOString().split('T')[0];
+      console.log(`useDateInputs - Parsed date for ${field}:`, isoDate);
+      setFormData(prev => ({ ...prev, [field]: isoDate }));
+    } else {
+      // If parsing fails, still update the form data with the raw value
+      // This prevents data loss when the user is typing
+      setFormData(prev => ({ ...prev, [field]: value }));
     }
   }, [setFormData]);
 
@@ -69,6 +79,7 @@ export const useDateInputs = (
         setRddInputValue(formatted);
       }
     }
+    // If parsing fails, keep the current value as-is to prevent data loss
   }, [setFormData, pickupInputValue, rddInputValue]);
 
   const handleDateSelect = useCallback((field: string, date: Date | undefined) => {
