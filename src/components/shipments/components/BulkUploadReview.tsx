@@ -184,14 +184,17 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       // Close the edit dialog
       setEditingRecord(null);
 
-      // Refresh data to get updated record
-      await refreshData();
+      console.log('Record updated, starting refresh and validation sequence');
 
-      // Trigger validation for the specific record after a short delay
+      // Wait for data refresh to complete before triggering validation
+      await refreshData();
+      
+      // Add a longer delay to ensure the refresh is complete
       setTimeout(async () => {
         try {
           console.log('Triggering validation for updated record:', editingRecord.gbl_number);
           await validateAllRecords();
+          console.log('Validation completed for updated record');
         } catch (error) {
           console.error('Error during validation:', error);
         } finally {
@@ -202,7 +205,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
             return newSet;
           });
         }
-      }, 500);
+      }, 1000); // Increased delay to 1 second
 
       toast({
         title: "Record updated",
