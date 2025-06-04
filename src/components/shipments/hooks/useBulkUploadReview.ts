@@ -25,6 +25,13 @@ export const useBulkUploadReview = (uploadSessionId: string) => {
   }, [processValidShipments, stagingData]);
 
   const handleValidateAllRecords = useCallback(async () => {
+    // Always get fresh data before validation
+    await refreshData();
+    // Add a small delay to ensure the refresh is complete
+    await new Promise(resolve => setTimeout(resolve, 200));
+    // Get the fresh staging data after refresh
+    const freshStagingData = await refreshData();
+    console.log('Validating with fresh staging data, count:', freshStagingData?.length || 'unknown');
     return await validateAllRecords(stagingData, refreshData);
   }, [validateAllRecords, stagingData, refreshData]);
 

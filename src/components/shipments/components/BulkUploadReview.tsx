@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
@@ -184,32 +183,26 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       // Close the edit dialog
       setEditingRecord(null);
 
-      console.log('Record updated, starting refresh and validation sequence');
+      console.log('Record updated, triggering immediate refresh and validation');
 
-      // Wait for data refresh to complete before triggering validation
-      await refreshData();
-      
-      // Add a longer delay to ensure the refresh is complete
-      setTimeout(async () => {
-        try {
-          console.log('Triggering validation for updated record:', editingRecord.gbl_number);
-          await validateAllRecords();
-          console.log('Validation completed for updated record');
-        } catch (error) {
-          console.error('Error during validation:', error);
-        } finally {
-          // Remove from validating set
-          setValidatingRecords(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(editingRecord.id);
-            return newSet;
-          });
-        }
-      }, 1000); // Increased delay to 1 second
+      // Trigger immediate validation of all records which will include the updated one
+      try {
+        await validateAllRecords();
+        console.log('Validation completed for updated record');
+      } catch (error) {
+        console.error('Error during validation:', error);
+      } finally {
+        // Remove from validating set
+        setValidatingRecords(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(editingRecord.id);
+          return newSet;
+        });
+      }
 
       toast({
         title: "Record updated",
-        description: "Validation will run automatically"
+        description: "Validation completed"
       });
 
     } catch (error: any) {
