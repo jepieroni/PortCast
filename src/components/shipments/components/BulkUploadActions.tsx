@@ -1,35 +1,24 @@
 
 import { Button } from '@/components/ui/button';
 
-interface ReviewActionButtonsProps {
+interface BulkUploadActionsProps {
   validationSummary: {
     valid: number;
     invalid: number;
     pending: number;
   };
-  isValidating: boolean;
   isProcessing: boolean;
-  onValidateAll: () => void;
   onProcessShipments: () => void;
 }
 
-const ReviewActionButtons = ({
+const BulkUploadActions = ({
   validationSummary,
-  isValidating,
   isProcessing,
-  onValidateAll,
   onProcessShipments
-}: ReviewActionButtonsProps) => {
+}: BulkUploadActionsProps) => {
   return (
-    <div className="flex justify-center gap-4 pt-4">
-      <Button 
-        variant="outline" 
-        onClick={onValidateAll}
-        disabled={isValidating}
-      >
-        Re-validate All
-      </Button>
-      <Button 
+    <div className="flex justify-end gap-4">
+      <Button
         onClick={onProcessShipments}
         disabled={validationSummary.valid === 0 || isProcessing}
         className="bg-green-600 hover:bg-green-700"
@@ -40,4 +29,4 @@ const ReviewActionButtons = ({
   );
 };
 
-export default ReviewActionButtons;
+export default BulkUploadActions;

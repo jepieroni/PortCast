@@ -1,6 +1,5 @@
+
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
 import TranslationMappingDialog from './TranslationMappingDialog';
@@ -8,20 +7,11 @@ import NewRateAreaDialog from './NewRateAreaDialog';
 import AddPortFromReviewDialog from './AddPortFromReviewDialog';
 import ValidationSummaryCards from './ValidationSummaryCards';
 import SimplifiedReviewTable from './SimplifiedReviewTable';
-import ReviewActionButtons from './ReviewActionButtons';
+import BulkUploadHeader from './BulkUploadHeader';
+import BulkUploadActions from './BulkUploadActions';
+import ShipmentEditModal from './ShipmentEditModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 
 interface BulkUploadReviewProps {
   uploadSessionId: string;
@@ -129,9 +119,9 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
           actual_cube: updatedData.actualCube,
           raw_origin_rate_area: updatedData.originRateArea,
           raw_destination_rate_area: updatedData.destinationRateArea,
-          raw_poe_code: updatedData.targetPoeId, // Note: these might need port code lookup
-          raw_pod_code: updatedData.targetPodId, // Note: these might need port code lookup
-          raw_scac_code: updatedData.tspId, // Note: this might need SCAC code lookup
+          raw_poe_code: updatedData.targetPoeId,
+          raw_pod_code: updatedData.targetPodId,
+          raw_scac_code: updatedData.tspId,
           validation_status: 'pending',
           updated_at: new Date().toISOString()
         })
@@ -185,16 +175,6 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }
   };
 
-  const hasValidShipments = validationSummary.valid > 0;
-
-  const handleBackClick = () => {
-    // If there are valid shipments, the AlertDialog will handle this
-    // Otherwise, go back directly
-    if (!hasValidShipments) {
-      onBack();
-    }
-  };
-
   if (isValidating && !hasRunInitialValidation) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -208,95 +188,32 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {hasValidShipments ? (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline">
-                  <ArrowLeft size={16} className="mr-2" />
-                  Back to Upload
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="max-w-2xl">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Leave Upload Review?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You have {validationSummary.valid} validated shipment{validationSummary.valid !== 1 ? 's' : ''} ready to be processed. 
-                    If you go back now, you'll lose this progress and need to upload again.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <AlertDialogCancel className="w-full sm:w-auto">Stay on Page</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleProcessShipments}
-                    disabled={isProcessing}
-                    className="bg-green-600 hover:bg-green-700 w-full sm:w-auto"
-                  >
-                    {isProcessing ? 'Processing...' : `Process ${validationSummary.valid} Shipments`}
-                  </AlertDialogAction>
-                  <AlertDialogAction
-                    onClick={onBack}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto"
-                  >
-                    Leave Without Processing
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          ) : (
-            <Button variant="outline" onClick={handleBackClick}>
-              <ArrowLeft size={16} className="mr-2" />
-              Back to Upload
-            </Button>
-          )}
-          <h2 className="text-2xl font-bold">Review Upload</h2>
-        </div>
-      </div>
+      <BulkUploadHeader
+        validationSummary={validationSummary}
+        isProcessing={isProcessing}
+        onBack={onBack}
+        onProcessShipments={handleProcessShipments}
+      />
 
-      {/* Summary Cards */}
       <ValidationSummaryCards validationSummary={validationSummary} />
 
-      {/* Simplified Data Table */}
       <SimplifiedReviewTable
         stagingData={stagingData}
         validatingRecords={validatingRecords}
         onViewEditClick={handleViewEditClick}
       />
 
-      {/* Action Buttons - Remove the "Re-validate All" button */}
-      <div className="flex justify-end gap-4">
-        <Button
-          onClick={handleProcessShipments}
-          disabled={validationSummary.valid === 0 || isProcessing}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          {isProcessing ? 'Processing...' : `Process ${validationSummary.valid} Valid Shipments`}
-        </Button>
-      </div>
+      <BulkUploadActions
+        validationSummary={validationSummary}
+        isProcessing={isProcessing}
+        onProcessShipments={handleProcessShipments}
+      />
 
-      {/* Edit Record Dialog - We'll need to create this component */}
-      {editingRecord && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold mb-4">
-              {editingRecord.validation_status === 'invalid' ? 'Fix Errors' : 'Edit Details'} - {editingRecord.gbl_number}
-            </h3>
-            {/* TODO: This should be the ShipmentEditForm component with proper error highlighting */}
-            <div className="flex justify-end gap-4 mt-6">
-              <Button variant="outline" onClick={() => setEditingRecord(null)}>
-                Cancel
-              </Button>
-              <Button onClick={() => {
-                // TODO: Call handleEditComplete with form data
-                setEditingRecord(null);
-              }}>
-                Update Shipment
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ShipmentEditModal
+        editingRecord={editingRecord}
+        onEditComplete={handleEditComplete}
+        onCancel={() => setEditingRecord(null)}
+      />
 
       <TranslationMappingDialog
         isOpen={showTranslationDialog}
