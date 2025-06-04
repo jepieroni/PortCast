@@ -51,9 +51,9 @@ export const BasicFields = ({ formData, rateAreas, onInputChange, hasFieldError 
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="inbound">Inbound (OCONUS to CONUS)</SelectItem>
-            <SelectItem value="outbound">Outbound (CONUS to OCONUS)</SelectItem>
-            <SelectItem value="intertheater">Intertheater (OCONUS to OCONUS)</SelectItem>
+            <SelectItem value="inbound">inbound</SelectItem>
+            <SelectItem value="outbound">outbound</SelectItem>
+            <SelectItem value="intertheater">intertheater</SelectItem>
           </SelectContent>
         </Select>
       </div>
