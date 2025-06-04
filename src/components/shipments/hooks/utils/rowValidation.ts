@@ -1,4 +1,3 @@
-
 import { mapShipmentType, parseAndValidateDate, parseAndValidateCube, validateCubeLogic } from './shipmentValidation';
 import type { ParsedRow } from './csvParser';
 
@@ -13,13 +12,16 @@ export const validateRow = (row: ParsedRow): ParsedRow => {
     row._validation_errors.push('Shipper last name is required');
   }
 
-  // Validate and map shipment type - Handle empty/blank values properly
+  // Validate and map shipment type - Keep original value if invalid to avoid null constraint violation
   const shipmentTypeResult = mapShipmentType(row.shipment_type || '');
   if (!shipmentTypeResult.isValid) {
     row._validation_errors.push('Invalid or missing shipment type. Use I/O/T or inbound/outbound/intertheater');
+    // Keep the original invalid value to avoid database constraint violation
+    // The staging record will be marked as invalid anyway due to validation errors
+  } else {
+    // Only update if valid
+    row.shipment_type = shipmentTypeResult.mappedType;
   }
-  // Always set to the mapped type OR null (never empty string for enum field)
-  row.shipment_type = shipmentTypeResult.mappedType;
 
   // Validate required text fields
   const requiredTextFields = [

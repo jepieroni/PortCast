@@ -2,14 +2,22 @@
 import type { ParsedRow } from './csvParser';
 
 export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, organizationId: string, userId: string) => {
+  // For shipment_type, use a default value if it's invalid to avoid constraint violation
+  // The validation_status will be 'invalid' anyway if there are validation errors
+  let shipmentType = row.shipment_type;
+  if (!shipmentType || (typeof shipmentType === 'string' && ['inbound', 'outbound', 'intertheater'].indexOf(shipmentType) === -1)) {
+    // Use 'inbound' as a safe default to avoid constraint violation
+    // The record will still be marked as invalid due to validation errors
+    shipmentType = 'inbound';
+  }
+
   return {
     upload_session_id: uploadSessionId,
     organization_id: organizationId,
     user_id: userId,
     gbl_number: row.gbl_number || '',
     shipper_last_name: row.shipper_last_name || '',
-    // Only set shipment_type if it's valid, otherwise leave null
-    shipment_type: row.shipment_type, // This will be null for invalid types
+    shipment_type: shipmentType,
     origin_rate_area: '',  // Will be populated during validation
     destination_rate_area: '', // Will be populated during validation
     pickup_date: row.parsed_pickup_date, // Use parsed date or null
