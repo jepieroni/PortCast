@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import EditableField from './EditableField';
 
 interface ShipmentReviewTableProps {
@@ -47,13 +47,33 @@ const ShipmentReviewTable = ({
     return [];
   };
 
-  const getStatusBadge = (status: string, validationErrors: any) => {
+  const getStatusBadge = (status: string, validationErrors: any, recordId: string) => {
+    // Show loading badge if record is currently being validated
+    if (validatingRecords.has(recordId)) {
+      return (
+        <Badge variant="secondary" className="animate-pulse">
+          <Loader2 size={12} className="animate-spin mr-1" />
+          Validating...
+        </Badge>
+      );
+    }
+
+    // Show loading badge for pending records that haven't been validated yet
+    if (status === 'pending') {
+      return (
+        <Badge variant="secondary" className="animate-pulse">
+          <Loader2 size={12} className="animate-spin mr-1" />
+          Pending
+        </Badge>
+      );
+    }
+
     if (status === 'valid') {
       return <Badge className="bg-green-100 text-green-800">Valid</Badge>;
     } else if (status === 'invalid') {
       return <Badge variant="destructive">Invalid</Badge>;
     } else {
-      return <Badge variant="secondary">Pending</Badge>;
+      return <Badge variant="secondary">Unknown</Badge>;
     }
   };
 
@@ -87,7 +107,7 @@ const ShipmentReviewTable = ({
                 return (
                   <TableRow key={record.id}>
                     <TableCell>
-                      {getStatusBadge(record.validation_status, record.validation_errors)}
+                      {getStatusBadge(record.validation_status, record.validation_errors, record.id)}
                     </TableCell>
                     <TableCell>
                       <EditableField
