@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadReview } from '../hooks/useBulkUploadReview';
@@ -11,6 +12,7 @@ import BulkUploadActions from './BulkUploadActions';
 import ShipmentEditModal from './ShipmentEditModal';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useRecordValidation } from '../hooks/useRecordValidation';
 
 interface BulkUploadReviewProps {
   uploadSessionId: string;
@@ -29,6 +31,8 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
   const [hasRunInitialValidation, setHasRunInitialValidation] = useState(false);
   const [validatingRecords, setValidatingRecords] = useState<Set<string>>(new Set());
   const [editingRecord, setEditingRecord] = useState<any>(null);
+
+  const { validateRecord } = useRecordValidation();
 
   const {
     stagingData,
@@ -162,12 +166,7 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
         updated_at: new Date().toISOString()
       };
 
-      console.log('Comprehensive mapped data for staging update:', mappedData);
-      console.log('Critical field preservation check:', {
-        pickup_date: { original: editingRecord.pickup_date, updated: updatedData.pickup_date, final: mappedData.pickup_date },
-        rdd: { original: editingRecord.rdd, updated: updatedData.rdd, final: mappedData.rdd },
-        shipment_type: { original: editingRecord.shipment_type, updated: updatedData.shipment_type, final: mappedData.shipment_type }
-      });
+      console.log('Updating staging record with mapped data:', mappedData);
 
       // Update the staging record with new values
       const { error: updateError } = await supabase
@@ -183,25 +182,32 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
       // Close the edit dialog
       setEditingRecord(null);
 
-      console.log('Record updated, now refreshing data and validating');
+      console.log('Record updated, now validating ONLY this record');
 
-      // Force a complete refresh and validation with simpler approach
       try {
         // First refresh the data to get the updated record
         console.log('Starting data refresh...');
         await refreshData();
         
         // Wait a bit to ensure the React Query cache is updated
-        console.log('Waiting for data to fully refresh...');
-        await new Promise(resolve => setTimeout(resolve, 800));
+        console.log('Waiting for data to refresh...');
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Now validate using the existing validateAllRecords function
-        console.log('Triggering validation with existing function...');
-        await validateAllRecords();
+        // Get the updated record from staging data
+        const updatedRecord = stagingData.find(r => r.id === editingRecord.id);
+        if (updatedRecord) {
+          console.log('Validating only the updated record:', updatedRecord.gbl_number);
+          await validateRecord(updatedRecord);
+          console.log('Single record validation completed');
+          
+          // Refresh data one more time to get the validation results
+          await refreshData();
+        } else {
+          console.warn('Could not find updated record for validation');
+        }
         
-        console.log('Validation completed successfully');
       } catch (error) {
-        console.error('Error during validation:', error);
+        console.error('Error during single record validation:', error);
       } finally {
         // Remove from validating set
         setValidatingRecords(prev => {
