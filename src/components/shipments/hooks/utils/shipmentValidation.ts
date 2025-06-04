@@ -16,7 +16,11 @@ export const mapShipmentType = (type: string): { mappedType: string | null; isVa
     't': 'intertheater',
     'inbound': 'inbound',
     'outbound': 'outbound',
-    'intertheater': 'intertheater'
+    'intertheater': 'intertheater',
+    // Also accept capitalized versions from UI
+    'Inbound': 'inbound',
+    'Outbound': 'outbound',
+    'Intertheater': 'intertheater'
   };
   
   const mappedType = typeMap[cleanType];
