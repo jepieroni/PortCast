@@ -49,11 +49,14 @@ export const useDateInputs = (
     }
   }, [setFormData]);
 
-  const handleDateInputBlur = useCallback((field: string, value: string) => {
-    console.log(`useDateInputs - handleDateInputBlur: ${field} = "${value}"`);
+  const handleDateInputBlur = useCallback((field: string) => {
+    console.log(`useDateInputs - handleDateInputBlur: ${field}`);
+    
+    // Get the current input value for the field
+    const currentValue = field === 'pickup_date' ? pickupInputValue : rddInputValue;
     
     // On blur, try to parse and format the date
-    const parsedDate = parseDateString(value);
+    const parsedDate = parseDateString(currentValue);
     if (parsedDate) {
       const isoDate = parsedDate.toISOString().split('T')[0];
       setFormData(prev => ({ ...prev, [field]: isoDate }));
@@ -66,7 +69,7 @@ export const useDateInputs = (
         setRddInputValue(formatted);
       }
     }
-  }, [setFormData]);
+  }, [setFormData, pickupInputValue, rddInputValue]);
 
   const handleDateSelect = useCallback((field: string, date: Date | undefined) => {
     console.log(`useDateInputs - handleDateSelect: ${field}`, date);
