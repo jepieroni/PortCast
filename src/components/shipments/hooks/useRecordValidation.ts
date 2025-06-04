@@ -18,18 +18,7 @@ export const useRecordValidation = () => {
         : [];
       console.log('Existing duplicate errors for', record.gbl_number, ':', existingErrors);
 
-      // Perform field validations
-      const requiredFieldErrors = validateRequiredFields(record);
-      const dateErrors = validateDates(record);
-      const cubeErrors = validateCubeRequirements(record);
-
-      console.log('Field validation results for', record.gbl_number, ':', {
-        requiredFieldErrors,
-        dateErrors,
-        cubeErrors
-      });
-
-      // Perform translation validations
+      // Perform translation validations first to get updated data
       const { errors: rateAreaErrors, updates: rateAreaUpdates } = await validateAndTranslateRateAreas(record, organizationId);
       const { errors: portErrors, updates: portUpdates } = await validateAndTranslatePorts(record, organizationId);
       const { errors: tspErrors, updates: tspUpdates } = await validateAndFindTsp(record, organizationId);
@@ -41,6 +30,32 @@ export const useRecordValidation = () => {
         rateAreaUpdates,
         portUpdates,
         tspUpdates
+      });
+
+      // Create updated record with translation results for field validation
+      const updatedRecord = {
+        ...record,
+        ...rateAreaUpdates,
+        ...portUpdates,
+        ...tspUpdates
+      };
+
+      console.log('Updated record for field validation:', {
+        gbl_number: updatedRecord.gbl_number,
+        shipment_type: updatedRecord.shipment_type,
+        origin_rate_area: updatedRecord.origin_rate_area,
+        destination_rate_area: updatedRecord.destination_rate_area
+      });
+
+      // Perform field validations on the updated record
+      const requiredFieldErrors = validateRequiredFields(updatedRecord);
+      const dateErrors = validateDates(updatedRecord);
+      const cubeErrors = validateCubeRequirements(updatedRecord);
+
+      console.log('Field validation results for', record.gbl_number, ':', {
+        requiredFieldErrors,
+        dateErrors,
+        cubeErrors
       });
 
       // Combine only new validation errors (not old stale ones)
