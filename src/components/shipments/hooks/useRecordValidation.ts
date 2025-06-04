@@ -33,14 +33,16 @@ export const useRecordValidation = () => {
       // Validate required fields first
       if (!record.gbl_number) errors.push('GBL number is required');
       if (!record.shipper_last_name) errors.push('Shipper last name is required');
-      if (!record.shipment_type) {
+      
+      // Check for sentinel values and invalid shipment types
+      if (!record.shipment_type || record.shipment_type === 'invalid') {
         errors.push('Shipment type is required');
       } else if (!['inbound', 'outbound', 'intertheater'].includes(record.shipment_type)) {
         errors.push('Invalid shipment type');
       }
 
-      // Validate dates with strict requirements
-      if (!record.pickup_date) {
+      // Check for sentinel dates and validate date fields
+      if (!record.pickup_date || record.pickup_date === '1900-01-01') {
         errors.push('Pickup date is required');
       } else {
         const pickupDate = new Date(record.pickup_date);
@@ -57,7 +59,7 @@ export const useRecordValidation = () => {
         }
       }
 
-      if (!record.rdd) {
+      if (!record.rdd || record.rdd === '1900-01-01') {
         errors.push('Required delivery date is required');
       } else {
         const rddDate = new Date(record.rdd);
@@ -67,7 +69,7 @@ export const useRecordValidation = () => {
       }
 
       // Validate cube requirements based on pickup date
-      if (record.pickup_date) {
+      if (record.pickup_date && record.pickup_date !== '1900-01-01') {
         const pickupDate = new Date(record.pickup_date);
         if (!isNaN(pickupDate.getTime())) {
           const today = new Date();

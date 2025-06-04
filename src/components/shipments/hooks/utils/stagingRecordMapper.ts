@@ -2,15 +2,15 @@
 import type { ParsedRow } from './csvParser';
 
 export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, organizationId: string, userId: string) => {
-  // For shipment_type, use null if invalid to force validation failure
+  // For shipment_type, use sentinel value if invalid to satisfy NOT NULL constraint
   let shipmentType = row.shipment_type;
   if (!shipmentType || (typeof shipmentType === 'string' && ['inbound', 'outbound', 'intertheater'].indexOf(shipmentType) === -1)) {
-    shipmentType = null; // This will cause validation to fail
+    shipmentType = 'invalid'; // Sentinel value - will be caught by validation
   }
 
-  // Handle dates - use null for invalid dates to force validation failure
-  const pickupDate = row.parsed_pickup_date || null;
-  const rddDate = row.parsed_rdd || null;
+  // Handle dates - use sentinel dates for invalid dates to satisfy NOT NULL constraint
+  const pickupDate = row.parsed_pickup_date || '1900-01-01'; // Sentinel date - will be caught by validation
+  const rddDate = row.parsed_rdd || '1900-01-01'; // Sentinel date - will be caught by validation
 
   return {
     upload_session_id: uploadSessionId,
