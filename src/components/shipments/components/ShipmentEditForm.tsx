@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { useShipmentData } from '@/components/shipment-registration/hooks/useShipmentData';
 import { DateFieldGroup } from './DateFieldGroup';
@@ -45,53 +44,78 @@ export const ShipmentEditForm = ({
     handleDateSelect,
   } = useShipmentEditForm(shipment);
 
-  // Helper function to check if a field has validation errors - more precise matching
+  // Helper function to check if a field has validation errors - very precise matching
   const hasFieldError = (field: string): boolean => {
     if (!isFixingErrors || !validationErrors.length) return false;
     
     return validationErrors.some(error => {
       const errorLower = error.toLowerCase();
       
-      // Very specific field error matching to avoid false positives
+      // Extremely specific field error matching - only highlight if error explicitly mentions the field
       switch (field.toLowerCase()) {
         case 'gbl_number':
-          return errorLower.includes('gbl number') || errorLower.includes('gbl_number');
+          return errorLower.includes('gbl number is required') || 
+                 errorLower.includes('gbl_number is required') ||
+                 errorLower.includes('invalid gbl number');
         
         case 'shipper_last_name':
-          return errorLower.includes('shipper last name') || errorLower.includes('shipper_last_name');
+          return errorLower.includes('shipper last name is required') || 
+                 errorLower.includes('shipper_last_name is required');
         
         case 'shipment_type':
-          return (errorLower.includes('shipment type') || errorLower.includes('shipment_type')) &&
-                 !errorLower.includes('rate area') && !errorLower.includes('port') && !errorLower.includes('tsp');
+          return errorLower.includes('shipment type is required') ||
+                 errorLower.includes('shipment_type is required') ||
+                 errorLower.includes('invalid shipment type') ||
+                 errorLower.includes('invalid or missing shipment type');
         
         case 'pickup_date':
-          return errorLower.includes('pickup date') || errorLower.includes('pickup_date');
+          return errorLower.includes('pickup date is required') ||
+                 errorLower.includes('pickup_date is required') ||
+                 errorLower.includes('invalid pickup date') ||
+                 errorLower.includes('pickup date format') ||
+                 errorLower.includes('pickup date is more than');
         
         case 'rdd':
-          return (errorLower.includes('rdd') || errorLower.includes('delivery date') || errorLower.includes('required delivery')) &&
-                 !errorLower.includes('rate area');
+          return errorLower.includes('required delivery date is required') ||
+                 errorLower.includes('rdd is required') ||
+                 errorLower.includes('invalid required delivery date') ||
+                 errorLower.includes('required delivery date format');
         
         case 'origin_rate_area':
-          return errorLower.includes('origin rate area') || errorLower.includes('origin_rate_area');
+          return errorLower.includes('origin rate area is required') ||
+                 errorLower.includes('origin_rate_area is required') ||
+                 errorLower.includes('invalid origin rate area');
         
         case 'destination_rate_area':
-          return errorLower.includes('destination rate area') || errorLower.includes('destination_rate_area');
+          return errorLower.includes('destination rate area is required') ||
+                 errorLower.includes('destination_rate_area is required') ||
+                 errorLower.includes('invalid destination rate area');
         
         case 'target_poe_id':
-          return errorLower.includes('poe') || errorLower.includes('port of embarkation') || errorLower.includes('origin port');
+          return errorLower.includes('port of embarkation') ||
+                 errorLower.includes('poe') ||
+                 errorLower.includes('origin port');
         
         case 'target_pod_id':
-          return errorLower.includes('pod') || errorLower.includes('port of debarkation') || errorLower.includes('destination port');
+          return errorLower.includes('port of debarkation') ||
+                 errorLower.includes('pod') ||
+                 errorLower.includes('destination port');
         
         case 'tsp_id':
-          return (errorLower.includes('tsp') || errorLower.includes('scac') || errorLower.includes('transport') || errorLower.includes('carrier')) &&
-                 !errorLower.includes('rate area') && !errorLower.includes('port');
+          return errorLower.includes('tsp is required') ||
+                 errorLower.includes('scac') ||
+                 errorLower.includes('transport service provider') ||
+                 errorLower.includes('carrier');
         
         case 'estimated_cube':
-          return errorLower.includes('estimated cube') || errorLower.includes('estimated_cube');
+          return errorLower.includes('estimated cube is required') ||
+                 errorLower.includes('estimated_cube is required') ||
+                 errorLower.includes('invalid estimated cube');
         
         case 'actual_cube':
-          return errorLower.includes('actual cube') || errorLower.includes('actual_cube');
+          return errorLower.includes('actual cube is required') ||
+                 errorLower.includes('actual_cube is required') ||
+                 errorLower.includes('invalid actual cube');
         
         default:
           return false;
