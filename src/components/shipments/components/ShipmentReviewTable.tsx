@@ -58,7 +58,8 @@ const ShipmentReviewTable = ({
       );
     }
 
-    // Show loading badge for pending records that haven't been validated yet
+    // Show loading badge for any record that hasn't been fully validated yet
+    // This includes 'pending' status and 'invalid' records that might still be processing
     if (status === 'pending') {
       return (
         <Badge variant="secondary" className="animate-pulse">
@@ -68,12 +69,19 @@ const ShipmentReviewTable = ({
       );
     }
 
+    // Only show static badges for records that have completed validation
     if (status === 'valid') {
       return <Badge className="bg-green-100 text-green-800">Valid</Badge>;
     } else if (status === 'invalid') {
       return <Badge variant="destructive">Invalid</Badge>;
     } else {
-      return <Badge variant="secondary">Unknown</Badge>;
+      // For any unknown status, show loading
+      return (
+        <Badge variant="secondary" className="animate-pulse">
+          <Loader2 size={12} className="animate-spin mr-1" />
+          Processing...
+        </Badge>
+      );
     }
   };
 
