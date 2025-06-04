@@ -11,6 +11,12 @@ export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, orga
     shipmentType = 'inbound';
   }
 
+  // Handle null dates by providing a default date to avoid NOT NULL constraint violations
+  // Use a recognizable default date (1900-01-01) that can be identified as invalid
+  const defaultDate = '1900-01-01';
+  const pickupDate = row.parsed_pickup_date || defaultDate;
+  const rddDate = row.parsed_rdd || defaultDate;
+
   return {
     upload_session_id: uploadSessionId,
     organization_id: organizationId,
@@ -20,8 +26,8 @@ export const mapToStagingRecord = (row: ParsedRow, uploadSessionId: string, orga
     shipment_type: shipmentType,
     origin_rate_area: '',  // Will be populated during validation
     destination_rate_area: '', // Will be populated during validation
-    pickup_date: row.parsed_pickup_date, // Use parsed date or null
-    rdd: row.parsed_rdd, // Use parsed date or null
+    pickup_date: pickupDate,
+    rdd: rddDate,
     estimated_cube: row.parsed_estimated_cube,
     actual_cube: row.parsed_actual_cube,
     remaining_cube: null, // We don't care about this during import
