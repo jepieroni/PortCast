@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -105,6 +106,24 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
     }
   }, [stagingData.length, hasRunInitialValidation, isValidating, validateAllRecords]);
 
+  // Helper function to check if pickup date needs attention
+  const checkPickupDateWarning = (pickupDate: string): string | null => {
+    if (!pickupDate) return null;
+    
+    const pickup = new Date(pickupDate);
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysFromNow = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
+    
+    if (pickup < thirtyDaysAgo) {
+      return `Pickup date is more than 30 days in the past (${pickup.toLocaleDateString()})`;
+    }
+    if (pickup > sixtyDaysFromNow) {
+      return `Pickup date is more than 60 days in the future (${pickup.toLocaleDateString()})`;
+    }
+    return null;
+  };
+
   // Helper function to safely get validation errors as array
   const getValidationErrors = (record: any): string[] => {
     if (!record.validation_errors) return [];
@@ -122,6 +141,13 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
 
   const getFieldValidationError = (record: any, field: string): string | null => {
     const errors = getValidationErrors(record);
+    
+    // Check for pickup date warnings
+    if (field === 'pickup_date') {
+      const dateWarning = checkPickupDateWarning(record.pickup_date);
+      if (dateWarning) return dateWarning;
+    }
+    
     return errors.find(error => {
       const lowerError = error.toLowerCase();
       const lowerField = field.toLowerCase();
@@ -143,6 +169,12 @@ const BulkUploadReview = ({ uploadSessionId, onBack, onComplete }: BulkUploadRev
 
   // Enhanced function to check if field has any validation issues
   const hasFieldIssue = (record: any, field: string): boolean => {
+    // Check for pickup date warnings
+    if (field === 'pickup_date') {
+      const dateWarning = checkPickupDateWarning(record.pickup_date);
+      if (dateWarning) return true;
+    }
+    
     // Always allow editing if record is invalid
     if (record.validation_status === 'invalid') {
       const error = getFieldValidationError(record, field);

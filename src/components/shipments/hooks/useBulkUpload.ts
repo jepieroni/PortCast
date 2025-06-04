@@ -71,13 +71,16 @@ export const useBulkUpload = () => {
       'rdd', 'poe_code', 'pod_code', 'scac_code'
     ];
 
-    // Validate required columns
+    // Validate required columns exist
     const missingColumns = requiredColumns.filter(col => !headers.includes(col));
     if (missingColumns.length > 0) {
       throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
     }
 
     const data = [];
+    const duplicateGBLsInFile = new Set();
+    const fileGBLs = new Set();
+
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
       if (values.length !== headers.length) continue;
@@ -86,6 +89,17 @@ export const useBulkUpload = () => {
       headers.forEach((header, index) => {
         row[header] = values[index];
       });
+
+      // Check for duplicate GBLs within the file
+      if (row.gbl_number) {
+        if (fileGBLs.has(row.gbl_number)) {
+          duplicateGBLsInFile.add(row.gbl_number);
+          row._validation_errors = row._validation_errors || [];
+          row._validation_errors.push(`Duplicate GBL number found in file: ${row.gbl_number}`);
+        } else {
+          fileGBLs.add(row.gbl_number);
+        }
+      }
 
       // Map shipment type
       if (row.shipment_type) {
@@ -97,13 +111,21 @@ export const useBulkUpload = () => {
         row.remaining_cube = row.actual_cube;
       }
 
-      // Validate required fields
-      const missingFields = requiredColumns.filter(col => !row[col] || row[col].trim() === '');
-      if (missingFields.length > 0) {
-        row._validation_errors = [`Missing required fields: ${missingFields.join(', ')}`];
+      // Only validate truly required fields (don't reject for blank optional fields)
+      const criticalRequiredFields = ['gbl_number', 'shipper_last_name', 'shipment_type', 'pickup_date', 'rdd'];
+      const missingCriticalFields = criticalRequiredFields.filter(col => !row[col] || row[col].trim() === '');
+      
+      if (missingCriticalFields.length > 0) {
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push(`Missing critical required fields: ${missingCriticalFields.join(', ')}`);
       }
 
       data.push(row);
+    }
+
+    // Log duplicate GBLs found in file
+    if (duplicateGBLsInFile.size > 0) {
+      console.log(`Found ${duplicateGBLsInFile.size} duplicate GBL(s) within the uploaded file:`, Array.from(duplicateGBLsInFile));
     }
 
     return data;
@@ -127,21 +149,17 @@ export const useBulkUpload = () => {
 
     const existingGBLs = new Set(existingShipments?.map(s => s.gbl_number) || []);
     
-    // Filter out records with duplicate GBLs and log them
-    const filteredData = parsedData.filter(row => {
+    // Mark records with existing GBLs in database but don't filter them out
+    const dataWithDuplicateFlags = parsedData.map(row => {
       if (existingGBLs.has(row.gbl_number)) {
-        console.log(`Skipping duplicate GBL: ${row.gbl_number}`);
-        return false;
+        console.log(`Found existing GBL in database: ${row.gbl_number}`);
+        row._validation_errors = row._validation_errors || [];
+        row._validation_errors.push(`GBL number already exists in database: ${row.gbl_number}`);
       }
-      return true;
+      return row;
     });
 
-    const duplicateCount = parsedData.length - filteredData.length;
-    if (duplicateCount > 0) {
-      console.log(`Filtered out ${duplicateCount} duplicate GBL(s)`);
-    }
-
-    return filteredData;
+    return dataWithDuplicateFlags;
   };
 
   const uploadFile = async (file: File): Promise<string> => {
@@ -165,11 +183,11 @@ export const useBulkUpload = () => {
         throw new Error('Unsupported file format. Please use CSV or Excel files.');
       }
 
-      // Check for duplicate GBLs and filter them out
+      // Check for duplicate GBLs in database and flag them
       parsedData = await checkForDuplicateGBLs(parsedData);
 
       if (parsedData.length === 0) {
-        throw new Error('No valid records found after filtering duplicates');
+        throw new Error('No valid records found in file');
       }
 
       // Get current user profile
@@ -189,26 +207,26 @@ export const useBulkUpload = () => {
 
       console.log('Starting new upload session:', uploadSessionId);
 
-      // Process and insert staging data
+      // Process and insert staging data (including records with validation errors)
       const stagingRecords = parsedData.map(row => ({
         upload_session_id: uploadSessionId,
         organization_id: profile.organization_id,
         user_id: user.id,
-        gbl_number: row.gbl_number,
-        shipper_last_name: row.shipper_last_name,
-        shipment_type: row.shipment_type,
-        origin_rate_area: row.origin_rate_area,
-        destination_rate_area: row.destination_rate_area,
-        pickup_date: row.pickup_date,
-        rdd: row.rdd,
+        gbl_number: row.gbl_number || '',
+        shipper_last_name: row.shipper_last_name || '',
+        shipment_type: row.shipment_type || 'inbound',
+        origin_rate_area: '',  // Will be populated during validation
+        destination_rate_area: '', // Will be populated during validation
+        pickup_date: row.pickup_date || '1900-01-01',
+        rdd: row.rdd || '1900-01-01',
         estimated_cube: row.estimated_cube ? parseInt(row.estimated_cube) : null,
         actual_cube: row.actual_cube ? parseInt(row.actual_cube) : null,
         remaining_cube: row.remaining_cube ? parseInt(row.remaining_cube) : null,
-        raw_poe_code: row.poe_code,
-        raw_pod_code: row.pod_code,
-        raw_origin_rate_area: row.origin_rate_area,
-        raw_destination_rate_area: row.destination_rate_area,
-        raw_scac_code: row.scac_code,
+        raw_poe_code: row.poe_code || '',
+        raw_pod_code: row.pod_code || '',
+        raw_origin_rate_area: row.origin_rate_area || '',
+        raw_destination_rate_area: row.destination_rate_area || '',
+        raw_scac_code: row.scac_code || '',
         validation_status: row._validation_errors ? 'invalid' : 'pending',
         validation_errors: row._validation_errors || []
       }));

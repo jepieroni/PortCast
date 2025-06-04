@@ -23,9 +23,21 @@ const ShipmentsDashboard = ({ onBack, onAddShipment }: ShipmentsDashboardProps) 
 
   const { data: shipments, isLoading, error, refetch } = useShipments(filters);
 
+  const handleBulkUploadClick = () => {
+    console.log('Bulk upload button clicked');
+    setShowBulkUpload(true);
+  };
+
+  const handleBulkUploadBack = () => {
+    console.log('Returning from bulk upload');
+    setShowBulkUpload(false);
+    // Refresh shipments data when returning from bulk upload
+    refetch();
+  };
+
   if (showBulkUpload) {
     return (
-      <BulkShipmentUpload onBack={() => setShowBulkUpload(false)} />
+      <BulkShipmentUpload onBack={handleBulkUploadBack} />
     );
   }
 
@@ -42,7 +54,7 @@ const ShipmentsDashboard = ({ onBack, onAddShipment }: ShipmentsDashboardProps) 
         
         <div className="flex gap-2">
           <Button 
-            onClick={() => setShowBulkUpload(true)}
+            onClick={handleBulkUploadClick}
             variant="outline"
             className="border-blue-600 text-blue-600 hover:bg-blue-50"
           >
