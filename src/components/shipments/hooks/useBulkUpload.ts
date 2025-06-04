@@ -99,14 +99,17 @@ export const useBulkUpload = () => {
 
       const row: any = {};
       headers.forEach((header, index) => {
-        row[header] = values[index] || ''; // Ensure we have a value, even if empty
+        // Safely access the value and ensure it's a string
+        const rawValue = values[index];
+        const value = typeof rawValue === 'string' ? rawValue : (rawValue || '').toString();
+        row[header] = value;
       });
 
       console.log(`Processing row ${i}: GBL=${row.gbl_number}, missing fields:`, 
-        Object.entries(row).filter(([k, v]) => !v || v.trim() === '').map(([k]) => k));
+        Object.entries(row).filter(([k, v]) => !v || (typeof v === 'string' && v.trim() === '')).map(([k]) => k));
 
       // Check for duplicate GBLs within the file
-      if (row.gbl_number && row.gbl_number.trim() !== '') {
+      if (row.gbl_number && typeof row.gbl_number === 'string' && row.gbl_number.trim() !== '') {
         if (fileGBLs.has(row.gbl_number)) {
           duplicateGBLsInFile.add(row.gbl_number);
           row._validation_errors = row._validation_errors || [];
@@ -117,7 +120,7 @@ export const useBulkUpload = () => {
       }
 
       // Map shipment type with fallback
-      row.shipment_type = mapShipmentType(row.shipment_type);
+      row.shipment_type = mapShipmentType(row.shipment_type || '');
 
       // Handle cube logic: if actual_cube is present but remaining_cube is not, copy actual_cube to remaining_cube
       if (row.actual_cube && !row.remaining_cube) {
@@ -127,39 +130,39 @@ export const useBulkUpload = () => {
       // Validate required fields and track issues but don't reject the record
       row._validation_errors = row._validation_errors || [];
       
-      if (!row.gbl_number || row.gbl_number.trim() === '') {
+      if (!row.gbl_number || (typeof row.gbl_number === 'string' && row.gbl_number.trim() === '')) {
         row._validation_errors.push('GBL number is required');
       }
       
-      if (!row.shipper_last_name || row.shipper_last_name.trim() === '') {
+      if (!row.shipper_last_name || (typeof row.shipper_last_name === 'string' && row.shipper_last_name.trim() === '')) {
         row._validation_errors.push('Shipper last name is required');
       }
 
-      if (!row.pickup_date || row.pickup_date.trim() === '') {
+      if (!row.pickup_date || (typeof row.pickup_date === 'string' && row.pickup_date.trim() === '')) {
         row._validation_errors.push('Pickup date is required');
       }
 
-      if (!row.rdd || row.rdd.trim() === '') {
+      if (!row.rdd || (typeof row.rdd === 'string' && row.rdd.trim() === '')) {
         row._validation_errors.push('RDD is required');
       }
 
-      if (!row.origin_rate_area || row.origin_rate_area.trim() === '') {
+      if (!row.origin_rate_area || (typeof row.origin_rate_area === 'string' && row.origin_rate_area.trim() === '')) {
         row._validation_errors.push('Origin rate area is required');
       }
 
-      if (!row.destination_rate_area || row.destination_rate_area.trim() === '') {
+      if (!row.destination_rate_area || (typeof row.destination_rate_area === 'string' && row.destination_rate_area.trim() === '')) {
         row._validation_errors.push('Destination rate area is required');
       }
 
-      if (!row.poe_code || row.poe_code.trim() === '') {
+      if (!row.poe_code || (typeof row.poe_code === 'string' && row.poe_code.trim() === '')) {
         row._validation_errors.push('POE code is required');
       }
 
-      if (!row.pod_code || row.pod_code.trim() === '') {
+      if (!row.pod_code || (typeof row.pod_code === 'string' && row.pod_code.trim() === '')) {
         row._validation_errors.push('POD code is required');
       }
 
-      if (!row.scac_code || row.scac_code.trim() === '') {
+      if (!row.scac_code || (typeof row.scac_code === 'string' && row.scac_code.trim() === '')) {
         row._validation_errors.push('SCAC code is required');
       }
 
@@ -177,7 +180,7 @@ export const useBulkUpload = () => {
   };
 
   const checkForDuplicateGBLs = async (parsedData: any[]) => {
-    const gblNumbers = parsedData.map(row => row.gbl_number).filter(gbl => gbl && gbl.trim() !== '');
+    const gblNumbers = parsedData.map(row => row.gbl_number).filter(gbl => gbl && typeof gbl === 'string' && gbl.trim() !== '');
     
     if (gblNumbers.length === 0) return parsedData;
 
@@ -254,9 +257,9 @@ export const useBulkUpload = () => {
 
       // Process and insert staging data (including records with validation errors)
       const stagingRecords = parsedData.map(row => {
-        // Handle empty date values
-        const pickupDate = row.pickup_date && row.pickup_date.trim() !== '' ? row.pickup_date : '1900-01-01';
-        const rddDate = row.rdd && row.rdd.trim() !== '' ? row.rdd : '1900-01-01';
+        // Handle empty date values - use null instead of default date for empty values
+        const pickupDate = row.pickup_date && typeof row.pickup_date === 'string' && row.pickup_date.trim() !== '' ? row.pickup_date : null;
+        const rddDate = row.rdd && typeof row.rdd === 'string' && row.rdd.trim() !== '' ? row.rdd : null;
         
         return {
           upload_session_id: uploadSessionId,
