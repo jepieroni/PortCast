@@ -3,7 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Upload } from 'lucide-react';
 
-export const SidebarCards = () => {
+interface SidebarCardsProps {
+  onBulkUploadClick?: () => void;
+}
+
+export const SidebarCards = ({ onBulkUploadClick }: SidebarCardsProps) => {
   return (
     <div className="space-y-6">
       <Card>
@@ -14,7 +18,11 @@ export const SidebarCards = () => {
           <p className="text-sm text-gray-600">
             Upload multiple shipments at once using a CSV or Excel file.
           </p>
-          <Button variant="outline" className="w-full">
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={onBulkUploadClick}
+          >
             <Upload size={16} className="mr-2" />
             Upload File
           </Button>

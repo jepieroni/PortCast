@@ -1,9 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ArrowLeft, Save } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useShipmentData } from './shipment-registration/hooks/useShipmentData';
 import { useShipmentForm } from './shipment-registration/hooks/useShipmentForm';
 import { FormField } from './shipment-registration/components/FormField';
@@ -12,6 +11,7 @@ import { DateFields } from './shipment-registration/components/DateFields';
 import { VolumeFields } from './shipment-registration/components/VolumeFields';
 import { SidebarCards } from './shipment-registration/components/SidebarCards';
 import { useFilteredPorts } from '@/hooks/useFilteredPorts';
+import BulkShipmentUpload from './shipments/BulkShipmentUpload';
 
 interface ShipmentRegistrationProps {
   onBack: () => void;
@@ -19,6 +19,7 @@ interface ShipmentRegistrationProps {
 }
 
 const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) => {
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const { rateAreas, ports, tsps } = useShipmentData();
   const { 
     formData, 
@@ -117,6 +118,20 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
     // Clear POD selection when destination rate area changes
     handleInputChange('targetPodId', '');
   };
+
+  const handleBulkUploadClick = () => {
+    setShowBulkUpload(true);
+  };
+
+  const handleBulkUploadBack = () => {
+    setShowBulkUpload(false);
+  };
+
+  if (showBulkUpload) {
+    return (
+      <BulkShipmentUpload onBack={handleBulkUploadBack} />
+    );
+  }
 
   return (
     <TooltipProvider>
@@ -266,7 +281,7 @@ const ShipmentRegistration = ({ onBack, onSuccess }: ShipmentRegistrationProps) 
             </Card>
           </div>
 
-          <SidebarCards />
+          <SidebarCards onBulkUploadClick={handleBulkUploadClick} />
         </div>
       </div>
     </TooltipProvider>
