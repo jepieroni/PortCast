@@ -1,4 +1,5 @@
-import { parseDateString } from '../../../shipment-registration/components/hooks/utils/dateParser';
+
+import { parseDateString } from '../../components/hooks/utils/dateParser';
 
 export interface ParsedRow {
   [key: string]: any;
