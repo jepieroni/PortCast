@@ -87,13 +87,23 @@ export const useBulkUpload = () => {
     const fileGBLs = new Set();
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-      if (values.length !== headers.length) continue;
+      const line = lines[i].trim();
+      if (!line) continue; // Skip empty lines
+      
+      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+      
+      // Handle lines with fewer values than headers by padding with empty strings
+      while (values.length < headers.length) {
+        values.push('');
+      }
 
       const row: any = {};
       headers.forEach((header, index) => {
-        row[header] = values[index];
+        row[header] = values[index] || ''; // Ensure we have a value, even if empty
       });
+
+      console.log(`Processing row ${i}: GBL=${row.gbl_number}, missing fields:`, 
+        Object.entries(row).filter(([k, v]) => !v || v.trim() === '').map(([k]) => k));
 
       // Check for duplicate GBLs within the file
       if (row.gbl_number && row.gbl_number.trim() !== '') {
@@ -115,36 +125,45 @@ export const useBulkUpload = () => {
       }
 
       // Validate required fields and track issues but don't reject the record
+      row._validation_errors = row._validation_errors || [];
+      
       if (!row.gbl_number || row.gbl_number.trim() === '') {
-        row._validation_errors = row._validation_errors || [];
         row._validation_errors.push('GBL number is required');
       }
       
       if (!row.shipper_last_name || row.shipper_last_name.trim() === '') {
-        row._validation_errors = row._validation_errors || [];
         row._validation_errors.push('Shipper last name is required');
       }
 
       if (!row.pickup_date || row.pickup_date.trim() === '') {
-        row._validation_errors = row._validation_errors || [];
         row._validation_errors.push('Pickup date is required');
       }
 
       if (!row.rdd || row.rdd.trim() === '') {
-        row._validation_errors = row._validation_errors || [];
         row._validation_errors.push('RDD is required');
       }
 
       if (!row.origin_rate_area || row.origin_rate_area.trim() === '') {
-        row._validation_errors = row._validation_errors || [];
         row._validation_errors.push('Origin rate area is required');
       }
 
       if (!row.destination_rate_area || row.destination_rate_area.trim() === '') {
-        row._validation_errors = row._validation_errors || [];
         row._validation_errors.push('Destination rate area is required');
       }
 
+      if (!row.poe_code || row.poe_code.trim() === '') {
+        row._validation_errors.push('POE code is required');
+      }
+
+      if (!row.pod_code || row.pod_code.trim() === '') {
+        row._validation_errors.push('POD code is required');
+      }
+
+      if (!row.scac_code || row.scac_code.trim() === '') {
+        row._validation_errors.push('SCAC code is required');
+      }
+
+      console.log(`Row ${i} validation errors:`, row._validation_errors);
       data.push(row);
     }
 
@@ -153,6 +172,7 @@ export const useBulkUpload = () => {
       console.log(`Found ${duplicateGBLsInFile.size} duplicate GBL(s) within the uploaded file:`, Array.from(duplicateGBLsInFile));
     }
 
+    console.log(`Parsed ${data.length} records from CSV`);
     return data;
   };
 
@@ -233,34 +253,45 @@ export const useBulkUpload = () => {
       console.log('Starting new upload session:', uploadSessionId);
 
       // Process and insert staging data (including records with validation errors)
-      const stagingRecords = parsedData.map(row => ({
-        upload_session_id: uploadSessionId,
-        organization_id: profile.organization_id,
-        user_id: user.id,
-        gbl_number: row.gbl_number || '',
-        shipper_last_name: row.shipper_last_name || '',
-        shipment_type: row.shipment_type || 'inbound',
-        origin_rate_area: '',  // Will be populated during validation
-        destination_rate_area: '', // Will be populated during validation
-        pickup_date: row.pickup_date || '1900-01-01',
-        rdd: row.rdd || '1900-01-01',
-        estimated_cube: row.estimated_cube ? parseInt(row.estimated_cube) : null,
-        actual_cube: row.actual_cube ? parseInt(row.actual_cube) : null,
-        remaining_cube: row.remaining_cube ? parseInt(row.remaining_cube) : null,
-        raw_poe_code: row.poe_code || '',
-        raw_pod_code: row.pod_code || '',
-        raw_origin_rate_area: row.origin_rate_area || '',
-        raw_destination_rate_area: row.destination_rate_area || '',
-        raw_scac_code: row.scac_code || '',
-        validation_status: row._validation_errors ? 'invalid' : 'pending',
-        validation_errors: row._validation_errors || []
-      }));
+      const stagingRecords = parsedData.map(row => {
+        // Handle empty date values
+        const pickupDate = row.pickup_date && row.pickup_date.trim() !== '' ? row.pickup_date : '1900-01-01';
+        const rddDate = row.rdd && row.rdd.trim() !== '' ? row.rdd : '1900-01-01';
+        
+        return {
+          upload_session_id: uploadSessionId,
+          organization_id: profile.organization_id,
+          user_id: user.id,
+          gbl_number: row.gbl_number || '',
+          shipper_last_name: row.shipper_last_name || '',
+          shipment_type: row.shipment_type || 'inbound',
+          origin_rate_area: '',  // Will be populated during validation
+          destination_rate_area: '', // Will be populated during validation
+          pickup_date: pickupDate,
+          rdd: rddDate,
+          estimated_cube: row.estimated_cube ? parseInt(row.estimated_cube) : null,
+          actual_cube: row.actual_cube ? parseInt(row.actual_cube) : null,
+          remaining_cube: row.remaining_cube ? parseInt(row.remaining_cube) : null,
+          raw_poe_code: row.poe_code || '',
+          raw_pod_code: row.pod_code || '',
+          raw_origin_rate_area: row.origin_rate_area || '',
+          raw_destination_rate_area: row.destination_rate_area || '',
+          raw_scac_code: row.scac_code || '',
+          validation_status: row._validation_errors && row._validation_errors.length > 0 ? 'invalid' : 'pending',
+          validation_errors: row._validation_errors || []
+        };
+      });
+
+      console.log(`Inserting ${stagingRecords.length} staging records`);
 
       const { error } = await supabase
         .from('shipment_uploads_staging')
         .insert(stagingRecords);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
 
       console.log('Upload completed successfully with session:', uploadSessionId);
       return uploadSessionId;
