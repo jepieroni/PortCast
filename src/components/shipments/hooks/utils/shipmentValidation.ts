@@ -1,4 +1,3 @@
-
 import { parseDateString } from '../../components/hooks/utils/dateParser';
 
 export const mapShipmentType = (type: string): { mappedType: string | null; isValid: boolean } => {
@@ -6,21 +5,14 @@ export const mapShipmentType = (type: string): { mappedType: string | null; isVa
     return { mappedType: null, isValid: false };
   }
   
-  const cleanType = type.trim();
+  const cleanType = type.trim().toLowerCase(); // Convert to lowercase for consistent comparison
   const typeMap: { [key: string]: string } = {
-    'I': 'inbound',
-    'O': 'outbound', 
-    'T': 'intertheater',
     'i': 'inbound',
-    'o': 'outbound',
+    'o': 'outbound', 
     't': 'intertheater',
     'inbound': 'inbound',
     'outbound': 'outbound',
-    'intertheater': 'intertheater',
-    // Also accept capitalized versions from UI
-    'Inbound': 'inbound',
-    'Outbound': 'outbound',
-    'Intertheater': 'intertheater'
+    'intertheater': 'intertheater'
   };
   
   const mappedType = typeMap[cleanType];
