@@ -1,6 +1,7 @@
 
-import { SearchableSelect } from '@/components/shipment-registration/components/SearchableSelect';
-import { useFilteredPorts } from '@/hooks/useFilteredPorts';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface Port {
   id: string;
@@ -13,61 +14,46 @@ interface PortFieldGroupProps {
   formData: {
     target_poe_id: string;
     target_pod_id: string;
-    origin_rate_area: string;
-    destination_rate_area: string;
   };
   ports: Port[];
   onInputChange: (field: string, value: string) => void;
+  hasFieldError?: (field: string) => boolean;
 }
 
-export const PortFieldGroup = ({ formData, ports, onInputChange }: PortFieldGroupProps) => {
-  // Filter POEs based on origin rate area
-  const filteredPOEs = useFilteredPorts(ports, formData.origin_rate_area);
-  
-  // Filter PODs based on destination rate area
-  const filteredPODs = useFilteredPorts(ports, formData.destination_rate_area);
-
-  // Create searchable port options with enhanced search text for POEs
-  const poeOptions = filteredPOEs?.map(port => ({
-    value: port.id,
-    label: `${port.code} - ${port.name}`,
-    searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
-  })) || [];
-
-  // Create searchable port options with enhanced search text for PODs
-  const podOptions = filteredPODs?.map(port => ({
-    value: port.id,
-    label: `${port.code} - ${port.name}`,
-    searchableText: `${port.code} ${port.name} ${port.description || ''}`.toLowerCase()
-  })) || [];
-
+export const PortFieldGroup = ({ formData, ports, onInputChange, hasFieldError }: PortFieldGroupProps) => {
   return (
     <>
-      <SearchableSelect
-        label="Port of Embarkation (POE)"
-        required
-        value={formData.target_poe_id}
-        onChange={(value) => onInputChange('target_poe_id', value)}
-        placeholder={!formData.origin_rate_area ? "Select origin rate area first" : "Search and select POE"}
-        options={poeOptions}
-        error=""
-        onFocus={() => {}}
-        className="w-full"
-        disabled={!formData.origin_rate_area}
-      />
+      <div>
+        <Label htmlFor="target_poe_id">Port of Embarkation *</Label>
+        <Select value={formData.target_poe_id} onValueChange={(value) => onInputChange('target_poe_id', value)}>
+          <SelectTrigger className={cn(hasFieldError?.('target_poe_id') && "border-red-500 focus:border-red-500")}>
+            <SelectValue placeholder="Select POE" />
+          </SelectTrigger>
+          <SelectContent>
+            {ports.map((port) => (
+              <SelectItem key={port.id} value={port.id}>
+                {port.code} - {port.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <SearchableSelect
-        label="Port of Debarkation (POD)"
-        required
-        value={formData.target_pod_id}
-        onChange={(value) => onInputChange('target_pod_id', value)}
-        placeholder={!formData.destination_rate_area ? "Select destination rate area first" : "Search and select POD"}
-        options={podOptions}
-        error=""
-        onFocus={() => {}}
-        className="w-full"
-        disabled={!formData.destination_rate_area}
-      />
+      <div>
+        <Label htmlFor="target_pod_id">Port of Debarkation *</Label>
+        <Select value={formData.target_pod_id} onValueChange={(value) => onInputChange('target_pod_id', value)}>
+          <SelectTrigger className={cn(hasFieldError?.('target_pod_id') && "border-red-500 focus:border-red-500")}>
+            <SelectValue placeholder="Select POD" />
+          </SelectTrigger>
+          <SelectContent>
+            {ports.map((port) => (
+              <SelectItem key={port.id} value={port.id}>
+                {port.code} - {port.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </>
   );
 };

@@ -1,52 +1,41 @@
 
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface VolumeFieldGroupProps {
   formData: {
     estimated_cube: string;
     actual_cube: string;
-    remaining_cube: string;
   };
   onInputChange: (field: string, value: string) => void;
+  hasFieldError?: (field: string) => boolean;
 }
 
-export const VolumeFieldGroup = ({ formData, onInputChange }: VolumeFieldGroupProps) => {
+export const VolumeFieldGroup = ({ formData, onInputChange, hasFieldError }: VolumeFieldGroupProps) => {
   return (
     <>
       <div>
-        <Label htmlFor="estimated_cube">Estimated Cube (ft³)</Label>
+        <Label htmlFor="estimated_cube">Estimated Cube</Label>
         <Input
           id="estimated_cube"
           type="number"
-          style={{ appearance: 'textfield' }}
-          className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           value={formData.estimated_cube}
           onChange={(e) => onInputChange('estimated_cube', e.target.value)}
+          placeholder="Enter estimated cube"
+          className={cn(hasFieldError?.('estimated_cube') && "border-red-500 focus:border-red-500")}
         />
       </div>
 
       <div>
-        <Label htmlFor="actual_cube">Actual Cube (ft³)</Label>
+        <Label htmlFor="actual_cube">Actual Cube</Label>
         <Input
           id="actual_cube"
           type="number"
-          style={{ appearance: 'textfield' }}
-          className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           value={formData.actual_cube}
           onChange={(e) => onInputChange('actual_cube', e.target.value)}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="remaining_cube">Remaining Cube (ft³)</Label>
-        <Input
-          id="remaining_cube"
-          type="number"
-          style={{ appearance: 'textfield' }}
-          className="[&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-          value={formData.remaining_cube}
-          onChange={(e) => onInputChange('remaining_cube', e.target.value)}
+          placeholder="Enter actual cube"
+          className={cn(hasFieldError?.('actual_cube') && "border-red-500 focus:border-red-500")}
         />
       </div>
     </>

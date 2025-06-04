@@ -1,6 +1,7 @@
 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface TSP {
   id: string;
@@ -14,9 +15,10 @@ interface TspFieldGroupProps {
   };
   tsps: TSP[];
   onInputChange: (field: string, value: string) => void;
+  hasFieldError?: (field: string) => boolean;
 }
 
-export const TspFieldGroup = ({ formData, tsps, onInputChange }: TspFieldGroupProps) => {
+export const TspFieldGroup = ({ formData, tsps, onInputChange, hasFieldError }: TspFieldGroupProps) => {
   console.log('TspFieldGroup formData.tsp_id:', formData.tsp_id);
   console.log('Available TSPs:', tsps);
 
@@ -35,7 +37,7 @@ export const TspFieldGroup = ({ formData, tsps, onInputChange }: TspFieldGroupPr
     <div>
       <Label htmlFor="tsp_id">TSP *</Label>
       <Select value={formData.tsp_id} onValueChange={handleTspChange}>
-        <SelectTrigger>
+        <SelectTrigger className={cn(hasFieldError?.('tsp_id') && "border-red-500 focus:border-red-500")}>
           <SelectValue placeholder="Select TSP" />
         </SelectTrigger>
         <SelectContent>
