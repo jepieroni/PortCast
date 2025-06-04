@@ -1,6 +1,8 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { parseDateString } from '../components/hooks/utils/dateParser';
 
 export const useBulkUpload = () => {
   const { toast } = useToast();
@@ -29,9 +31,12 @@ export const useBulkUpload = () => {
     }
   };
 
-  const mapShipmentType = (type: string): string => {
-    if (!type || type.trim() === '') return 'inbound'; // Default fallback
+  const mapShipmentType = (type: string): { mappedType: string; isValid: boolean } => {
+    if (!type || typeof type !== 'string' || type.trim() === '') {
+      return { mappedType: '', isValid: false };
+    }
     
+    const cleanType = type.trim();
     const typeMap: { [key: string]: string } = {
       'I': 'inbound',
       'O': 'outbound', 
@@ -43,7 +48,87 @@ export const useBulkUpload = () => {
       'outbound': 'outbound',
       'intertheater': 'intertheater'
     };
-    return typeMap[type.trim()] || 'inbound'; // Default fallback
+    
+    const mappedType = typeMap[cleanType];
+    return {
+      mappedType: mappedType || '',
+      isValid: !!mappedType
+    };
+  };
+
+  const parseAndValidateDate = (dateStr: string, fieldName: string): { parsedDate: string | null; error: string | null } => {
+    if (!dateStr || typeof dateStr !== 'string' || dateStr.trim() === '') {
+      return { parsedDate: null, error: `${fieldName} is required` };
+    }
+
+    // Try to parse the date
+    const parsed = parseDateString(dateStr.trim());
+    if (!parsed) {
+      return { parsedDate: null, error: `Invalid ${fieldName} format. Use MM/DD/YY or MM/DD/YYYY` };
+    }
+
+    // Check if pickup date is too old (more than 30 days ago)
+    if (fieldName.toLowerCase().includes('pickup')) {
+      const today = new Date();
+      const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      if (parsed < thirtyDaysAgo) {
+        return { 
+          parsedDate: parsed.toISOString().split('T')[0], 
+          error: `Pickup date is more than 30 days in the past (${parsed.toLocaleDateString()})` 
+        };
+      }
+    }
+
+    return { parsedDate: parsed.toISOString().split('T')[0], error: null };
+  };
+
+  const parseAndValidateCube = (cubeStr: string, fieldName: string): { parsedCube: number | null; error: string | null } => {
+    if (!cubeStr || typeof cubeStr !== 'string' || cubeStr.trim() === '') {
+      return { parsedCube: null, error: null };
+    }
+
+    const numValue = parseInt(cubeStr.trim());
+    if (isNaN(numValue) || numValue < 0) {
+      return { parsedCube: null, error: `Invalid ${fieldName} - must be a positive number` };
+    }
+
+    return { parsedCube: numValue, error: null };
+  };
+
+  const validateCubeLogic = (estimatedCube: number | null, actualCube: number | null, pickupDate: Date | null): string[] => {
+    const errors: string[] = [];
+    const hasEstimated = estimatedCube !== null && estimatedCube > 0;
+    const hasActual = actualCube !== null && actualCube > 0;
+    const isPickupInPast = pickupDate && pickupDate <= new Date();
+
+    // Both estimated and actual provided
+    if (hasEstimated && hasActual) {
+      errors.push('Cannot have both estimated and actual cube - choose one based on pickup date');
+      return errors;
+    }
+
+    // Neither estimated nor actual provided
+    if (!hasEstimated && !hasActual) {
+      if (isPickupInPast) {
+        errors.push('Actual cube is required when pickup date is today or in the past');
+      } else {
+        errors.push('Estimated cube is required when pickup date is in the future');
+      }
+      return errors;
+    }
+
+    // Actual cube with future pickup date
+    if (hasActual && !isPickupInPast) {
+      errors.push('Cannot have actual cube when pickup date is in the future - use estimated cube instead');
+    }
+
+    // Estimated cube with past pickup date
+    if (hasEstimated && isPickupInPast) {
+      errors.push('Should use actual cube when pickup date is today or in the past');
+    }
+
+    return errors;
   };
 
   const parseExcelFile = async (file: File): Promise<any[]> => {
@@ -109,65 +194,88 @@ export const useBulkUpload = () => {
         row[header] = value;
       });
 
-      console.log(`Processing row ${i}: GBL=${row.gbl_number}, missing fields:`, 
-        Object.entries(row).filter(([k, v]) => !v || (typeof v === 'string' && v.trim() === '')).map(([k]) => k));
+      console.log(`Processing row ${i}: GBL=${row.gbl_number}`);
 
-      // Check for duplicate GBLs within the file
-      if (row.gbl_number && typeof row.gbl_number === 'string' && row.gbl_number.trim() !== '') {
+      // Track validation errors for this row
+      row._validation_errors = [];
+
+      // Validate GBL number
+      if (!row.gbl_number || (typeof row.gbl_number === 'string' && row.gbl_number.trim() === '')) {
+        row._validation_errors.push('GBL number is required');
+      } else {
+        // Check for duplicate GBLs within the file
         if (fileGBLs.has(row.gbl_number)) {
           duplicateGBLsInFile.add(row.gbl_number);
-          row._validation_errors = row._validation_errors || [];
           row._validation_errors.push(`Duplicate GBL number found in file: ${row.gbl_number}`);
         } else {
           fileGBLs.add(row.gbl_number);
         }
       }
 
-      // Map shipment type with fallback
-      row.shipment_type = mapShipmentType(row.shipment_type || '');
-
-      // Handle cube logic: if actual_cube is present but remaining_cube is not, copy actual_cube to remaining_cube
-      if (row.actual_cube && !row.remaining_cube) {
-        row.remaining_cube = row.actual_cube;
-      }
-
-      // Validate required fields and track issues but don't reject the record
-      row._validation_errors = row._validation_errors || [];
-      
-      if (!row.gbl_number || (typeof row.gbl_number === 'string' && row.gbl_number.trim() === '')) {
-        row._validation_errors.push('GBL number is required');
-      }
-      
+      // Validate shipper last name
       if (!row.shipper_last_name || (typeof row.shipper_last_name === 'string' && row.shipper_last_name.trim() === '')) {
         row._validation_errors.push('Shipper last name is required');
       }
 
-      if (!row.pickup_date || (typeof row.pickup_date === 'string' && row.pickup_date.trim() === '')) {
-        row._validation_errors.push('Pickup date is required');
+      // Validate and map shipment type
+      const shipmentTypeResult = mapShipmentType(row.shipment_type || '');
+      if (!shipmentTypeResult.isValid) {
+        row._validation_errors.push('Invalid or missing shipment type. Use I/O/T or inbound/outbound/intertheater');
+        row.shipment_type = ''; // Clear invalid type
+      } else {
+        row.shipment_type = shipmentTypeResult.mappedType;
       }
 
-      if (!row.rdd || (typeof row.rdd === 'string' && row.rdd.trim() === '')) {
-        row._validation_errors.push('RDD is required');
+      // Validate required text fields
+      const requiredTextFields = [
+        { field: 'origin_rate_area', name: 'Origin rate area' },
+        { field: 'destination_rate_area', name: 'Destination rate area' },
+        { field: 'poe_code', name: 'POE code' },
+        { field: 'pod_code', name: 'POD code' },
+        { field: 'scac_code', name: 'SCAC code' }
+      ];
+
+      requiredTextFields.forEach(({ field, name }) => {
+        if (!row[field] || (typeof row[field] === 'string' && row[field].trim() === '')) {
+          row._validation_errors.push(`${name} is required`);
+        }
+      });
+
+      // Validate dates
+      const pickupResult = parseAndValidateDate(row.pickup_date || '', 'Pickup date');
+      const rddResult = parseAndValidateDate(row.rdd || '', 'Required delivery date');
+
+      if (pickupResult.error) {
+        row._validation_errors.push(pickupResult.error);
+      }
+      if (rddResult.error) {
+        row._validation_errors.push(rddResult.error);
       }
 
-      if (!row.origin_rate_area || (typeof row.origin_rate_area === 'string' && row.origin_rate_area.trim() === '')) {
-        row._validation_errors.push('Origin rate area is required');
+      // Store parsed dates (or null if invalid)
+      row.parsed_pickup_date = pickupResult.parsedDate;
+      row.parsed_rdd = rddResult.parsedDate;
+
+      // Validate cube fields
+      const estimatedResult = parseAndValidateCube(row.estimated_cube || '', 'estimated cube');
+      const actualResult = parseAndValidateCube(row.actual_cube || '', 'actual cube');
+
+      if (estimatedResult.error) {
+        row._validation_errors.push(estimatedResult.error);
+      }
+      if (actualResult.error) {
+        row._validation_errors.push(actualResult.error);
       }
 
-      if (!row.destination_rate_area || (typeof row.destination_rate_area === 'string' && row.destination_rate_area.trim() === '')) {
-        row._validation_errors.push('Destination rate area is required');
-      }
+      // Store parsed cube values
+      row.parsed_estimated_cube = estimatedResult.parsedCube;
+      row.parsed_actual_cube = actualResult.parsedCube;
 
-      if (!row.poe_code || (typeof row.poe_code === 'string' && row.poe_code.trim() === '')) {
-        row._validation_errors.push('POE code is required');
-      }
-
-      if (!row.pod_code || (typeof row.pod_code === 'string' && row.pod_code.trim() === '')) {
-        row._validation_errors.push('POD code is required');
-      }
-
-      if (!row.scac_code || (typeof row.scac_code === 'string' && row.scac_code.trim() === '')) {
-        row._validation_errors.push('SCAC code is required');
+      // Validate cube logic only if we have a valid pickup date
+      if (pickupResult.parsedDate) {
+        const pickupDate = new Date(pickupResult.parsedDate);
+        const cubeErrors = validateCubeLogic(estimatedResult.parsedCube, actualResult.parsedCube, pickupDate);
+        row._validation_errors.push(...cubeErrors);
       }
 
       console.log(`Row ${i} validation errors:`, row._validation_errors);
@@ -261,24 +369,20 @@ export const useBulkUpload = () => {
 
       // Process and insert staging data (including records with validation errors)
       const stagingRecords = parsedData.map(row => {
-        // Handle empty date values - use null instead of default date for empty values
-        const pickupDate = row.pickup_date && typeof row.pickup_date === 'string' && row.pickup_date.trim() !== '' ? row.pickup_date : null;
-        const rddDate = row.rdd && typeof row.rdd === 'string' && row.rdd.trim() !== '' ? row.rdd : null;
-        
         return {
           upload_session_id: uploadSessionId,
           organization_id: profile.organization_id,
           user_id: user.id,
           gbl_number: row.gbl_number || '',
           shipper_last_name: row.shipper_last_name || '',
-          shipment_type: row.shipment_type || 'inbound',
+          shipment_type: row.shipment_type || '',
           origin_rate_area: '',  // Will be populated during validation
           destination_rate_area: '', // Will be populated during validation
-          pickup_date: pickupDate,
-          rdd: rddDate,
-          estimated_cube: row.estimated_cube ? parseInt(row.estimated_cube) : null,
-          actual_cube: row.actual_cube ? parseInt(row.actual_cube) : null,
-          remaining_cube: row.remaining_cube ? parseInt(row.remaining_cube) : null,
+          pickup_date: row.parsed_pickup_date, // Use parsed date or null
+          rdd: row.parsed_rdd, // Use parsed date or null
+          estimated_cube: row.parsed_estimated_cube,
+          actual_cube: row.parsed_actual_cube,
+          remaining_cube: null, // We don't care about this during import
           raw_poe_code: row.poe_code || '',
           raw_pod_code: row.pod_code || '',
           raw_origin_rate_area: row.origin_rate_area || '',
