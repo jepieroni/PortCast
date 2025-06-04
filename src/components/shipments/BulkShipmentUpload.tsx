@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useBulkUpload } from './hooks/useBulkUpload';
-import BulkUploadReview from './components/BulkUploadReview';
+import { useBulkUploadNew } from './hooks/useBulkUploadNew';
+import { NewBulkUploadReview } from './components/NewBulkUploadReview';
 
 interface BulkShipmentUploadProps {
   onBack: () => void;
@@ -14,14 +13,17 @@ interface BulkShipmentUploadProps {
 const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
-  const [uploadSessionId, setUploadSessionId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   
   const {
     uploadFile,
+    updateRecord,
+    processValidRecords,
     isUploading,
-    uploadError
-  } = useBulkUpload();
+    uploadError,
+    bulkState,
+    clearState
+  } = useBulkUploadNew();
 
   const validateFileType = (file: File) => {
     const allowedTypes = [
@@ -76,25 +78,33 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
 
   const handleUpload = async () => {
     if (!file) return;
-
-    try {
-      const sessionId = await uploadFile(file);
-      setUploadSessionId(sessionId);
-      toast({
-        title: "File uploaded successfully",
-        description: "Please review and validate the shipment data"
-      });
-    } catch (error) {
-      console.error('Upload error:', error);
-    }
+    await uploadFile(file);
   };
 
-  if (uploadSessionId) {
+  const handleBackToUpload = () => {
+    clearState();
+    setFile(null);
+  };
+
+  const handleComplete = () => {
+    clearState();
+    setFile(null);
+    onBack();
+  };
+
+  // Show review screen if we have bulk state
+  if (bulkState) {
     return (
-      <BulkUploadReview 
-        uploadSessionId={uploadSessionId}
-        onBack={() => setUploadSessionId(null)}
-        onComplete={onBack}
+      <NewBulkUploadReview
+        records={bulkState.records}
+        summary={bulkState.summary}
+        onUpdateRecord={updateRecord}
+        onProcess={async () => {
+          await processValidRecords();
+          handleComplete();
+        }}
+        onBack={handleBackToUpload}
+        isProcessing={isUploading}
       />
     );
   }
@@ -163,7 +173,7 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
               disabled={!file || isUploading}
               className="w-full"
             >
-              {isUploading ? 'Uploading...' : 'Upload and Review'}
+              {isUploading ? 'Processing...' : 'Upload and Review'}
             </Button>
           </CardContent>
         </Card>
@@ -192,7 +202,6 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
               <ul className="list-disc list-inside space-y-1 text-gray-600">
                 <li>estimated_cube</li>
                 <li>actual_cube</li>
-                <li>remaining_cube</li>
               </ul>
             </div>
 
@@ -202,8 +211,7 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
                 <div className="text-sm">
                   <p className="font-medium text-yellow-800">Note:</p>
                   <p className="text-yellow-700">
-                    Rate areas and port codes will be validated and may require mapping 
-                    to your organization's format during the review process.
+                    This new system provides immediate validation and simple editing capabilities.
                   </p>
                 </div>
               </div>
