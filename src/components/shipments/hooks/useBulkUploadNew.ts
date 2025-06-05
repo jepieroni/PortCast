@@ -1,8 +1,9 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { parseCSV } from './utils/simpleCsvParser';
-import { validateRecord } from './utils/simpleValidator';
+import { validateRecordSync, validateRecord } from './utils/simpleValidator';
 import { BulkUploadRecord, BulkUploadState } from './utils/bulkUploadTypes';
 
 type ShipmentType = 'inbound' | 'outbound' | 'intertheater';
@@ -26,20 +27,20 @@ export const useBulkUploadNew = () => {
       console.log('Parsed records:', records.length);
       console.log('First record sample:', records[0]);
 
-      // Validate each record
+      // Initial validation using synchronous validator
       const validatedRecords = records.map((record, index) => {
-        console.log(`Validating record ${index + 1}:`, {
+        console.log(`Initial validation for record ${index + 1}:`, {
           id: record.id,
           gbl_number: record.gbl_number,
           shipment_type: record.shipment_type,
           pickup_date: record.pickup_date
         });
-        const errors = validateRecord(record);
-        console.log(`Validation errors for record ${index + 1}:`, errors);
+        const errors = validateRecordSync(record);
+        console.log(`Initial validation errors for record ${index + 1}:`, errors);
         
         return {
           ...record,
-          status: errors.length === 0 ? 'valid' : 'invalid',
+          status: errors.length === 0 ? 'pending' : 'invalid',
           errors
         } as BulkUploadRecord;
       });
@@ -47,9 +48,9 @@ export const useBulkUploadNew = () => {
       // Calculate summary
       const summary = {
         total: validatedRecords.length,
-        valid: validatedRecords.filter(r => r.status === 'valid').length,
+        valid: validatedRecords.filter(r => r.status === 'pending').length,
         invalid: validatedRecords.filter(r => r.status === 'invalid').length,
-        pending: 0
+        pending: validatedRecords.filter(r => r.status === 'pending').length
       };
 
       setBulkState({
@@ -57,8 +58,41 @@ export const useBulkUploadNew = () => {
         summary
       });
 
-      console.log('Final validation summary:', summary);
+      console.log('Initial validation summary:', summary);
       console.log('Sample validated records:', validatedRecords.slice(0, 3));
+
+      // Perform detailed validation with database lookups for pending records
+      const detailedValidatedRecords = await Promise.all(
+        validatedRecords.map(async (record) => {
+          if (record.status === 'pending') {
+            console.log(`Performing detailed validation for record ${record.id}`);
+            const detailedErrors = await validateRecord(record);
+            console.log(`Detailed validation errors for record ${record.id}:`, detailedErrors);
+            
+            return {
+              ...record,
+              status: detailedErrors.length === 0 ? 'valid' : 'invalid',
+              errors: detailedErrors
+            } as BulkUploadRecord;
+          }
+          return record;
+        })
+      );
+
+      // Update summary after detailed validation
+      const finalSummary = {
+        total: detailedValidatedRecords.length,
+        valid: detailedValidatedRecords.filter(r => r.status === 'valid').length,
+        invalid: detailedValidatedRecords.filter(r => r.status === 'invalid').length,
+        pending: 0
+      };
+
+      setBulkState({
+        records: detailedValidatedRecords,
+        summary: finalSummary
+      });
+
+      console.log('Final validation summary:', finalSummary);
 
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -68,32 +102,39 @@ export const useBulkUploadNew = () => {
     }
   };
 
-  const updateRecord = (recordId: string, updates: Partial<BulkUploadRecord>) => {
+  const updateRecord = async (recordId: string, updates: Partial<BulkUploadRecord>) => {
     if (!bulkState) return;
 
     console.log(`Updating record ${recordId} with:`, updates);
 
-    const updatedRecords = bulkState.records.map(record => {
-      if (record.id === recordId) {
-        const updatedRecord = { ...record, ...updates };
-        console.log(`Updated record ${recordId}:`, {
-          original_shipment_type: record.shipment_type,
-          updated_shipment_type: updatedRecord.shipment_type,
-          original_pickup_date: record.pickup_date,
-          updated_pickup_date: updatedRecord.pickup_date
-        });
-        
-        const errors = validateRecord(updatedRecord);
-        console.log(`Re-validation errors for record ${recordId}:`, errors);
-        
-        return {
-          ...updatedRecord,
-          status: errors.length === 0 ? 'valid' : 'invalid',
-          errors
-        } as BulkUploadRecord;
-      }
-      return record;
-    });
+    const updatedRecords = await Promise.all(
+      bulkState.records.map(async (record) => {
+        if (record.id === recordId) {
+          const updatedRecord = { ...record, ...updates };
+          console.log(`Updated record ${recordId}:`, {
+            original_shipment_type: record.shipment_type,
+            updated_shipment_type: updatedRecord.shipment_type,
+            original_pickup_date: record.pickup_date,
+            updated_pickup_date: updatedRecord.pickup_date
+          });
+          
+          // Clear existing resolved IDs to force re-validation
+          updatedRecord.target_poe_id = undefined;
+          updatedRecord.target_pod_id = undefined;
+          updatedRecord.tsp_id = undefined;
+          
+          const errors = await validateRecord(updatedRecord);
+          console.log(`Re-validation errors for record ${recordId}:`, errors);
+          
+          return {
+            ...updatedRecord,
+            status: errors.length === 0 ? 'valid' : 'invalid',
+            errors
+          } as BulkUploadRecord;
+        }
+        return record;
+      })
+    );
 
     const summary = {
       total: updatedRecords.length,
@@ -140,6 +181,11 @@ export const useBulkUploadNew = () => {
         const pickupDate = convertDateFormat(record.pickup_date);
         const rddDate = convertDateFormat(record.rdd);
 
+        // Use the resolved IDs from validation, or throw error if missing
+        if (!record.target_poe_id || !record.target_pod_id || !record.tsp_id) {
+          throw new Error(`Missing resolved IDs for record ${record.gbl_number}. Please re-validate the record.`);
+        }
+
         const shipmentData = {
           user_id: user.id,
           gbl_number: record.gbl_number,
@@ -152,10 +198,9 @@ export const useBulkUploadNew = () => {
           estimated_cube: record.estimated_cube ? parseInt(record.estimated_cube) : null,
           actual_cube: record.actual_cube ? parseInt(record.actual_cube) : null,
           remaining_cube: record.actual_cube ? parseInt(record.actual_cube) : null,
-          // Use placeholder IDs for now
-          target_poe_id: '00000000-0000-0000-0000-000000000000',
-          target_pod_id: '00000000-0000-0000-0000-000000000000',
-          tsp_id: '00000000-0000-0000-0000-000000000000'
+          target_poe_id: record.target_poe_id,
+          target_pod_id: record.target_pod_id,
+          tsp_id: record.tsp_id
         };
 
         console.log('Inserting shipment data:', shipmentData);
