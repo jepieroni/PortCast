@@ -530,6 +530,7 @@ export type Database = {
           user_id: string | null
           validation_errors: Json | null
           validation_status: string | null
+          validation_warnings: Json | null
         }
         Insert: {
           actual_cube?: string | null
@@ -565,6 +566,7 @@ export type Database = {
           user_id?: string | null
           validation_errors?: Json | null
           validation_status?: string | null
+          validation_warnings?: Json | null
         }
         Update: {
           actual_cube?: string | null
@@ -600,6 +602,7 @@ export type Database = {
           user_id?: string | null
           validation_errors?: Json | null
           validation_status?: string | null
+          validation_warnings?: Json | null
         }
         Relationships: [
           {

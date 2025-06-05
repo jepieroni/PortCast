@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -93,7 +94,7 @@ export const useStagingRecords = () => {
           );
         }
 
-        // Convert validation_warnings from Json[] to string[] (if it exists)
+        // Convert validation_warnings from Json[] to string[] (now exists after migration)
         let warnings: string[] = [];
         if (Array.isArray(record.validation_warnings)) {
           warnings = record.validation_warnings.map(warning => 
@@ -230,7 +231,7 @@ export const useStagingRecords = () => {
       if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
       if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
       
-      // CRITICAL: Store warnings in staging table
+      // CRITICAL: Store warnings in staging table with the new column
       if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
 
       console.log(`Updating staging record ${recordId} with:`, stagingUpdates);
