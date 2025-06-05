@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -30,9 +30,42 @@ export const NewBulkUploadReview = ({
   isProcessing
 }: NewBulkUploadReviewProps) => {
   const [editingRecord, setEditingRecord] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState<BulkUploadRecord | null>(null);
 
-  const handleFieldChange = (recordId: string, field: string, value: string) => {
-    onUpdateRecord(recordId, { [field]: value });
+  // Reset form data when editing record changes
+  useEffect(() => {
+    if (editingRecord) {
+      const record = records.find(r => r.id === editingRecord);
+      if (record) {
+        console.log('Setting edit form data for record:', editingRecord, record);
+        setEditFormData({ ...record });
+      }
+    } else {
+      setEditFormData(null);
+    }
+  }, [editingRecord, records]);
+
+  const handleEditClick = (recordId: string) => {
+    if (editingRecord === recordId) {
+      // Cancel editing
+      setEditingRecord(null);
+      setEditFormData(null);
+    } else {
+      // Start editing this record
+      console.log('Starting edit for record:', recordId);
+      setEditingRecord(recordId);
+    }
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    if (!editFormData) return;
+    
+    console.log(`Updating field ${field} to value:`, value);
+    const updatedData = { ...editFormData, [field]: value };
+    setEditFormData(updatedData);
+    
+    // Immediately update the record in the parent state
+    onUpdateRecord(editFormData.id, { [field]: value });
   };
 
   return (
@@ -100,7 +133,7 @@ export const NewBulkUploadReview = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setEditingRecord(editingRecord === record.id ? null : record.id)}
+                    onClick={() => handleEditClick(record.id)}
                   >
                     {editingRecord === record.id ? 'Cancel' : 'Edit'}
                   </Button>
@@ -119,30 +152,30 @@ export const NewBulkUploadReview = ({
                   </div>
                 )}
 
-                {editingRecord === record.id ? (
+                {editingRecord === record.id && editFormData ? (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium mb-1">GBL Number</label>
                       <Input
-                        value={record.gbl_number}
-                        onChange={(e) => handleFieldChange(record.id, 'gbl_number', e.target.value)}
+                        value={editFormData.gbl_number}
+                        onChange={(e) => handleFieldChange('gbl_number', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Shipper Last Name</label>
                       <Input
-                        value={record.shipper_last_name}
-                        onChange={(e) => handleFieldChange(record.id, 'shipper_last_name', e.target.value)}
+                        value={editFormData.shipper_last_name}
+                        onChange={(e) => handleFieldChange('shipper_last_name', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Shipment Type</label>
                       <Select
-                        value={record.shipment_type}
-                        onValueChange={(value) => handleFieldChange(record.id, 'shipment_type', value)}
+                        value={editFormData.shipment_type}
+                        onValueChange={(value) => handleFieldChange('shipment_type', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="inbound">Inbound</SelectItem>
@@ -154,64 +187,64 @@ export const NewBulkUploadReview = ({
                     <div>
                       <label className="block text-sm font-medium mb-1">Origin Rate Area</label>
                       <Input
-                        value={record.origin_rate_area}
-                        onChange={(e) => handleFieldChange(record.id, 'origin_rate_area', e.target.value)}
+                        value={editFormData.origin_rate_area}
+                        onChange={(e) => handleFieldChange('origin_rate_area', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Destination Rate Area</label>
                       <Input
-                        value={record.destination_rate_area}
-                        onChange={(e) => handleFieldChange(record.id, 'destination_rate_area', e.target.value)}
+                        value={editFormData.destination_rate_area}
+                        onChange={(e) => handleFieldChange('destination_rate_area', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Pickup Date</label>
                       <Input
-                        value={record.pickup_date}
-                        onChange={(e) => handleFieldChange(record.id, 'pickup_date', e.target.value)}
+                        value={editFormData.pickup_date}
+                        onChange={(e) => handleFieldChange('pickup_date', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Required Delivery Date</label>
                       <Input
-                        value={record.rdd}
-                        onChange={(e) => handleFieldChange(record.id, 'rdd', e.target.value)}
+                        value={editFormData.rdd}
+                        onChange={(e) => handleFieldChange('rdd', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">POE Code</label>
                       <Input
-                        value={record.poe_code}
-                        onChange={(e) => handleFieldChange(record.id, 'poe_code', e.target.value)}
+                        value={editFormData.poe_code}
+                        onChange={(e) => handleFieldChange('poe_code', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">POD Code</label>
                       <Input
-                        value={record.pod_code}
-                        onChange={(e) => handleFieldChange(record.id, 'pod_code', e.target.value)}
+                        value={editFormData.pod_code}
+                        onChange={(e) => handleFieldChange('pod_code', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">SCAC Code</label>
                       <Input
-                        value={record.scac_code}
-                        onChange={(e) => handleFieldChange(record.id, 'scac_code', e.target.value)}
+                        value={editFormData.scac_code}
+                        onChange={(e) => handleFieldChange('scac_code', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Estimated Cube</label>
                       <Input
-                        value={record.estimated_cube || ''}
-                        onChange={(e) => handleFieldChange(record.id, 'estimated_cube', e.target.value)}
+                        value={editFormData.estimated_cube || ''}
+                        onChange={(e) => handleFieldChange('estimated_cube', e.target.value)}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Actual Cube</label>
                       <Input
-                        value={record.actual_cube || ''}
-                        onChange={(e) => handleFieldChange(record.id, 'actual_cube', e.target.value)}
+                        value={editFormData.actual_cube || ''}
+                        onChange={(e) => handleFieldChange('actual_cube', e.target.value)}
                       />
                     </div>
                   </div>
