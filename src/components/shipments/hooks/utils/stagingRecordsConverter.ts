@@ -8,20 +8,38 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     validation_warnings: record.validation_warnings
   });
 
-  // Convert validation_errors from Json[] to string[]
+  // Convert validation_errors from Json to string[]
   let errors: string[] = [];
-  if (Array.isArray(record.validation_errors)) {
-    errors = record.validation_errors.map(error => 
-      typeof error === 'string' ? error : JSON.stringify(error)
-    );
+  if (record.validation_errors) {
+    if (typeof record.validation_errors === 'string') {
+      try {
+        const parsed = JSON.parse(record.validation_errors);
+        errors = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        errors = [record.validation_errors];
+      }
+    } else if (Array.isArray(record.validation_errors)) {
+      errors = record.validation_errors.map(error => 
+        typeof error === 'string' ? error : JSON.stringify(error)
+      );
+    }
   }
 
-  // Convert validation_warnings from Json[] to string[] - these are now dynamic like errors
+  // Convert validation_warnings from Json to string[]
   let warnings: string[] = [];
-  if (Array.isArray(record.validation_warnings)) {
-    warnings = record.validation_warnings.map(warning => 
-      typeof warning === 'string' ? warning : JSON.stringify(warning)
-    );
+  if (record.validation_warnings) {
+    if (typeof record.validation_warnings === 'string') {
+      try {
+        const parsed = JSON.parse(record.validation_warnings);
+        warnings = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        warnings = [record.validation_warnings];
+      }
+    } else if (Array.isArray(record.validation_warnings)) {
+      warnings = record.validation_warnings.map(warning => 
+        typeof warning === 'string' ? warning : JSON.stringify(warning)
+      );
+    }
   }
 
   console.log(`Converted warnings for ${record.gbl_number}:`, warnings);
