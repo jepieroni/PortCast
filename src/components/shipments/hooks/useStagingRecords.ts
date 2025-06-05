@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -142,12 +143,12 @@ export const useStagingRecords = () => {
       if (!user) throw new Error('User not authenticated');
 
       // Prepare update object for staging table
-      // NEVER update raw fields for existing records - they preserve the original upload data
+      // NEVER update raw fields - they preserve the original upload data forever
       const stagingUpdates: any = {
         updated_at: new Date().toISOString()
       };
 
-      // Always update the processed fields for backward compatibility and display
+      // Only update processed fields for backward compatibility and display
       if (updates.gbl_number !== undefined) stagingUpdates.gbl_number = updates.gbl_number;
       if (updates.shipper_last_name !== undefined) stagingUpdates.shipper_last_name = updates.shipper_last_name;
       if (updates.shipment_type !== undefined) stagingUpdates.shipment_type = updates.shipment_type;
