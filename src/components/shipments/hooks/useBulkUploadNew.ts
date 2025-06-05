@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,6 +105,51 @@ export const useBulkUploadNew = () => {
     if (!bulkState) return;
 
     console.log(`Updating record ${recordId} with:`, updates);
+
+    // If this is a revalidation trigger, skip the update and just revalidate
+    if (updates._revalidate) {
+      const updatedRecords = await Promise.all(
+        bulkState.records.map(async (record) => {
+          if (record.id === recordId) {
+            console.log(`Re-validating record ${recordId} after translation creation`);
+            
+            // Clear existing resolved IDs to force re-validation
+            const recordToValidate = {
+              ...record,
+              target_poe_id: undefined,
+              target_pod_id: undefined,
+              tsp_id: undefined
+            };
+            
+            const errors = await validateRecord(recordToValidate);
+            console.log(`Re-validation errors for record ${recordId}:`, errors);
+            
+            return {
+              ...record,
+              status: errors.length === 0 ? 'valid' : 'invalid',
+              errors,
+              target_poe_id: recordToValidate.target_poe_id,
+              target_pod_id: recordToValidate.target_pod_id,
+              tsp_id: recordToValidate.tsp_id
+            } as BulkUploadRecord;
+          }
+          return record;
+        })
+      );
+
+      const summary = {
+        total: updatedRecords.length,
+        valid: updatedRecords.filter(r => r.status === 'valid').length,
+        invalid: updatedRecords.filter(r => r.status === 'invalid').length,
+        pending: 0
+      };
+
+      setBulkState({
+        records: updatedRecords,
+        summary
+      });
+      return;
+    }
 
     const updatedRecords = await Promise.all(
       bulkState.records.map(async (record) => {

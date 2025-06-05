@@ -1,4 +1,3 @@
-
 import { BulkUploadRecord } from './bulkUploadTypes';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -88,36 +87,24 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
   if (!record.poe_code || record.poe_code.trim() === '') {
     errors.push('POE code is required');
   } else {
-    // Validate POE code exists
-    const { data: poePort } = await supabase
-      .from('ports')
-      .select('id')
-      .eq('code', record.poe_code.trim())
-      .maybeSingle();
-    
-    if (!poePort) {
-      errors.push(`POE code '${record.poe_code}' not found`);
-    } else {
-      // Store the resolved ID for later use
-      record.target_poe_id = poePort.id;
+    // Validate POE code exists or has translation
+    const poeResult = await validatePortCode(record.poe_code.trim(), 'POE');
+    if (poeResult.error) {
+      errors.push(poeResult.error);
+    } else if (poeResult.portId) {
+      record.target_poe_id = poeResult.portId;
     }
   }
   
   if (!record.pod_code || record.pod_code.trim() === '') {
     errors.push('POD code is required');
   } else {
-    // Validate POD code exists
-    const { data: podPort } = await supabase
-      .from('ports')
-      .select('id')
-      .eq('code', record.pod_code.trim())
-      .maybeSingle();
-    
-    if (!podPort) {
-      errors.push(`POD code '${record.pod_code}' not found`);
-    } else {
-      // Store the resolved ID for later use
-      record.target_pod_id = podPort.id;
+    // Validate POD code exists or has translation
+    const podResult = await validatePortCode(record.pod_code.trim(), 'POD');
+    if (podResult.error) {
+      errors.push(podResult.error);
+    } else if (podResult.portId) {
+      record.target_pod_id = podResult.portId;
     }
   }
   
@@ -173,6 +160,44 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
   }
 
   return errors;
+};
+
+const validatePortCode = async (portCode: string, portType: string): Promise<{ portId?: string; error?: string }> => {
+  // Check if port exists directly
+  const { data: directPort } = await supabase
+    .from('ports')
+    .select('id')
+    .eq('code', portCode)
+    .maybeSingle();
+
+  if (directPort) {
+    return { portId: directPort.id };
+  }
+
+  // Check for translation
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .maybeSingle();
+    
+    if (profile?.organization_id) {
+      const { data: translation } = await supabase
+        .from('port_code_translations')
+        .select('port_id')
+        .eq('organization_id', profile.organization_id)
+        .eq('external_port_code', portCode)
+        .maybeSingle();
+      
+      if (translation) {
+        return { portId: translation.port_id };
+      }
+    }
+  }
+
+  return { error: `${portType} code '${portCode}' not found. Please select from available ports or create a translation.` };
 };
 
 // Create a synchronous version for immediate validation without database lookups
