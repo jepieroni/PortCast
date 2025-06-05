@@ -4,6 +4,8 @@ import { BulkUploadRecord } from './bulkUploadTypes';
 import { validateRecordComplete } from './simpleValidator';
 
 export const updateStagingRecord = async (recordId: string, updates: Partial<BulkUploadRecord>) => {
+  console.log(`🔧 STAGING UPDATER: Starting update for record ${recordId}`, updates);
+  
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
@@ -36,7 +38,7 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
   const hasValidationRelatedUpdates = validationRelatedFields.some(field => updates[field] !== undefined);
   
   if (hasValidationRelatedUpdates) {
-    console.log(`Re-validating record ${recordId} due to field updates`);
+    console.log(`🔧 STAGING UPDATER: Re-validating record ${recordId} due to field updates`);
     
     // Get the current record to re-validate
     const { data: currentRecord } = await supabase
@@ -46,6 +48,14 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
       .single();
     
     if (currentRecord) {
+      console.log(`🔧 STAGING UPDATER: Current record from DB:`, {
+        id: currentRecord.id,
+        gbl_number: currentRecord.gbl_number,
+        pickup_date: currentRecord.pickup_date,
+        validation_status: currentRecord.validation_status,
+        validation_warnings: currentRecord.validation_warnings
+      });
+
       // Helper function to safely convert Json to string array
       const jsonToStringArray = (jsonValue: any): string[] => {
         if (!jsonValue) return [];
@@ -89,8 +99,23 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         validation_warnings: jsonToStringArray(currentRecord.validation_warnings)
       };
       
+      console.log(`🔧 STAGING UPDATER: Record to validate:`, {
+        id: recordToValidate.id,
+        gbl_number: recordToValidate.gbl_number,
+        pickup_date: recordToValidate.pickup_date,
+        originalPickupDate: currentRecord.pickup_date,
+        updatedPickupDate: updates.pickup_date
+      });
+      
       // Run complete validation including warnings
       const validationResult = await validateRecordComplete(recordToValidate);
+      
+      console.log(`🔧 STAGING UPDATER: Validation result:`, {
+        errors: validationResult.errors,
+        warnings: validationResult.warnings,
+        errorsCount: validationResult.errors.length,
+        warningsCount: validationResult.warnings.length
+      });
       
       // Determine new status based on validation results
       let newStatus: string;
@@ -102,15 +127,18 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         newStatus = 'valid';
       }
       
+      console.log(`🔧 STAGING UPDATER: Determined new status: ${newStatus}`);
+      
       // Store validation results - convert to JSON for database storage
       stagingUpdates.validation_status = newStatus;
       stagingUpdates.validation_errors = validationResult.errors;
       stagingUpdates.validation_warnings = validationResult.warnings || [];
       
-      console.log(`Updated validation for record ${recordId}:`, {
-        status: newStatus,
-        errors: validationResult.errors.length,
-        warnings: (validationResult.warnings || []).length
+      console.log(`🔧 STAGING UPDATER: Final staging updates:`, {
+        validation_status: stagingUpdates.validation_status,
+        validation_errors: stagingUpdates.validation_errors,
+        validation_warnings: stagingUpdates.validation_warnings,
+        pickup_date: stagingUpdates.pickup_date
       });
     }
   } else {
@@ -126,14 +154,32 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
     }
   }
 
-  console.log(`Updating staging record ${recordId} with:`, stagingUpdates);
+  console.log(`🔧 STAGING UPDATER: About to update database with:`, stagingUpdates);
 
   const { error } = await supabase
     .from('shipment_uploads_staging')
     .update(stagingUpdates)
     .eq('id', recordId);
 
-  if (error) throw error;
+  if (error) {
+    console.error(`🔧 STAGING UPDATER: Database update error:`, error);
+    throw error;
+  }
 
-  console.log(`Successfully updated staging record ${recordId}`);
+  console.log(`🔧 STAGING UPDATER: Successfully updated staging record ${recordId}`);
+  
+  // Verify the update by fetching the record again
+  const { data: verifyRecord } = await supabase
+    .from('shipment_uploads_staging')
+    .select('*')
+    .eq('id', recordId)
+    .single();
+    
+  console.log(`🔧 STAGING UPDATER: Verification - record after update:`, {
+    id: verifyRecord?.id,
+    gbl_number: verifyRecord?.gbl_number,
+    pickup_date: verifyRecord?.pickup_date,
+    validation_status: verifyRecord?.validation_status,
+    validation_warnings: verifyRecord?.validation_warnings
+  });
 };
