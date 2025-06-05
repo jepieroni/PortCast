@@ -1,4 +1,3 @@
-
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { validateRecord } from './utils/simpleValidator';
@@ -20,56 +19,79 @@ export const useRecordProcessing = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // Prepare staging update - all fields are now flexible text
+    // Prepare staging update - only update raw fields when explicitly changing user input
     const stagingUpdates: any = {
       updated_at: new Date().toISOString()
     };
 
-    // Map updates to raw fields - all can now accept any text values
+    // Only update raw fields if this is an explicit user edit (not a revalidation)
+    if (!updates._revalidate) {
+      // Map updates to raw fields - these are the user's actual input values
+      if (updates.gbl_number !== undefined) {
+        stagingUpdates.raw_gbl_number = updates.gbl_number;
+      }
+      if (updates.shipper_last_name !== undefined) {
+        stagingUpdates.raw_shipper_last_name = updates.shipper_last_name;
+      }
+      if (updates.shipment_type !== undefined) {
+        stagingUpdates.raw_shipment_type = updates.shipment_type;
+      }
+      if (updates.origin_rate_area !== undefined) {
+        stagingUpdates.raw_origin_rate_area = updates.origin_rate_area;
+      }
+      if (updates.destination_rate_area !== undefined) {
+        stagingUpdates.raw_destination_rate_area = updates.destination_rate_area;
+      }
+      if (updates.pickup_date !== undefined) {
+        stagingUpdates.raw_pickup_date = updates.pickup_date;
+      }
+      if (updates.rdd !== undefined) {
+        stagingUpdates.raw_rdd = updates.rdd;
+      }
+      if (updates.poe_code !== undefined) {
+        stagingUpdates.raw_poe_code = updates.poe_code;
+      }
+      if (updates.pod_code !== undefined) {
+        stagingUpdates.raw_pod_code = updates.pod_code;
+      }
+      if (updates.scac_code !== undefined) {
+        stagingUpdates.raw_scac_code = updates.scac_code;
+      }
+      if (updates.estimated_cube !== undefined) {
+        stagingUpdates.raw_estimated_cube = updates.estimated_cube;
+      }
+      if (updates.actual_cube !== undefined) {
+        stagingUpdates.raw_actual_cube = updates.actual_cube;
+      }
+    }
+
+    // Always update processed fields for display/validation purposes
     if (updates.gbl_number !== undefined) {
-      stagingUpdates.raw_gbl_number = updates.gbl_number;
       stagingUpdates.gbl_number = updates.gbl_number;
     }
     if (updates.shipper_last_name !== undefined) {
-      stagingUpdates.raw_shipper_last_name = updates.shipper_last_name;
       stagingUpdates.shipper_last_name = updates.shipper_last_name;
     }
     if (updates.shipment_type !== undefined) {
-      stagingUpdates.raw_shipment_type = updates.shipment_type;
-      stagingUpdates.shipment_type = updates.shipment_type; // Now accepts any text
+      stagingUpdates.shipment_type = updates.shipment_type;
     }
     if (updates.origin_rate_area !== undefined) {
-      stagingUpdates.raw_origin_rate_area = updates.origin_rate_area;
       stagingUpdates.origin_rate_area = updates.origin_rate_area;
     }
     if (updates.destination_rate_area !== undefined) {
-      stagingUpdates.raw_destination_rate_area = updates.destination_rate_area;
       stagingUpdates.destination_rate_area = updates.destination_rate_area;
     }
     if (updates.pickup_date !== undefined) {
-      stagingUpdates.raw_pickup_date = updates.pickup_date;
       stagingUpdates.pickup_date = updates.pickup_date;
     }
     if (updates.rdd !== undefined) {
-      stagingUpdates.raw_rdd = updates.rdd;
       stagingUpdates.rdd = updates.rdd;
     }
-    if (updates.poe_code !== undefined) {
-      stagingUpdates.raw_poe_code = updates.poe_code;
-    }
-    if (updates.pod_code !== undefined) {
-      stagingUpdates.raw_pod_code = updates.pod_code;
-    }
-    if (updates.scac_code !== undefined) {
-      stagingUpdates.raw_scac_code = updates.scac_code;
-    }
     if (updates.estimated_cube !== undefined) {
-      stagingUpdates.raw_estimated_cube = updates.estimated_cube;
-      stagingUpdates.estimated_cube = updates.estimated_cube; // Now text field
+      stagingUpdates.estimated_cube = updates.estimated_cube;
     }
     if (updates.actual_cube !== undefined) {
-      stagingUpdates.raw_actual_cube = updates.actual_cube;
-      stagingUpdates.actual_cube = updates.actual_cube; // Now text field
+      stagingUpdates.actual_cube = updates.actual_cube;
     }
 
     // If this is a revalidation trigger, clear resolved IDs to force re-validation

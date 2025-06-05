@@ -142,26 +142,29 @@ export const useStagingRecords = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Prepare update object for staging table - all fields are now flexible
+      // Prepare update object for staging table
       const stagingUpdates: any = {
         updated_at: new Date().toISOString()
       };
 
-      // Map BulkUploadRecord fields to staging table raw fields
-      if (updates.gbl_number !== undefined) stagingUpdates.raw_gbl_number = updates.gbl_number;
-      if (updates.shipper_last_name !== undefined) stagingUpdates.raw_shipper_last_name = updates.shipper_last_name;
-      if (updates.shipment_type !== undefined) stagingUpdates.raw_shipment_type = updates.shipment_type;
-      if (updates.origin_rate_area !== undefined) stagingUpdates.raw_origin_rate_area = updates.origin_rate_area;
-      if (updates.destination_rate_area !== undefined) stagingUpdates.raw_destination_rate_area = updates.destination_rate_area;
-      if (updates.pickup_date !== undefined) stagingUpdates.raw_pickup_date = updates.pickup_date;
-      if (updates.rdd !== undefined) stagingUpdates.raw_rdd = updates.rdd;
-      if (updates.poe_code !== undefined) stagingUpdates.raw_poe_code = updates.poe_code;
-      if (updates.pod_code !== undefined) stagingUpdates.raw_pod_code = updates.pod_code;
-      if (updates.scac_code !== undefined) stagingUpdates.raw_scac_code = updates.scac_code;
-      if (updates.estimated_cube !== undefined) stagingUpdates.raw_estimated_cube = updates.estimated_cube;
-      if (updates.actual_cube !== undefined) stagingUpdates.raw_actual_cube = updates.actual_cube;
+      // Only update raw fields if this is an explicit user edit (not a revalidation)
+      if (!updates._revalidate) {
+        // Map BulkUploadRecord fields to staging table raw fields
+        if (updates.gbl_number !== undefined) stagingUpdates.raw_gbl_number = updates.gbl_number;
+        if (updates.shipper_last_name !== undefined) stagingUpdates.raw_shipper_last_name = updates.shipper_last_name;
+        if (updates.shipment_type !== undefined) stagingUpdates.raw_shipment_type = updates.shipment_type;
+        if (updates.origin_rate_area !== undefined) stagingUpdates.raw_origin_rate_area = updates.origin_rate_area;
+        if (updates.destination_rate_area !== undefined) stagingUpdates.raw_destination_rate_area = updates.destination_rate_area;
+        if (updates.pickup_date !== undefined) stagingUpdates.raw_pickup_date = updates.pickup_date;
+        if (updates.rdd !== undefined) stagingUpdates.raw_rdd = updates.rdd;
+        if (updates.poe_code !== undefined) stagingUpdates.raw_poe_code = updates.poe_code;
+        if (updates.pod_code !== undefined) stagingUpdates.raw_pod_code = updates.pod_code;
+        if (updates.scac_code !== undefined) stagingUpdates.raw_scac_code = updates.scac_code;
+        if (updates.estimated_cube !== undefined) stagingUpdates.raw_estimated_cube = updates.estimated_cube;
+        if (updates.actual_cube !== undefined) stagingUpdates.raw_actual_cube = updates.actual_cube;
+      }
 
-      // Also update the processed fields for backward compatibility
+      // Always update the processed fields for backward compatibility and display
       if (updates.gbl_number !== undefined) stagingUpdates.gbl_number = updates.gbl_number;
       if (updates.shipper_last_name !== undefined) stagingUpdates.shipper_last_name = updates.shipper_last_name;
       if (updates.shipment_type !== undefined) stagingUpdates.shipment_type = updates.shipment_type;
