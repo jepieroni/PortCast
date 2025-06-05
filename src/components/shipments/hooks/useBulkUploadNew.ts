@@ -34,11 +34,12 @@ export const useBulkUploadNew = () => {
         return;
       }
 
-      // Calculate summary
+      // Calculate summary - FIXED: Include warning count
       const summary = {
         total: validatedRecords.length,
         valid: validatedRecords.filter(r => r.status === 'valid').length,
         invalid: validatedRecords.filter(r => r.status === 'invalid').length,
+        warning: validatedRecords.filter(r => r.status === 'warning').length,
         pending: 0
       };
 
@@ -82,10 +83,12 @@ export const useBulkUploadNew = () => {
       // Then update the in-memory records
       const updatedRecords = await updateRecordFromHook(bulkState.records, recordId, updates);
 
+      // FIXED: Include warning count in summary calculation
       const summary = {
         total: updatedRecords.length,
         valid: updatedRecords.filter(r => r.status === 'valid').length,
         invalid: updatedRecords.filter(r => r.status === 'invalid').length,
+        warning: updatedRecords.filter(r => r.status === 'warning').length,
         pending: 0
       };
 

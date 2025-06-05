@@ -48,6 +48,7 @@ export interface BulkUploadState {
     total: number;
     valid: number;
     invalid: number;
+    warning: number;
     pending: number;
   };
 }
