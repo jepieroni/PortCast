@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,16 +36,19 @@ const SimplifiedReviewTable = ({
       );
     }
 
-    // Only show static badges for records that have completed validation
-    if (status === 'valid') {
-      return <Badge variant="success">Valid</Badge>;
-    } else if (status === 'warning') {
+    // FIXED: Check for warning status first and force yellow styling
+    if (status === 'warning') {
       return (
-        <Badge variant="warning">
+        <Badge variant="warning" className="bg-yellow-500 text-white hover:bg-yellow-600">
           <AlertTriangle size={12} className="mr-1" />
           Warning
         </Badge>
       );
+    }
+
+    // Only show static badges for records that have completed validation
+    if (status === 'valid') {
+      return <Badge variant="success">Valid</Badge>;
     } else if (status === 'invalid') {
       return <Badge variant="destructive">Invalid</Badge>;
     } else {
