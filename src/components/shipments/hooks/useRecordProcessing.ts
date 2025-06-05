@@ -1,4 +1,3 @@
-
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { validateRecordComplete } from './utils/simpleValidator';
@@ -20,13 +19,22 @@ export const useRecordProcessing = () => {
     const updatedRecords = await Promise.all(
       records.map(async (record) => {
         if (record.id === recordId) {
-          // Create updated record with new values
-          const updatedRecord = { ...record, ...updates };
+          // Create updated record with new values - CLEAR OLD WARNINGS FIRST
+          const updatedRecord = { 
+            ...record, 
+            ...updates,
+            // CRITICAL: Clear existing warnings and errors to prevent stale data
+            warnings: [],
+            errors: []
+          };
+          
           console.log(`Updated record ${recordId}:`, {
             original_shipment_type: record.shipment_type,
             updated_shipment_type: updatedRecord.shipment_type,
             original_pickup_date: record.pickup_date,
-            updated_pickup_date: updatedRecord.pickup_date
+            updated_pickup_date: updatedRecord.pickup_date,
+            cleared_warnings: 'YES',
+            cleared_errors: 'YES'
           });
           
           // Clear existing resolved IDs to force re-validation
@@ -50,7 +58,8 @@ export const useRecordProcessing = () => {
 
           console.log(`Setting status to ${newStatus} for record ${recordId} based on:`, {
             errorsCount: validationResult.errors.length,
-            warningsCount: validationResult.warnings?.length || 0
+            warningsCount: validationResult.warnings?.length || 0,
+            freshValidationWarnings: validationResult.warnings
           });
 
           // Update staging table with ONLY the regular fields (never raw fields)
@@ -83,7 +92,9 @@ export const useRecordProcessing = () => {
             ...updatedRecord,
             status: newStatus as any,
             errors: validationResult.errors,
-            warnings: validationResult.warnings || []
+            warnings: validationResult.warnings || [],
+            // CRITICAL: Set the authoritative database status
+            validation_status: newStatus
           } as BulkUploadRecord;
         }
         return record;
