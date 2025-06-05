@@ -26,7 +26,7 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
 
   console.log(`Converted warnings for ${record.gbl_number}:`, warnings);
 
-  return {
+  const convertedRecord = {
     id: record.id,
     // Use REGULAR fields for validation and editing (these are the corrected values)
     gbl_number: record.gbl_number || '',
@@ -51,6 +51,19 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     // Carry over resolved IDs if they exist
     target_poe_id: record.target_poe_id,
     target_pod_id: record.target_pod_id,
-    tsp_id: record.tsp_id
+    tsp_id: record.tsp_id,
+    
+    // CRITICAL: Pass through the database fields that SimplifiedReviewTable expects
+    validation_status: record.validation_status,
+    validation_errors: record.validation_errors,
+    validation_warnings: record.validation_warnings
   };
+
+  console.log(`Final converted record for ${record.gbl_number}:`, {
+    status: convertedRecord.status,
+    warnings: convertedRecord.warnings,
+    validation_warnings: convertedRecord.validation_warnings
+  });
+
+  return convertedRecord;
 };

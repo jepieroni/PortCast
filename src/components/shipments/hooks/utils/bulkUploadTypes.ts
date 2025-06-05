@@ -21,6 +21,11 @@ export interface BulkUploadRecord {
   target_poe_id?: string;
   target_pod_id?: string;
   tsp_id?: string;
+  
+  // Database fields that SimplifiedReviewTable expects
+  validation_status?: string;
+  validation_errors?: any[];
+  validation_warnings?: any[];
 }
 
 export interface BulkUploadResult {
