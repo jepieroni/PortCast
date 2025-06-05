@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,10 @@ const SimplifiedReviewTable = ({
   validatingRecords,
   onViewEditClick
 }: SimplifiedReviewTableProps) => {
-  const getStatusBadge = (status: string, validationErrors: any, recordId: string, validationWarnings?: any[]) => {
+  const getStatusBadge = (record: any) => {
+    const recordId = record.id;
+    const status = record.status; // Use the converted status, not validation_status
+    
     // Always show loading badge if record is currently being validated
     if (validatingRecords.has(recordId)) {
       return (
@@ -36,7 +40,7 @@ const SimplifiedReviewTable = ({
       );
     }
 
-    // FIXED: Check for warning status first and force yellow styling
+    // Check for warning status and force yellow styling
     if (status === 'warning') {
       return (
         <Badge variant="warning" className="bg-yellow-500 text-white hover:bg-yellow-600">
@@ -64,19 +68,19 @@ const SimplifiedReviewTable = ({
 
   const getActionButton = (record: any) => {
     const isValidating = validatingRecords.has(record.id);
+    const status = record.status; // Use the converted status
     
     // No button while validating or pending
-    if (isValidating || record.validation_status === 'pending') {
+    if (isValidating || status === 'pending') {
       return null;
     }
 
     // Show action button text based on status
-    if (record.validation_status === 'valid') {
-      // Check for warnings using the correct field name from the database
-      const hasWarnings = record.validation_warnings && 
-                          Array.isArray(record.validation_warnings) && 
-                          record.validation_warnings.length > 0 &&
-                          record.validation_warnings.some(w => w && w.toString().trim() !== '');
+    if (status === 'valid') {
+      // Check for warnings using the warnings array from the converted record
+      const hasWarnings = record.warnings && 
+                          Array.isArray(record.warnings) && 
+                          record.warnings.length > 0;
       
       const buttonText = hasWarnings ? 'Review Warnings' : 'View/Edit Details';
       const buttonVariant = hasWarnings ? 'outline' : 'outline';
@@ -91,7 +95,7 @@ const SimplifiedReviewTable = ({
           {buttonText}
         </Button>
       );
-    } else if (record.validation_status === 'warning') {
+    } else if (status === 'warning') {
       return (
         <Button 
           size="sm" 
@@ -102,7 +106,7 @@ const SimplifiedReviewTable = ({
           Review Warnings
         </Button>
       );
-    } else if (record.validation_status === 'invalid') {
+    } else if (status === 'invalid') {
       return (
         <Button 
           size="sm" 
@@ -119,6 +123,12 @@ const SimplifiedReviewTable = ({
   };
 
   const getValidationWarnings = (record: any): string[] => {
+    // Use the warnings array from the converted record first
+    if (record.warnings && Array.isArray(record.warnings)) {
+      return record.warnings;
+    }
+    
+    // Fallback to validation_warnings if needed
     if (!record.validation_warnings) return [];
     if (Array.isArray(record.validation_warnings)) return record.validation_warnings;
     if (typeof record.validation_warnings === 'string') {
@@ -133,6 +143,12 @@ const SimplifiedReviewTable = ({
   };
 
   const getValidationErrors = (record: any): string[] => {
+    // Use the errors array from the converted record first
+    if (record.errors && Array.isArray(record.errors)) {
+      return record.errors;
+    }
+    
+    // Fallback to validation_errors if needed
     if (!record.validation_errors) return [];
     if (Array.isArray(record.validation_errors)) return record.validation_errors;
     if (typeof record.validation_errors === 'string') {
@@ -174,7 +190,7 @@ const SimplifiedReviewTable = ({
                   <TableRow key={record.id} className="hover:bg-muted/50">
                     <TableCell className="p-4">
                       <div className="space-y-2">
-                        {getStatusBadge(record.validation_status, record.validation_errors, record.id, record.validation_warnings)}
+                        {getStatusBadge(record)}
                         
                         {validationErrors.length > 0 && (
                           <div className="bg-red-50 border border-red-200 rounded p-2">
