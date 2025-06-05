@@ -16,43 +16,83 @@ export const useRecordProcessing = () => {
   ): Promise<BulkUploadRecord[]> => {
     console.log(`Updating record ${recordId} with:`, updates);
 
-    // If this is a revalidation trigger, skip the update and just revalidate
-    if (updates._revalidate) {
-      const updatedRecords = await Promise.all(
-        records.map(async (record) => {
-          if (record.id === recordId) {
-            console.log(`Re-validating record ${recordId} after translation creation`);
-            
-            // Clear existing resolved IDs to force re-validation
-            const recordToValidate = {
-              ...record,
-              target_poe_id: undefined,
-              target_pod_id: undefined,
-              tsp_id: undefined
-            };
-            
-            const errors = await validateRecord(recordToValidate);
-            console.log(`Re-validation errors for record ${recordId}:`, errors);
-            
-            return {
-              ...record,
-              status: errors.length === 0 ? 'valid' : 'invalid',
-              errors,
-              target_poe_id: recordToValidate.target_poe_id,
-              target_pod_id: recordToValidate.target_pod_id,
-              tsp_id: recordToValidate.tsp_id
-            } as BulkUploadRecord;
-          }
-          return record;
-        })
-      );
+    // Update the staging table directly
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
 
-      return updatedRecords;
+    // Prepare staging update
+    const stagingUpdates: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    // Map updates to raw fields
+    if (updates.gbl_number !== undefined) {
+      stagingUpdates.raw_gbl_number = updates.gbl_number;
+      stagingUpdates.gbl_number = updates.gbl_number;
+    }
+    if (updates.shipper_last_name !== undefined) {
+      stagingUpdates.raw_shipper_last_name = updates.shipper_last_name;
+      stagingUpdates.shipper_last_name = updates.shipper_last_name;
+    }
+    if (updates.shipment_type !== undefined) {
+      stagingUpdates.raw_shipment_type = updates.shipment_type;
+      stagingUpdates.shipment_type = updates.shipment_type;
+    }
+    if (updates.origin_rate_area !== undefined) {
+      stagingUpdates.raw_origin_rate_area = updates.origin_rate_area;
+      stagingUpdates.origin_rate_area = updates.origin_rate_area;
+    }
+    if (updates.destination_rate_area !== undefined) {
+      stagingUpdates.raw_destination_rate_area = updates.destination_rate_area;
+      stagingUpdates.destination_rate_area = updates.destination_rate_area;
+    }
+    if (updates.pickup_date !== undefined) {
+      stagingUpdates.raw_pickup_date = updates.pickup_date;
+      stagingUpdates.pickup_date = updates.pickup_date;
+    }
+    if (updates.rdd !== undefined) {
+      stagingUpdates.raw_rdd = updates.rdd;
+      stagingUpdates.rdd = updates.rdd;
+    }
+    if (updates.poe_code !== undefined) {
+      stagingUpdates.raw_poe_code = updates.poe_code;
+    }
+    if (updates.pod_code !== undefined) {
+      stagingUpdates.raw_pod_code = updates.pod_code;
+    }
+    if (updates.scac_code !== undefined) {
+      stagingUpdates.raw_scac_code = updates.scac_code;
+    }
+    if (updates.estimated_cube !== undefined) {
+      stagingUpdates.raw_estimated_cube = updates.estimated_cube;
+      stagingUpdates.estimated_cube = updates.estimated_cube ? parseInt(updates.estimated_cube) : null;
+    }
+    if (updates.actual_cube !== undefined) {
+      stagingUpdates.raw_actual_cube = updates.actual_cube;
+      stagingUpdates.actual_cube = updates.actual_cube ? parseInt(updates.actual_cube) : null;
     }
 
+    // If this is a revalidation trigger, clear resolved IDs to force re-validation
+    if (updates._revalidate) {
+      stagingUpdates.target_poe_id = null;
+      stagingUpdates.target_pod_id = null;
+      stagingUpdates.tsp_id = null;
+      stagingUpdates.validation_status = 'pending';
+    }
+
+    // Update staging record
+    const { error: updateError } = await supabase
+      .from('shipment_uploads_staging')
+      .update(stagingUpdates)
+      .eq('id', recordId);
+
+    if (updateError) throw updateError;
+
+    // Now reload and revalidate all records
     const updatedRecords = await Promise.all(
       records.map(async (record) => {
         if (record.id === recordId) {
+          // Create updated record with new values
           const updatedRecord = { ...record, ...updates };
           console.log(`Updated record ${recordId}:`, {
             original_shipment_type: record.shipment_type,
@@ -68,6 +108,18 @@ export const useRecordProcessing = () => {
           
           const errors = await validateRecord(updatedRecord);
           console.log(`Re-validation errors for record ${recordId}:`, errors);
+
+          // Update staging with validation results
+          await supabase
+            .from('shipment_uploads_staging')
+            .update({
+              validation_status: errors.length === 0 ? 'valid' : 'invalid',
+              validation_errors: errors,
+              target_poe_id: updatedRecord.target_poe_id,
+              target_pod_id: updatedRecord.target_pod_id,
+              tsp_id: updatedRecord.tsp_id
+            })
+            .eq('id', recordId);
           
           return {
             ...updatedRecord,

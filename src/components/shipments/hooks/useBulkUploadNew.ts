@@ -15,6 +15,7 @@ export const useBulkUploadNew = () => {
     isCheckingStagingRecords,
     checkForStagingRecords,
     loadStagingRecords: loadStagingRecordsFromHook,
+    updateStagingRecord,
     cleanupStagingRecords,
     clearStagingState
   } = useStagingRecords();
@@ -74,19 +75,28 @@ export const useBulkUploadNew = () => {
   const updateRecord = async (recordId: string, updates: Partial<BulkUploadRecord>) => {
     if (!bulkState) return;
 
-    const updatedRecords = await updateRecordFromHook(bulkState.records, recordId, updates);
+    try {
+      // Update the staging record first
+      await updateStagingRecord(recordId, updates);
 
-    const summary = {
-      total: updatedRecords.length,
-      valid: updatedRecords.filter(r => r.status === 'valid').length,
-      invalid: updatedRecords.filter(r => r.status === 'invalid').length,
-      pending: 0
-    };
+      // Then update the in-memory records
+      const updatedRecords = await updateRecordFromHook(bulkState.records, recordId, updates);
 
-    setBulkState({
-      records: updatedRecords,
-      summary
-    });
+      const summary = {
+        total: updatedRecords.length,
+        valid: updatedRecords.filter(r => r.status === 'valid').length,
+        invalid: updatedRecords.filter(r => r.status === 'invalid').length,
+        pending: 0
+      };
+
+      setBulkState({
+        records: updatedRecords,
+        summary
+      });
+    } catch (error: any) {
+      console.error('Error updating record:', error);
+      setUploadError(error.message || 'Failed to update record');
+    }
   };
 
   const processValidRecords = async () => {
