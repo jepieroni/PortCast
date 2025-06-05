@@ -7,9 +7,9 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('User not authenticated');
 
-  // Prepare update object for staging table
+  // Prepare update object for staging table - properly typed for database
   // NEVER update raw fields - they preserve the original upload data forever
-  const stagingUpdates: any = {
+  const stagingUpdates: Record<string, any> = {
     updated_at: new Date().toISOString()
   };
 
@@ -85,10 +85,10 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         newStatus = 'valid';
       }
       
-      // FIXED: Cast string arrays to Json type for database storage
+      // Store validation results - these are jsonb fields that accept arrays directly
       stagingUpdates.validation_status = newStatus;
-      stagingUpdates.validation_errors = validationResult.errors as any;
-      stagingUpdates.validation_warnings = validationResult.warnings as any;
+      stagingUpdates.validation_errors = validationResult.errors;
+      stagingUpdates.validation_warnings = validationResult.warnings;
       
       console.log(`Updated validation for record ${recordId}:`, {
         status: newStatus,
@@ -100,9 +100,9 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
     // Update validation status and errors - these are now dynamic
     if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
     
-    // FIXED: Cast string arrays to Json type for database storage
-    if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors as any;
-    if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings as any;
+    // Store validation results - these are jsonb fields that accept arrays directly
+    if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
+    if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
   }
 
   console.log(`Updating staging record ${recordId} with:`, stagingUpdates);
