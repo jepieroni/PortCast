@@ -64,7 +64,17 @@ export const useBulkUploadNew = () => {
 
     try {
       const result = await uploadFileFromHook(file);
-      setBulkState(result);
+      
+      // FIXED: Add warning count to the result summary
+      const correctedResult = {
+        ...result,
+        summary: {
+          ...result.summary,
+          warning: result.records ? result.records.filter(r => r.status === 'warning').length : 0
+        }
+      };
+      
+      setBulkState(correctedResult);
     } catch (error: any) {
       console.error('Upload error:', error);
       setUploadError(error.message || 'Failed to process file');
