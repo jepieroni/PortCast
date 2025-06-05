@@ -8,6 +8,12 @@ export const ValidationDisplayComponent = ({
   validationErrors,
   validationWarnings
 }: ValidationDisplayComponentProps) => {
+  // DEBUG: Log what we're receiving
+  console.log('=== ValidationDisplayComponent DEBUG ===');
+  console.log('validationErrors:', validationErrors);
+  console.log('validationWarnings:', validationWarnings);
+  console.log('=== END DEBUG ===');
+
   return (
     <>
       {validationErrors.length > 0 && (

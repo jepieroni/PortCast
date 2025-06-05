@@ -19,6 +19,14 @@ export const TableRowComponent = ({
   const validationErrors = getValidationErrors(record);
   const validationWarnings = getValidationWarnings(record);
   
+  // DEBUG: Log the complete record state
+  console.log(`=== TableRowComponent DEBUG for ${record.gbl_number || record.id} ===`);
+  console.log('Full record:', record);
+  console.log('validationErrors:', validationErrors);
+  console.log('validationWarnings:', validationWarnings);
+  console.log('record.status:', record.status);
+  console.log('=== END TableRowComponent DEBUG ===');
+  
   return (
     <TableRow key={record.id} className="hover:bg-muted/50">
       <TableCell className="p-4">
