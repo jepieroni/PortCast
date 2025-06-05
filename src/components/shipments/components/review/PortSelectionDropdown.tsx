@@ -35,9 +35,15 @@ export const PortSelectionDropdown = ({
 
   const handlePortSelect = (portId: string) => {
     setSelectedPortId(portId);
-    const selectedPort = ports.find(p => p.id === portId);
-    if (selectedPort) {
-      onPortSelect(selectedPort.code);
+    // Don't automatically update the field - wait for user action
+  };
+
+  const handleUseThisPort = () => {
+    if (selectedPortId) {
+      const selectedPort = ports.find(p => p.id === selectedPortId);
+      if (selectedPort) {
+        onPortSelect(selectedPort.code);
+      }
     }
   };
 
@@ -73,10 +79,7 @@ export const PortSelectionDropdown = ({
         <div className="flex gap-2">
           <Button
             size="sm"
-            onClick={() => {
-              const selectedPort = ports.find(p => p.id === selectedPortId);
-              if (selectedPort) onPortSelect(selectedPort.code);
-            }}
+            onClick={handleUseThisPort}
           >
             Use This Port
           </Button>

@@ -61,6 +61,17 @@ export const RecordEditForm = ({ record, onFieldChange }: RecordEditFormProps) =
     }
   };
 
+  // Handle date field changes - only update on blur, not on every keystroke
+  const handleDateChange = (field: string, value: string) => {
+    // Store the raw input value without triggering validation
+    onFieldChange(field, value);
+  };
+
+  const handleDateBlur = (field: string, value: string) => {
+    // Only trigger revalidation on blur
+    onFieldChange(field, value);
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -112,14 +123,16 @@ export const RecordEditForm = ({ record, onFieldChange }: RecordEditFormProps) =
           <label className="block text-sm font-medium mb-1">Pickup Date</label>
           <Input
             value={record.pickup_date}
-            onChange={(e) => onFieldChange('pickup_date', e.target.value)}
+            onChange={(e) => handleDateChange('pickup_date', e.target.value)}
+            onBlur={(e) => handleDateBlur('pickup_date', e.target.value)}
           />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Required Delivery Date</label>
           <Input
             value={record.rdd}
-            onChange={(e) => onFieldChange('rdd', e.target.value)}
+            onChange={(e) => handleDateChange('rdd', e.target.value)}
+            onBlur={(e) => handleDateBlur('rdd', e.target.value)}
           />
         </div>
       </div>
