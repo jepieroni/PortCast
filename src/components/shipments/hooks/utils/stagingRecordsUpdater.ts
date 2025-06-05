@@ -46,6 +46,23 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
       .single();
     
     if (currentRecord) {
+      // Helper function to safely convert Json to string array
+      const jsonToStringArray = (jsonValue: any): string[] => {
+        if (!jsonValue) return [];
+        if (Array.isArray(jsonValue)) {
+          return jsonValue.map(item => typeof item === 'string' ? item : JSON.stringify(item));
+        }
+        if (typeof jsonValue === 'string') {
+          try {
+            const parsed = JSON.parse(jsonValue);
+            return Array.isArray(parsed) ? parsed : [jsonValue];
+          } catch {
+            return [jsonValue];
+          }
+        }
+        return [];
+      };
+
       // Create a record with the updates applied for validation
       const recordToValidate: BulkUploadRecord = {
         id: currentRecord.id,
@@ -68,8 +85,8 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         target_pod_id: updates.target_pod_id,
         tsp_id: updates.tsp_id,
         validation_status: currentRecord.validation_status,
-        validation_errors: currentRecord.validation_errors,
-        validation_warnings: currentRecord.validation_warnings
+        validation_errors: jsonToStringArray(currentRecord.validation_errors),
+        validation_warnings: jsonToStringArray(currentRecord.validation_warnings)
       };
       
       // Run complete validation including warnings
