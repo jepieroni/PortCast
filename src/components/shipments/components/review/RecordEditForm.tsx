@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BulkUploadRecord } from '../../hooks/utils/bulkUploadTypes';
@@ -13,6 +14,12 @@ interface RecordEditFormProps {
 
 export const RecordEditForm = ({ record, onFieldChange }: RecordEditFormProps) => {
   const { toast } = useToast();
+  
+  // Local state for date fields to prevent validation on every keystroke
+  const [localPickupDate, setLocalPickupDate] = useState(record.pickup_date);
+  const [localRdd, setLocalRdd] = useState(record.rdd);
+  const [localEstimatedCube, setLocalEstimatedCube] = useState(record.estimated_cube || '');
+  const [localActualCube, setLocalActualCube] = useState(record.actual_cube || '');
 
   const getPortErrors = (field: string) => {
     return record.errors.filter(error => 
@@ -61,14 +68,13 @@ export const RecordEditForm = ({ record, onFieldChange }: RecordEditFormProps) =
     }
   };
 
-  // Handle date field changes - only update on blur, not on every keystroke
-  const handleDateChange = (field: string, value: string) => {
-    // Store the raw input value without triggering validation
+  // Handle date field blur - only trigger validation when user leaves the field
+  const handleDateBlur = (field: string, value: string) => {
     onFieldChange(field, value);
   };
 
-  const handleDateBlur = (field: string, value: string) => {
-    // Only trigger revalidation on blur
+  // Handle cube field blur - only trigger validation when user leaves the field
+  const handleCubeBlur = (field: string, value: string) => {
     onFieldChange(field, value);
   };
 
@@ -102,6 +108,9 @@ export const RecordEditForm = ({ record, onFieldChange }: RecordEditFormProps) =
               <SelectItem value="inbound">Inbound</SelectItem>
               <SelectItem value="outbound">Outbound</SelectItem>
               <SelectItem value="intertheater">Intertheater</SelectItem>
+              <SelectItem value="I">I</SelectItem>
+              <SelectItem value="O">O</SelectItem>
+              <SelectItem value="T">T</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -122,16 +131,16 @@ export const RecordEditForm = ({ record, onFieldChange }: RecordEditFormProps) =
         <div>
           <label className="block text-sm font-medium mb-1">Pickup Date</label>
           <Input
-            value={record.pickup_date}
-            onChange={(e) => handleDateChange('pickup_date', e.target.value)}
+            value={localPickupDate}
+            onChange={(e) => setLocalPickupDate(e.target.value)}
             onBlur={(e) => handleDateBlur('pickup_date', e.target.value)}
           />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Required Delivery Date</label>
           <Input
-            value={record.rdd}
-            onChange={(e) => handleDateChange('rdd', e.target.value)}
+            value={localRdd}
+            onChange={(e) => setLocalRdd(e.target.value)}
             onBlur={(e) => handleDateBlur('rdd', e.target.value)}
           />
         </div>
@@ -182,15 +191,17 @@ export const RecordEditForm = ({ record, onFieldChange }: RecordEditFormProps) =
         <div>
           <label className="block text-sm font-medium mb-1">Estimated Cube</label>
           <Input
-            value={record.estimated_cube || ''}
-            onChange={(e) => onFieldChange('estimated_cube', e.target.value)}
+            value={localEstimatedCube}
+            onChange={(e) => setLocalEstimatedCube(e.target.value)}
+            onBlur={(e) => handleCubeBlur('estimated_cube', e.target.value)}
           />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Actual Cube</label>
           <Input
-            value={record.actual_cube || ''}
-            onChange={(e) => onFieldChange('actual_cube', e.target.value)}
+            value={localActualCube}
+            onChange={(e) => setLocalActualCube(e.target.value)}
+            onBlur={(e) => handleCubeBlur('actual_cube', e.target.value)}
           />
         </div>
       </div>
