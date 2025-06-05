@@ -43,10 +43,29 @@ export const useStagingRecords = () => {
         return [];
       }
 
+      console.log('Raw staging records before conversion:', stagingRecords.map(r => ({
+        id: r.id,
+        gbl_number: r.gbl_number,
+        validation_status: r.validation_status,
+        validation_warnings: r.validation_warnings,
+        warnings_type: typeof r.validation_warnings,
+        warnings_stringified: JSON.stringify(r.validation_warnings)
+      })));
+
       // Convert staging records to BulkUploadRecord format
       const convertedRecords: BulkUploadRecord[] = stagingRecords.map(convertStagingRecordToBulkRecord);
 
-      console.log('Converted records with warnings:', convertedRecords.filter(r => r.warnings && r.warnings.length > 0));
+      console.log('Converted records summary:', convertedRecords.map(r => ({
+        id: r.id,
+        gbl_number: r.gbl_number,
+        status: r.status,
+        warnings: r.warnings,
+        warnings_length: r.warnings?.length || 0,
+        validation_status: r.validation_status,
+        validation_warnings: r.validation_warnings
+      })));
+
+      console.log('Records with warnings after conversion:', convertedRecords.filter(r => r.warnings && r.warnings.length > 0));
 
       // Return the converted records without re-validation since they're already validated
       return convertedRecords;
