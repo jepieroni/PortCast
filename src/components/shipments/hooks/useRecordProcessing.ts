@@ -1,7 +1,7 @@
 
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { validateRecord } from './utils/simpleValidator';
+import { validateRecordComplete } from './utils/simpleValidator';
 import { BulkUploadRecord } from './utils/bulkUploadTypes';
 
 type ShipmentType = 'inbound' | 'outbound' | 'intertheater';
@@ -34,8 +34,24 @@ export const useRecordProcessing = () => {
           updatedRecord.target_pod_id = undefined;
           updatedRecord.tsp_id = undefined;
           
-          const errors = await validateRecord(updatedRecord);
-          console.log(`Re-validation errors for record ${recordId}:`, errors);
+          // Use complete validation that returns both errors AND warnings
+          const validationResult = await validateRecordComplete(updatedRecord);
+          console.log(`Complete validation result for record ${recordId}:`, validationResult);
+
+          // Determine status based on BOTH errors and warnings
+          let newStatus: string;
+          if (validationResult.errors.length > 0) {
+            newStatus = 'invalid';
+          } else if (validationResult.warnings && validationResult.warnings.length > 0) {
+            newStatus = 'warning';
+          } else {
+            newStatus = 'valid';
+          }
+
+          console.log(`Setting status to ${newStatus} for record ${recordId} based on:`, {
+            errorsCount: validationResult.errors.length,
+            warningsCount: validationResult.warnings?.length || 0
+          });
 
           // Update staging table with ONLY the regular fields (never raw fields)
           await supabase
@@ -52,9 +68,10 @@ export const useRecordProcessing = () => {
               estimated_cube: updatedRecord.estimated_cube,
               actual_cube: updatedRecord.actual_cube,
               
-              // Update validation results
-              validation_status: errors.length === 0 ? 'valid' : 'invalid',
-              validation_errors: errors,
+              // Update validation results - use the correct status based on errors AND warnings
+              validation_status: newStatus,
+              validation_errors: validationResult.errors,
+              validation_warnings: validationResult.warnings || [],
               target_poe_id: updatedRecord.target_poe_id,
               target_pod_id: updatedRecord.target_pod_id,
               tsp_id: updatedRecord.tsp_id,
@@ -64,8 +81,9 @@ export const useRecordProcessing = () => {
           
           return {
             ...updatedRecord,
-            status: errors.length === 0 ? 'valid' : 'invalid',
-            errors
+            status: newStatus as any,
+            errors: validationResult.errors,
+            warnings: validationResult.warnings || []
           } as BulkUploadRecord;
         }
         return record;
