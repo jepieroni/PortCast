@@ -51,15 +51,15 @@ export const StatusBadgeComponent = ({
     );
   }
 
-  // Check for warning status and force yellow styling
+  // Check for warning status and force yellow styling - REMOVE variant prop entirely
   if (finalStatus === 'warning') {
     console.log(`🎨 STATUS BADGE: CONDITION: Warning - RENDERING YELLOW WARNING BADGE`);
     
     return (
-      <Badge className="bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-500">
+      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-500">
         <AlertTriangle size={12} className="mr-1" />
         Warning
-      </Badge>
+      </span>
     );
   }
 
@@ -67,10 +67,10 @@ export const StatusBadgeComponent = ({
   if (finalStatus === 'valid') {
     console.log(`🎨 STATUS BADGE: CONDITION: Valid - RENDERING GREEN VALID BADGE`);
     return (
-      <Badge className="bg-green-500 text-white hover:bg-green-600 border-green-500">
+      <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-green-500 text-white hover:bg-green-600 border-green-500">
         <CheckCircle size={12} className="mr-1" />
         Valid
-      </Badge>
+      </span>
     );
   } else if (finalStatus === 'invalid') {
     console.log(`🎨 STATUS BADGE: CONDITION: Invalid - RENDERING RED INVALID BADGE`);
