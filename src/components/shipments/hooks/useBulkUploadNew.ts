@@ -6,6 +6,8 @@ import { parseCSV } from './utils/simpleCsvParser';
 import { validateRecord } from './utils/simpleValidator';
 import { BulkUploadRecord, BulkUploadState } from './utils/bulkUploadTypes';
 
+type ShipmentType = 'inbound' | 'outbound' | 'intertheater';
+
 export const useBulkUploadNew = () => {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -104,13 +106,14 @@ export const useBulkUploadNew = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Translate and insert records
+      // Translate and insert records one by one
       for (const record of validRecords) {
         // Normalize shipment type
-        let shipmentType = record.shipment_type.toLowerCase();
-        if (shipmentType === 'i') shipmentType = 'inbound';
-        if (shipmentType === 'o') shipmentType = 'outbound';
-        if (shipmentType === 't') shipmentType = 'intertheater';
+        let shipmentType: ShipmentType = 'inbound';
+        const typeStr = record.shipment_type.toLowerCase();
+        if (typeStr === 'i' || typeStr === 'inbound') shipmentType = 'inbound';
+        else if (typeStr === 'o' || typeStr === 'outbound') shipmentType = 'outbound';
+        else if (typeStr === 't' || typeStr === 'intertheater') shipmentType = 'intertheater';
 
         // Convert date formats
         const pickupDate = convertDateFormat(record.pickup_date);
@@ -136,7 +139,7 @@ export const useBulkUploadNew = () => {
 
         const { error } = await supabase
           .from('shipments')
-          .insert([shipmentData]);
+          .insert(shipmentData);
 
         if (error) {
           console.error('Insert error:', error);
