@@ -33,8 +33,16 @@ export interface BadgeProps
     VariantProps<typeof badgeVariants> {}
 
 function Badge({ className, variant, ...props }: BadgeProps) {
+  console.log(`🎨 Badge component rendering with:`);
+  console.log('  variant:', variant);
+  console.log('  className:', className);
+  console.log('  computed classes:', cn(badgeVariants({ variant }), className));
+  
+  const finalClasses = cn(badgeVariants({ variant }), className);
+  console.log('  final classes:', finalClasses);
+  
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div className={finalClasses} {...props} />
   )
 }
 

@@ -19,12 +19,15 @@ export const TableRowComponent = ({
   const validationErrors = getValidationErrors(record);
   const validationWarnings = getValidationWarnings(record);
   
-  // DEBUG: Log the complete record state
-  console.log(`=== TableRowComponent DEBUG for ${record.gbl_number || record.id} ===`);
-  console.log('Full record:', record);
+  // COMPREHENSIVE DEBUG: Log the complete record state and rendering decision
+  console.log(`=== TableRowComponent COMPREHENSIVE DEBUG for ${record.gbl_number || record.id} ===`);
+  console.log('Full record object:', JSON.stringify(record, null, 2));
+  console.log('record.status (for badge):', record.status);
+  console.log('record.validation_status:', record.validation_status);
   console.log('validationErrors:', validationErrors);
   console.log('validationWarnings:', validationWarnings);
-  console.log('record.status:', record.status);
+  console.log('validatingRecords.has(record.id):', validatingRecords.has(record.id));
+  console.log('About to render StatusBadgeComponent...');
   console.log('=== END TableRowComponent DEBUG ===');
   
   return (
