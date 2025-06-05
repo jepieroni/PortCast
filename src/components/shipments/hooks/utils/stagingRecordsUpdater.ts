@@ -28,11 +28,11 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
   if (updates.target_pod_id !== undefined) stagingUpdates.target_pod_id = updates.target_pod_id;
   if (updates.tsp_id !== undefined) stagingUpdates.tsp_id = updates.tsp_id;
 
-  // Update validation status and errors
+  // Update validation status and errors - these are now dynamic
   if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
   if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
   
-  // CRITICAL: Store warnings in staging table with the new column
+  // CRITICAL: Warnings are now dynamic like errors, not preserved static data
   if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
 
   console.log(`Updating staging record ${recordId} with:`, stagingUpdates);

@@ -16,7 +16,7 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     );
   }
 
-  // Convert validation_warnings from Json[] to string[] - CRITICAL FIX
+  // Convert validation_warnings from Json[] to string[] - these are now dynamic like errors
   let warnings: string[] = [];
   if (Array.isArray(record.validation_warnings)) {
     warnings = record.validation_warnings.map(warning => 
@@ -46,7 +46,7 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     status: errors.length === 0 && record.validation_status !== 'pending' ? 'valid' : 
             record.validation_status === 'pending' ? 'pending' : 'invalid',
     errors,
-    warnings, // Use the converted warnings from the database
+    warnings, // Now dynamic validation results, not preserved static data
     
     // Carry over resolved IDs if they exist
     target_poe_id: record.target_poe_id,
