@@ -33,10 +33,15 @@ export const NewBulkUploadReview = ({
 
   const handleApproveWarnings = async (recordId: string, approvedWarningTypes: string[]) => {
     try {
-      console.log(`Approving warnings for record ${recordId}:`, approvedWarningTypes);
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: === HANDLE APPROVE WARNINGS START ===`);
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: Record ID: ${recordId}`);
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: Approved warning types received:`, approvedWarningTypes);
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: Types array length:`, approvedWarningTypes.length);
       
       // Update the staging record with approved warnings
       await approveWarnings(recordId, approvedWarningTypes);
+      
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: approveWarnings function completed, now updating local record`);
       
       // Update the local record to reflect the changes
       onUpdateRecord(recordId, {
@@ -44,12 +49,17 @@ export const NewBulkUploadReview = ({
         status: 'valid' // Will be set correctly by the validation logic
       });
 
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: Local record updated`);
+
       toast({
         title: "Warnings Approved",
         description: `${approvedWarningTypes.length} warning(s) have been approved for this record.`,
       });
+      
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: Toast displayed`);
+      console.log(`🟢 NEW BULK UPLOAD REVIEW: === HANDLE APPROVE WARNINGS END ===`);
     } catch (error) {
-      console.error('Error approving warnings:', error);
+      console.error('🟢 NEW BULK UPLOAD REVIEW: Error approving warnings:', error);
       toast({
         title: "Error",
         description: "Failed to approve warnings. Please try again.",

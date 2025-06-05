@@ -12,13 +12,28 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
   const processValidShipments = async (stagingData: any[]) => {
     setIsProcessing(true);
     try {
+      console.log(`🚀 SHIPMENT PROCESSING: === PROCESS VALID SHIPMENTS START ===`);
+      console.log(`🚀 SHIPMENT PROCESSING: Total staging records received:`, stagingData.length);
+      
+      // Log each record's status
+      stagingData.forEach((record, index) => {
+        console.log(`🚀 SHIPMENT PROCESSING: Record ${index + 1}: ID=${record.id}, GBL=${record.gbl_number}, Status=${record.validation_status}, Warnings=${record.validation_warnings?.length || 0}, ApprovedWarnings=${record.approved_warnings?.length || 0}`);
+      });
+      
       const validRecords = stagingData.filter(r => r.validation_status === 'valid');
+      console.log(`🚀 SHIPMENT PROCESSING: Valid records found:`, validRecords.length);
       
       if (validRecords.length === 0) {
+        console.log(`🚀 SHIPMENT PROCESSING: No valid records to process`);
         throw new Error('No valid records to process');
       }
 
-      console.log('Processing', validRecords.length, 'valid records');
+      console.log(`🚀 SHIPMENT PROCESSING: Processing ${validRecords.length} valid records`);
+      
+      // Log details of valid records
+      validRecords.forEach((record, index) => {
+        console.log(`🚀 SHIPMENT PROCESSING: Valid record ${index + 1}: GBL=${record.gbl_number}, ApprovedWarnings=${record.approved_warnings?.length || 0}, ValidationWarnings=${record.validation_warnings?.length || 0}`);
+      });
       
       // Insert valid records into shipments table
       const shipmentData = validRecords.map(record => ({
@@ -38,14 +53,18 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
         user_id: record.user_id
       }));
 
+      console.log(`🚀 SHIPMENT PROCESSING: Prepared shipment data for insertion:`, shipmentData);
+
       const { error } = await supabase
         .from('shipments')
         .insert(shipmentData);
 
       if (error) {
-        console.error('Insert error:', error);
+        console.error('🚀 SHIPMENT PROCESSING: Insert error:', error);
         throw error;
       }
+
+      console.log(`🚀 SHIPMENT PROCESSING: Successfully inserted ${shipmentData.length} shipments`);
 
       // Clean up staging data for this session
       const { error: deleteError } = await supabase
@@ -54,17 +73,19 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
         .eq('upload_session_id', uploadSessionId);
 
       if (deleteError) {
-        console.error('Cleanup error:', deleteError);
+        console.error('🚀 SHIPMENT PROCESSING: Cleanup error:', deleteError);
         // Don't throw here as the main operation succeeded
+      } else {
+        console.log(`🚀 SHIPMENT PROCESSING: Successfully cleaned up staging data`);
       }
 
       // Invalidate shipments query to refresh the main table
       queryClient.invalidateQueries({ queryKey: ['shipments'] });
 
-      console.log('Processing complete');
+      console.log('🚀 SHIPMENT PROCESSING: === PROCESS VALID SHIPMENTS END ===');
 
     } catch (error: any) {
-      console.error('Processing error:', error);
+      console.error('🚀 SHIPMENT PROCESSING: Processing error:', error);
       toast({
         title: "Processing Error",
         description: error.message || "Failed to process shipments",

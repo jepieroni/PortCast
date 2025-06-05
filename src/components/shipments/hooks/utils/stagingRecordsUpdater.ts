@@ -33,6 +33,7 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
 
   // Handle approved warnings updates
   if (updates.approved_warnings !== undefined) {
+    console.log(`🔧 STAGING UPDATER: Processing approved warnings update:`, updates.approved_warnings);
     stagingUpdates.approved_warnings = updates.approved_warnings;
   }
 
@@ -42,6 +43,8 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
   
   const hasValidationRelatedUpdates = validationRelatedFields.some(field => updates[field] !== undefined);
   const hasApprovedWarningsUpdate = updates.approved_warnings !== undefined;
+  
+  console.log(`🔧 STAGING UPDATER: Update flags - hasValidationRelatedUpdates: ${hasValidationRelatedUpdates}, hasApprovedWarningsUpdate: ${hasApprovedWarningsUpdate}`);
   
   if (hasValidationRelatedUpdates || hasApprovedWarningsUpdate) {
     console.log(`🔧 STAGING UPDATER: Re-validating record ${recordId} due to field updates or approved warnings`);
@@ -85,7 +88,7 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         updates.approved_warnings : 
         jsonToStringArray(currentRecord.approved_warnings);
 
-      console.log(`🔧 STAGING UPDATER: Using approved warnings:`, approvedWarnings);
+      console.log(`🔧 STAGING UPDATER: Using approved warnings for validation:`, approvedWarnings);
 
       // Create a record with the updates applied for validation
       const recordToValidate: BulkUploadRecord = {
@@ -114,42 +117,49 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         validation_warnings: jsonToStringArray(currentRecord.validation_warnings)
       };
       
-      console.log(`🔧 STAGING UPDATER: Record to validate:`, {
+      console.log(`🔧 STAGING UPDATER: Record to validate (with approved warnings):`, {
         id: recordToValidate.id,
         gbl_number: recordToValidate.gbl_number,
         pickup_date: recordToValidate.pickup_date,
-        approvedWarnings: recordToValidate.approved_warnings
+        approvedWarnings: recordToValidate.approved_warnings,
+        approvedWarningsType: typeof recordToValidate.approved_warnings,
+        approvedWarningsLength: recordToValidate.approved_warnings?.length
       });
       
       // Run complete validation including warnings, passing approved warnings
+      console.log(`🔧 STAGING UPDATER: Calling validateRecordComplete with approved warnings:`, approvedWarnings);
       const validationResult = await validateRecordComplete(recordToValidate, approvedWarnings);
       
-      console.log(`🔧 STAGING UPDATER: Validation result:`, {
+      console.log(`🔧 STAGING UPDATER: Validation result after passing approved warnings:`, {
         errors: validationResult.errors,
         warnings: validationResult.warnings,
         errorsCount: validationResult.errors.length,
-        warningsCount: validationResult.warnings.length,
-        approvedWarnings: approvedWarnings
+        warningsCount: validationResult.warnings?.length || 0,
+        approvedWarningsPassedIn: approvedWarnings,
+        approvedWarningsLength: approvedWarnings?.length || 0
       });
       
       // Determine new status based on validation results and approved warnings
       let newStatus: string;
       if (validationResult.errors.length > 0) {
         newStatus = 'invalid';
+        console.log(`🔧 STAGING UPDATER: Status set to invalid due to ${validationResult.errors.length} errors`);
       } else if (validationResult.warnings && validationResult.warnings.length > 0) {
         newStatus = 'warning';
+        console.log(`🔧 STAGING UPDATER: Status set to warning due to ${validationResult.warnings.length} warnings`);
       } else {
         newStatus = 'valid';
+        console.log(`🔧 STAGING UPDATER: Status set to valid - no errors or warnings`);
       }
       
-      console.log(`🔧 STAGING UPDATER: Determined new status: ${newStatus}`);
+      console.log(`🔧 STAGING UPDATER: Final determined status: ${newStatus}`);
       
       // Store validation results - convert to JSON for database storage
       stagingUpdates.validation_status = newStatus;
       stagingUpdates.validation_errors = validationResult.errors;
       stagingUpdates.validation_warnings = validationResult.warnings || [];
       
-      console.log(`🔧 STAGING UPDATER: Final staging updates:`, {
+      console.log(`🔧 STAGING UPDATER: Final staging updates to save:`, {
         validation_status: stagingUpdates.validation_status,
         validation_errors: stagingUpdates.validation_errors,
         validation_warnings: stagingUpdates.validation_warnings,
@@ -196,15 +206,22 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
     pickup_date: verifyRecord?.pickup_date,
     validation_status: verifyRecord?.validation_status,
     validation_warnings: verifyRecord?.validation_warnings,
-    approved_warnings: verifyRecord?.approved_warnings
+    approved_warnings: verifyRecord?.approved_warnings,
+    warningsType: typeof verifyRecord?.validation_warnings,
+    approvedType: typeof verifyRecord?.approved_warnings
   });
 };
 
 // New function specifically for approving warnings
 export const approveWarnings = async (recordId: string, approvedWarningTypes: string[]) => {
-  console.log(`🔧 STAGING UPDATER: Approving warnings for record ${recordId}:`, approvedWarningTypes);
+  console.log(`🔧 STAGING UPDATER: === APPROVE WARNINGS CALLED ===`);
+  console.log(`🔧 STAGING UPDATER: Record ID: ${recordId}`);
+  console.log(`🔧 STAGING UPDATER: Approved warning types:`, approvedWarningTypes);
+  console.log(`🔧 STAGING UPDATER: Types array length:`, approvedWarningTypes.length);
   
   await updateStagingRecord(recordId, {
     approved_warnings: approvedWarningTypes
   });
+  
+  console.log(`🔧 STAGING UPDATER: === APPROVE WARNINGS COMPLETED ===`);
 };
