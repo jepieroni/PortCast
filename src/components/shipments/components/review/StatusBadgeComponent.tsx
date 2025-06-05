@@ -1,6 +1,6 @@
 
 import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 interface StatusBadgeComponentProps {
   record: any;
@@ -54,7 +54,7 @@ export const StatusBadgeComponent = ({
     console.log(`🎨 STATUS BADGE: ✅ RENDERING WARNING BADGE for ${record.gbl_number} - SHOULD BE YELLOW`);
     
     return (
-      <Badge variant="warning" className="bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-500">
+      <Badge className="bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-500">
         <AlertTriangle size={12} className="mr-1" />
         Warning
       </Badge>
@@ -63,11 +63,21 @@ export const StatusBadgeComponent = ({
 
   // Only show static badges for records that have completed validation
   if (finalStatus === 'valid') {
-    console.log(`🎨 STATUS BADGE: RENDERING VALID BADGE for ${record.gbl_number} (valid)`);
-    return <Badge variant="success">Valid</Badge>;
+    console.log(`🎨 STATUS BADGE: RENDERING VALID BADGE for ${record.gbl_number} (valid) - SHOULD BE GREEN`);
+    return (
+      <Badge className="bg-green-500 text-white hover:bg-green-600 border-green-500">
+        <CheckCircle size={12} className="mr-1" />
+        Valid
+      </Badge>
+    );
   } else if (finalStatus === 'invalid') {
-    console.log(`🎨 STATUS BADGE: RENDERING INVALID BADGE for ${record.gbl_number} (invalid)`);
-    return <Badge variant="destructive">Invalid</Badge>;
+    console.log(`🎨 STATUS BADGE: RENDERING INVALID BADGE for ${record.gbl_number} (invalid) - SHOULD BE RED`);
+    return (
+      <Badge variant="destructive">
+        <XCircle size={12} className="mr-1" />
+        Invalid
+      </Badge>
+    );
   } else {
     // For any unknown status, show loading
     console.log(`🎨 STATUS BADGE: ❌ UNKNOWN STATUS: "${finalStatus}" for ${record.gbl_number} - FALLBACK TO LOADING`);
