@@ -81,7 +81,8 @@ export const useStagingRecords = () => {
         console.log(`Converting staging record ${record.id}:`, {
           raw_pickup_date: record.raw_pickup_date,
           regular_pickup_date: record.pickup_date,
-          gbl_number: record.gbl_number
+          gbl_number: record.gbl_number,
+          validation_status: record.validation_status
         });
 
         // Convert validation_errors from Json[] to string[]
@@ -89,6 +90,14 @@ export const useStagingRecords = () => {
         if (Array.isArray(record.validation_errors)) {
           errors = record.validation_errors.map(error => 
             typeof error === 'string' ? error : JSON.stringify(error)
+          );
+        }
+
+        // Convert validation_warnings from Json[] to string[] (if it exists)
+        let warnings: string[] = [];
+        if (Array.isArray(record.validation_warnings)) {
+          warnings = record.validation_warnings.map(warning => 
+            typeof warning === 'string' ? warning : JSON.stringify(warning)
           );
         }
 
@@ -108,10 +117,11 @@ export const useStagingRecords = () => {
           estimated_cube: record.estimated_cube || '',
           actual_cube: record.actual_cube || '',
           
-          // Set validation state based on existing validation - fix the pending issue
-          status: (record.validation_status === 'valid' || (record.validation_status !== 'invalid' && errors.length === 0)) ? 'valid' : 'invalid',
+          // Determine status: if no errors and no pending status, it's valid
+          status: errors.length === 0 && record.validation_status !== 'pending' ? 'valid' : 
+                  record.validation_status === 'pending' ? 'pending' : 'invalid',
           errors,
-          warnings: [], // Initialize warnings array
+          warnings, // Now properly loaded from staging table
           
           // Carry over resolved IDs if they exist
           target_poe_id: record.target_poe_id,
@@ -153,7 +163,18 @@ export const useStagingRecords = () => {
           console.log(`Validation complete for staging record ${record.id}:`, {
             errors: errors.length,
             warnings: validationCopy.warnings?.length || 0,
-            pickup_date_used: validationCopy.pickup_date
+            pickup_date_used: validationCopy.pickup_date,
+            final_status: errors.length === 0 ? 'valid' : 'invalid'
+          });
+
+          // Update the staging record with new validation results
+          await updateStagingRecord(record.id, {
+            status: errors.length === 0 ? 'valid' : 'invalid',
+            errors,
+            warnings: validationCopy.warnings || [],
+            target_poe_id: validationCopy.target_poe_id,
+            target_pod_id: validationCopy.target_pod_id,
+            tsp_id: validationCopy.tsp_id
           });
           
           return {
@@ -208,6 +229,9 @@ export const useStagingRecords = () => {
       // Update validation status and errors
       if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
       if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
+      
+      // CRITICAL: Store warnings in staging table
+      if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
 
       console.log(`Updating staging record ${recordId} with:`, stagingUpdates);
 
