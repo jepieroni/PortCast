@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -109,8 +108,8 @@ export const useStagingRecords = () => {
           estimated_cube: record.estimated_cube || '',
           actual_cube: record.actual_cube || '',
           
-          // Set validation state based on existing validation
-          status: record.validation_status === 'valid' ? 'valid' : 'invalid',
+          // Set validation state based on existing validation - fix the pending issue
+          status: (record.validation_status === 'valid' || (record.validation_status !== 'invalid' && errors.length === 0)) ? 'valid' : 'invalid',
           errors,
           warnings: [], // Initialize warnings array
           
@@ -126,8 +125,29 @@ export const useStagingRecords = () => {
         convertedRecords.map(async (record) => {
           console.log(`Re-validating staging record ${record.id} with pickup_date: "${record.pickup_date}"`);
           
-          // CRITICAL: Create a separate copy for validation to prevent cross-contamination
-          const validationCopy = JSON.parse(JSON.stringify(record));
+          // CRITICAL: Create a completely separate copy for validation to prevent cross-contamination
+          const validationCopy = {
+            id: record.id,
+            gbl_number: record.gbl_number,
+            shipper_last_name: record.shipper_last_name,
+            shipment_type: record.shipment_type,
+            origin_rate_area: record.origin_rate_area,
+            destination_rate_area: record.destination_rate_area,
+            pickup_date: record.pickup_date,
+            rdd: record.rdd,
+            poe_code: record.poe_code,
+            pod_code: record.pod_code,
+            scac_code: record.scac_code,
+            estimated_cube: record.estimated_cube,
+            actual_cube: record.actual_cube,
+            status: record.status,
+            errors: [...record.errors],
+            warnings: [...(record.warnings || [])],
+            target_poe_id: record.target_poe_id,
+            target_pod_id: record.target_pod_id,
+            tsp_id: record.tsp_id
+          };
+          
           const errors = await validateRecord(validationCopy);
           
           console.log(`Validation complete for staging record ${record.id}:`, {
