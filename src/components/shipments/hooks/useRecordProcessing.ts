@@ -20,12 +20,12 @@ export const useRecordProcessing = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    // Prepare staging update
+    // Prepare staging update - all fields are now flexible text
     const stagingUpdates: any = {
       updated_at: new Date().toISOString()
     };
 
-    // Map updates to raw fields
+    // Map updates to raw fields - all can now accept any text values
     if (updates.gbl_number !== undefined) {
       stagingUpdates.raw_gbl_number = updates.gbl_number;
       stagingUpdates.gbl_number = updates.gbl_number;
@@ -36,7 +36,7 @@ export const useRecordProcessing = () => {
     }
     if (updates.shipment_type !== undefined) {
       stagingUpdates.raw_shipment_type = updates.shipment_type;
-      stagingUpdates.shipment_type = updates.shipment_type;
+      stagingUpdates.shipment_type = updates.shipment_type; // Now accepts any text
     }
     if (updates.origin_rate_area !== undefined) {
       stagingUpdates.raw_origin_rate_area = updates.origin_rate_area;
@@ -65,11 +65,11 @@ export const useRecordProcessing = () => {
     }
     if (updates.estimated_cube !== undefined) {
       stagingUpdates.raw_estimated_cube = updates.estimated_cube;
-      stagingUpdates.estimated_cube = updates.estimated_cube ? parseInt(updates.estimated_cube) : null;
+      stagingUpdates.estimated_cube = updates.estimated_cube; // Now text field
     }
     if (updates.actual_cube !== undefined) {
       stagingUpdates.raw_actual_cube = updates.actual_cube;
-      stagingUpdates.actual_cube = updates.actual_cube ? parseInt(updates.actual_cube) : null;
+      stagingUpdates.actual_cube = updates.actual_cube; // Now text field
     }
 
     // If this is a revalidation trigger, clear resolved IDs to force re-validation
@@ -176,6 +176,10 @@ export const useRecordProcessing = () => {
           throw new Error(`Missing resolved IDs for record ${record.gbl_number}. Please re-validate the record.`);
         }
 
+        // Convert cube values to integers for the shipments table
+        const estimatedCube = record.estimated_cube ? parseInt(record.estimated_cube) : null;
+        const actualCube = record.actual_cube ? parseInt(record.actual_cube) : null;
+
         const shipmentData = {
           user_id: user.id,
           gbl_number: record.gbl_number,
@@ -185,9 +189,9 @@ export const useRecordProcessing = () => {
           destination_rate_area: record.destination_rate_area,
           pickup_date: pickupDate,
           rdd: rddDate,
-          estimated_cube: record.estimated_cube ? parseInt(record.estimated_cube) : null,
-          actual_cube: record.actual_cube ? parseInt(record.actual_cube) : null,
-          remaining_cube: record.actual_cube ? parseInt(record.actual_cube) : null,
+          estimated_cube: estimatedCube,
+          actual_cube: actualCube,
+          remaining_cube: actualCube,
           target_poe_id: record.target_poe_id,
           target_pod_id: record.target_pod_id,
           tsp_id: record.tsp_id

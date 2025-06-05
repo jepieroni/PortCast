@@ -31,6 +31,7 @@ export const useFileUpload = () => {
       const uploadSessionId = crypto.randomUUID();
 
       // Save all records to staging table immediately with raw data
+      // The staging table now accepts ANY values in ANY format
       const stagingRecords = records.map((record, index) => {
         console.log(`Preparing record ${index + 1} for staging:`, {
           id: record.id,
@@ -59,16 +60,16 @@ export const useFileUpload = () => {
           raw_estimated_cube: record.estimated_cube || '',
           raw_actual_cube: record.actual_cube || '',
           
-          // Store processed values for backward compatibility (set enum fields to null for raw data)
+          // Store processed values for backward compatibility
           gbl_number: record.gbl_number || '',
           shipper_last_name: record.shipper_last_name || '',
-          shipment_type: null, // Set to null since raw value might not match enum
+          shipment_type: record.shipment_type || '', // Now can accept any text value
           origin_rate_area: record.origin_rate_area || '',
           destination_rate_area: record.destination_rate_area || '',
           pickup_date: record.pickup_date || '',
           rdd: record.rdd || '',
-          estimated_cube: record.estimated_cube ? parseInt(record.estimated_cube) : null,
-          actual_cube: record.actual_cube ? parseInt(record.actual_cube) : null,
+          estimated_cube: record.estimated_cube || '', // Now text field
+          actual_cube: record.actual_cube || '', // Now text field
           
           validation_status: 'pending'
         };

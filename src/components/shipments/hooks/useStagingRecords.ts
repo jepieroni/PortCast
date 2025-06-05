@@ -99,8 +99,8 @@ export const useStagingRecords = () => {
           poe_code: record.raw_poe_code || '',
           pod_code: record.raw_pod_code || '',
           scac_code: record.raw_scac_code || '',
-          estimated_cube: record.raw_estimated_cube || record.estimated_cube?.toString() || '',
-          actual_cube: record.raw_actual_cube || record.actual_cube?.toString() || '',
+          estimated_cube: record.raw_estimated_cube || record.estimated_cube || '',
+          actual_cube: record.raw_actual_cube || record.actual_cube || '',
           
           // Set validation state based on existing validation
           status: record.validation_status === 'valid' ? 'valid' : 'invalid',
@@ -142,7 +142,7 @@ export const useStagingRecords = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Prepare update object for staging table
+      // Prepare update object for staging table - all fields are now flexible
       const stagingUpdates: any = {
         updated_at: new Date().toISOString()
       };
@@ -169,8 +169,8 @@ export const useStagingRecords = () => {
       if (updates.destination_rate_area !== undefined) stagingUpdates.destination_rate_area = updates.destination_rate_area;
       if (updates.pickup_date !== undefined) stagingUpdates.pickup_date = updates.pickup_date;
       if (updates.rdd !== undefined) stagingUpdates.rdd = updates.rdd;
-      if (updates.estimated_cube !== undefined) stagingUpdates.estimated_cube = updates.estimated_cube ? parseInt(updates.estimated_cube) : null;
-      if (updates.actual_cube !== undefined) stagingUpdates.actual_cube = updates.actual_cube ? parseInt(updates.actual_cube) : null;
+      if (updates.estimated_cube !== undefined) stagingUpdates.estimated_cube = updates.estimated_cube;
+      if (updates.actual_cube !== undefined) stagingUpdates.actual_cube = updates.actual_cube;
 
       // Store resolved IDs
       if (updates.target_poe_id !== undefined) stagingUpdates.target_poe_id = updates.target_poe_id;

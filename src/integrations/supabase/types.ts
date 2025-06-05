@@ -497,13 +497,13 @@ export type Database = {
       }
       shipment_uploads_staging: {
         Row: {
-          actual_cube: number | null
+          actual_cube: string | null
           created_at: string
           destination_rate_area: string | null
-          estimated_cube: number | null
+          estimated_cube: string | null
           gbl_number: string | null
           id: string
-          organization_id: string
+          organization_id: string | null
           origin_rate_area: string | null
           pickup_date: string | null
           raw_actual_cube: string | null
@@ -519,26 +519,26 @@ export type Database = {
           raw_shipment_type: string | null
           raw_shipper_last_name: string | null
           rdd: string | null
-          remaining_cube: number | null
-          shipment_type: Database["public"]["Enums"]["shipment_type"] | null
+          remaining_cube: string | null
+          shipment_type: string | null
           shipper_last_name: string | null
           target_pod_id: string | null
           target_poe_id: string | null
           tsp_id: string | null
           updated_at: string
-          upload_session_id: string
-          user_id: string
+          upload_session_id: string | null
+          user_id: string | null
           validation_errors: Json | null
           validation_status: string | null
         }
         Insert: {
-          actual_cube?: number | null
+          actual_cube?: string | null
           created_at?: string
           destination_rate_area?: string | null
-          estimated_cube?: number | null
+          estimated_cube?: string | null
           gbl_number?: string | null
           id?: string
-          organization_id: string
+          organization_id?: string | null
           origin_rate_area?: string | null
           pickup_date?: string | null
           raw_actual_cube?: string | null
@@ -554,26 +554,26 @@ export type Database = {
           raw_shipment_type?: string | null
           raw_shipper_last_name?: string | null
           rdd?: string | null
-          remaining_cube?: number | null
-          shipment_type?: Database["public"]["Enums"]["shipment_type"] | null
+          remaining_cube?: string | null
+          shipment_type?: string | null
           shipper_last_name?: string | null
           target_pod_id?: string | null
           target_poe_id?: string | null
           tsp_id?: string | null
           updated_at?: string
-          upload_session_id: string
-          user_id: string
+          upload_session_id?: string | null
+          user_id?: string | null
           validation_errors?: Json | null
           validation_status?: string | null
         }
         Update: {
-          actual_cube?: number | null
+          actual_cube?: string | null
           created_at?: string
           destination_rate_area?: string | null
-          estimated_cube?: number | null
+          estimated_cube?: string | null
           gbl_number?: string | null
           id?: string
-          organization_id?: string
+          organization_id?: string | null
           origin_rate_area?: string | null
           pickup_date?: string | null
           raw_actual_cube?: string | null
@@ -589,15 +589,15 @@ export type Database = {
           raw_shipment_type?: string | null
           raw_shipper_last_name?: string | null
           rdd?: string | null
-          remaining_cube?: number | null
-          shipment_type?: Database["public"]["Enums"]["shipment_type"] | null
+          remaining_cube?: string | null
+          shipment_type?: string | null
           shipper_last_name?: string | null
           target_pod_id?: string | null
           target_poe_id?: string | null
           tsp_id?: string | null
           updated_at?: string
-          upload_session_id?: string
-          user_id?: string
+          upload_session_id?: string | null
+          user_id?: string | null
           validation_errors?: Json | null
           validation_status?: string | null
         }
