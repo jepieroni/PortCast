@@ -59,9 +59,15 @@ export const useShipmentValidation = () => {
       });
     }
 
-    // Validate cube logic - must have either estimated OR actual, not both
+    // Enhanced cube validation with pickup date logic
     const hasEstimated = formData.estimatedCube;
     const hasActual = formData.actualCube;
+    
+    // Check if pickup date is in the future
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+    const pickupDate = formData.pickupDate ? new Date(formData.pickupDate) : null;
+    const isPickupInFuture = pickupDate && pickupDate > today;
 
     if (hasEstimated && hasActual) {
       errors.push({ 
@@ -75,13 +81,28 @@ export const useShipmentValidation = () => {
     }
 
     if (!hasEstimated && !hasActual) {
-      errors.push({ 
-        field: 'estimatedCube', 
-        message: 'Cube volume is required - enter in either estimated or actual field' 
-      });
+      if (isPickupInFuture) {
+        errors.push({ 
+          field: 'estimatedCube', 
+          message: 'Estimated cube is required when pickup date is in the future' 
+        });
+      } else {
+        errors.push({ 
+          field: 'estimatedCube', 
+          message: 'Cube volume is required - enter in either estimated or actual field' 
+        });
+        errors.push({ 
+          field: 'actualCube', 
+          message: 'Cube volume is required - enter in either estimated or actual field' 
+        });
+      }
+    }
+
+    // New rule: If pickup date is in the future, only estimated cube is allowed
+    if (isPickupInFuture && hasActual && !hasEstimated) {
       errors.push({ 
         field: 'actualCube', 
-        message: 'Cube volume is required - enter in either estimated or actual field' 
+        message: 'Cannot use actual cube when pickup date is in the future - use estimated cube instead' 
       });
     }
 

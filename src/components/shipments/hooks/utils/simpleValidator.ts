@@ -53,6 +53,8 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
     }
   }
   
+  // Parse pickup date for cube validation
+  let pickupDate: Date | null = null;
   if (!record.pickup_date || record.pickup_date.trim() === '') {
     errors.push('Pickup date is required');
   } else {
@@ -61,9 +63,9 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
     if (!isValidDateFormat(dateStr)) {
       errors.push('Pickup date must be in MM/DD/YY, MM/DD/YYYY, or YYYY-MM-DD format');
     } else {
-      // Check if pickup date is not older than 30 days
-      const pickupDate = parseDate(dateStr);
+      pickupDate = parseDate(dateStr);
       if (pickupDate) {
+        // Check if pickup date is not older than 30 days
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
@@ -138,9 +140,14 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
     }
   }
 
-  // Cube validation - either estimated OR actual, not both, not neither
+  // Enhanced cube validation with pickup date logic
   const hasEstimated = record.estimated_cube && record.estimated_cube.trim() !== '' && !isNaN(Number(record.estimated_cube));
   const hasActual = record.actual_cube && record.actual_cube.trim() !== '' && !isNaN(Number(record.actual_cube));
+  
+  // Check if pickup date is in the future
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+  const isPickupInFuture = pickupDate && pickupDate > today;
   
   if (!hasEstimated && !hasActual) {
     errors.push('Either estimated cube or actual cube is required');
@@ -148,6 +155,11 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
   
   if (hasEstimated && hasActual) {
     errors.push('Cannot have both estimated cube and actual cube - choose one');
+  }
+  
+  // New rule: If pickup date is in the future, only estimated cube is allowed
+  if (isPickupInFuture && hasActual && !hasEstimated) {
+    errors.push('Cannot use actual cube when pickup date is in the future - use estimated cube instead');
   }
   
   // Validate cube numbers if provided
@@ -231,6 +243,8 @@ export const validateRecordSync = (record: BulkUploadRecord): string[] => {
     errors.push('Destination rate area is required');
   }
   
+  // Parse pickup date for cube validation
+  let pickupDate: Date | null = null;
   if (!record.pickup_date || record.pickup_date.trim() === '') {
     errors.push('Pickup date is required');
   } else {
@@ -239,9 +253,9 @@ export const validateRecordSync = (record: BulkUploadRecord): string[] => {
     if (!isValidDateFormat(dateStr)) {
       errors.push('Pickup date must be in MM/DD/YY, MM/DD/YYYY, or YYYY-MM-DD format');
     } else {
-      // Check if pickup date is not older than 30 days
-      const pickupDate = parseDate(dateStr);
+      pickupDate = parseDate(dateStr);
       if (pickupDate) {
+        // Check if pickup date is not older than 30 days
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
@@ -274,9 +288,14 @@ export const validateRecordSync = (record: BulkUploadRecord): string[] => {
     errors.push('SCAC code is required');
   }
 
-  // Cube validation - either estimated OR actual, not both, not neither
+  // Enhanced cube validation with pickup date logic
   const hasEstimated = record.estimated_cube && record.estimated_cube.trim() !== '' && !isNaN(Number(record.estimated_cube));
   const hasActual = record.actual_cube && record.actual_cube.trim() !== '' && !isNaN(Number(record.actual_cube));
+  
+  // Check if pickup date is in the future
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+  const isPickupInFuture = pickupDate && pickupDate > today;
   
   if (!hasEstimated && !hasActual) {
     errors.push('Either estimated cube or actual cube is required');
@@ -284,6 +303,11 @@ export const validateRecordSync = (record: BulkUploadRecord): string[] => {
   
   if (hasEstimated && hasActual) {
     errors.push('Cannot have both estimated cube and actual cube - choose one');
+  }
+  
+  // New rule: If pickup date is in the future, only estimated cube is allowed
+  if (isPickupInFuture && hasActual && !hasEstimated) {
+    errors.push('Cannot use actual cube when pickup date is in the future - use estimated cube instead');
   }
   
   // Validate cube numbers if provided

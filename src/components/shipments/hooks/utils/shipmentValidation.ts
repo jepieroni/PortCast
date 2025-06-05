@@ -1,3 +1,4 @@
+
 import { parseDateString } from '../../components/hooks/utils/dateParser';
 
 export const mapShipmentType = (type: string): { mappedType: string | null; isValid: boolean } => {
@@ -74,7 +75,11 @@ export const validateCubeLogic = (estimatedCube: number | null, actualCube: numb
   const errors: string[] = [];
   const hasEstimated = estimatedCube !== null && estimatedCube > 0;
   const hasActual = actualCube !== null && actualCube > 0;
-  const isPickupInPast = pickupDate && pickupDate <= new Date();
+  
+  // Check if pickup date is in the future
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // Set to end of today for comparison
+  const isPickupInFuture = pickupDate && pickupDate > today;
 
   // Both estimated and actual provided
   if (hasEstimated && hasActual) {
@@ -84,22 +89,22 @@ export const validateCubeLogic = (estimatedCube: number | null, actualCube: numb
 
   // Neither estimated nor actual provided
   if (!hasEstimated && !hasActual) {
-    if (isPickupInPast) {
-      errors.push('Actual cube is required when pickup date is today or in the past');
-    } else {
+    if (isPickupInFuture) {
       errors.push('Estimated cube is required when pickup date is in the future');
+    } else {
+      errors.push('Either estimated or actual cube is required');
     }
     return errors;
   }
 
-  // Actual cube with future pickup date
-  if (hasActual && !isPickupInPast) {
+  // New rule: Actual cube with future pickup date is not allowed
+  if (hasActual && isPickupInFuture) {
     errors.push('Cannot have actual cube when pickup date is in the future - use estimated cube instead');
   }
 
-  // Estimated cube with past pickup date
-  if (hasEstimated && isPickupInPast) {
-    errors.push('Should use actual cube when pickup date is today or in the past');
+  // Estimated cube with past pickup date (warning, not error)
+  if (hasEstimated && !isPickupInFuture) {
+    errors.push('Consider using actual cube when pickup date is today or in the past');
   }
 
   return errors;
