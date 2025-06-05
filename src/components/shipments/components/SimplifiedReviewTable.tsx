@@ -39,10 +39,10 @@ const SimplifiedReviewTable = ({
 
     // Only show static badges for records that have completed validation
     if (status === 'valid') {
-      return <Badge className="bg-green-100 text-green-800 border-green-200">Valid</Badge>;
+      return <Badge variant="success">Valid</Badge>;
     } else if (status === 'warning') {
       return (
-        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+        <Badge variant="warning">
           <AlertTriangle size={12} className="mr-1" />
           Warning
         </Badge>

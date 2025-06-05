@@ -70,7 +70,9 @@ const ShipmentReviewTable = ({
 
     // Only show static badges for records that have completed validation
     if (status === 'valid') {
-      return <Badge className="bg-green-100 text-green-800 border-green-200">Valid</Badge>;
+      return <Badge variant="success">Valid</Badge>;
+    } else if (status === 'warning') {
+      return <Badge variant="warning">Warning</Badge>;
     } else if (status === 'invalid') {
       return <Badge variant="destructive">Invalid</Badge>;
     } else {
