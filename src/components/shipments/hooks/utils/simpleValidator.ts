@@ -38,6 +38,17 @@ export const validateRecord = (record: BulkUploadRecord): string[] => {
     const dateStr = record.pickup_date.trim();
     if (!isValidDateFormat(dateStr)) {
       errors.push('Pickup date must be in MM/DD/YY, MM/DD/YYYY, or YYYY-MM-DD format');
+    } else {
+      // Check if pickup date is not older than 30 days
+      const pickupDate = parseDate(dateStr);
+      if (pickupDate) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        if (pickupDate < thirtyDaysAgo) {
+          errors.push('Pickup date cannot be older than 30 days');
+        }
+      }
     }
   }
   
@@ -122,4 +133,31 @@ const isValidDateFormat = (dateStr: string): boolean => {
   }
 
   return false;
+};
+
+const parseDate = (dateStr: string): Date | null => {
+  // Check for YYYY-MM-DD format
+  const isoPattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (isoPattern.test(dateStr)) {
+    return new Date(dateStr + 'T00:00:00');
+  }
+
+  // Check for MM/DD/YY or MM/DD/YYYY format
+  const usPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/;
+  const match = dateStr.match(usPattern);
+  if (match) {
+    const [, month, day, year] = match;
+    const monthNum = parseInt(month);
+    const dayNum = parseInt(day);
+    let yearNum = parseInt(year);
+    
+    // Convert 2-digit year to 4-digit
+    if (yearNum < 100) {
+      yearNum = yearNum < 50 ? 2000 + yearNum : 1900 + yearNum;
+    }
+    
+    return new Date(yearNum, monthNum - 1, dayNum);
+  }
+
+  return null;
 };

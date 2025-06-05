@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,7 +28,12 @@ export const useBulkUploadNew = () => {
 
       // Validate each record
       const validatedRecords = records.map((record, index) => {
-        console.log(`Validating record ${index + 1}:`, record);
+        console.log(`Validating record ${index + 1}:`, {
+          id: record.id,
+          gbl_number: record.gbl_number,
+          shipment_type: record.shipment_type,
+          pickup_date: record.pickup_date
+        });
         const errors = validateRecord(record);
         console.log(`Validation errors for record ${index + 1}:`, errors);
         
@@ -67,10 +71,21 @@ export const useBulkUploadNew = () => {
   const updateRecord = (recordId: string, updates: Partial<BulkUploadRecord>) => {
     if (!bulkState) return;
 
+    console.log(`Updating record ${recordId} with:`, updates);
+
     const updatedRecords = bulkState.records.map(record => {
       if (record.id === recordId) {
         const updatedRecord = { ...record, ...updates };
+        console.log(`Updated record ${recordId}:`, {
+          original_shipment_type: record.shipment_type,
+          updated_shipment_type: updatedRecord.shipment_type,
+          original_pickup_date: record.pickup_date,
+          updated_pickup_date: updatedRecord.pickup_date
+        });
+        
         const errors = validateRecord(updatedRecord);
+        console.log(`Re-validation errors for record ${recordId}:`, errors);
+        
         return {
           ...updatedRecord,
           status: errors.length === 0 ? 'valid' : 'invalid',

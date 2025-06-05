@@ -59,7 +59,7 @@ export const parseCSV = (csvText: string): BulkUploadRecord[] => {
       continue;
     }
 
-    // Create record object
+    // Create record object - ensure all string fields have string values, not undefined
     const record: BulkUploadRecord = {
       id: `row-${i}`,
       gbl_number: getFieldValue(values, headers, fieldMap.gbl_number) || '',
@@ -72,11 +72,18 @@ export const parseCSV = (csvText: string): BulkUploadRecord[] => {
       poe_code: getFieldValue(values, headers, fieldMap.poe_code) || '',
       pod_code: getFieldValue(values, headers, fieldMap.pod_code) || '',
       scac_code: getFieldValue(values, headers, fieldMap.scac_code) || '',
-      estimated_cube: getFieldValue(values, headers, fieldMap.estimated_cube),
-      actual_cube: getFieldValue(values, headers, fieldMap.actual_cube),
+      estimated_cube: getFieldValue(values, headers, fieldMap.estimated_cube) || undefined,
+      actual_cube: getFieldValue(values, headers, fieldMap.actual_cube) || undefined,
       status: 'pending',
       errors: []
     };
+
+    console.log(`Parsed record ${i}:`, {
+      id: record.id,
+      gbl_number: record.gbl_number,
+      shipment_type: record.shipment_type,
+      pickup_date: record.pickup_date
+    });
 
     records.push(record);
   }
