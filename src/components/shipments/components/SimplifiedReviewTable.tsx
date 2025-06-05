@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface SimplifiedReviewTableProps {
   stagingData: any[];
@@ -16,7 +16,7 @@ const SimplifiedReviewTable = ({
   validatingRecords,
   onViewEditClick
 }: SimplifiedReviewTableProps) => {
-  const getStatusBadge = (status: string, validationErrors: any, recordId: string) => {
+  const getStatusBadge = (status: string, validationErrors: any, recordId: string, warnings?: string[]) => {
     // Always show loading badge if record is currently being validated
     if (validatingRecords.has(recordId)) {
       return (
@@ -39,6 +39,18 @@ const SimplifiedReviewTable = ({
 
     // Only show static badges for records that have completed validation
     if (status === 'valid') {
+      // Check if there are warnings to show a warning badge instead
+      if (warnings && warnings.length > 0) {
+        return (
+          <div className="flex gap-1">
+            <Badge className="bg-green-100 text-green-800 border-green-200">Valid</Badge>
+            <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+              <AlertTriangle size={12} className="mr-1" />
+              Warning
+            </Badge>
+          </div>
+        );
+      }
       return <Badge className="bg-green-100 text-green-800 border-green-200">Valid</Badge>;
     } else if (status === 'invalid') {
       return <Badge variant="destructive">Invalid</Badge>;
@@ -61,15 +73,21 @@ const SimplifiedReviewTable = ({
       return null;
     }
 
+    // Show action button text based on status and warnings
+    const hasWarnings = record.warnings && record.warnings.length > 0;
+    
     if (record.validation_status === 'valid') {
+      const buttonText = hasWarnings ? 'Review Warnings' : 'View/Edit Details';
+      const buttonVariant = hasWarnings ? 'outline' : 'outline';
+      
       return (
         <Button 
           size="sm" 
-          variant="outline"
+          variant={buttonVariant}
           onClick={() => onViewEditClick(record)}
-          className="h-8 text-xs px-3"
+          className={`h-8 text-xs px-3 ${hasWarnings ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50' : ''}`}
         >
-          View/Edit Details
+          {buttonText}
         </Button>
       );
     } else if (record.validation_status === 'invalid') {
@@ -111,7 +129,7 @@ const SimplifiedReviewTable = ({
               {stagingData.map((record) => (
                 <TableRow key={record.id} className="hover:bg-muted/50">
                   <TableCell className="p-4">
-                    {getStatusBadge(record.validation_status, record.validation_errors, record.id)}
+                    {getStatusBadge(record.validation_status, record.validation_errors, record.id, record.warnings)}
                   </TableCell>
                   <TableCell className="p-4 font-medium">
                     {record.gbl_number || 'N/A'}

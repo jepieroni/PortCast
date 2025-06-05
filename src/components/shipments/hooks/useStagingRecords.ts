@@ -105,6 +105,7 @@ export const useStagingRecords = () => {
           // Set validation state based on existing validation
           status: record.validation_status === 'valid' ? 'valid' : 'invalid',
           errors,
+          warnings: [], // Initialize warnings array
           
           // Carry over resolved IDs if they exist
           target_poe_id: record.target_poe_id,
@@ -123,7 +124,8 @@ export const useStagingRecords = () => {
           return {
             ...record,
             status: errors.length === 0 ? 'valid' : 'invalid',
-            errors
+            errors,
+            warnings: record.warnings || [] // Preserve warnings from validation
           } as BulkUploadRecord;
         })
       );

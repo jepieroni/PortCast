@@ -2,7 +2,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Plus, Link, Edit } from 'lucide-react';
+import { AlertCircle, Plus, Link, Edit, AlertTriangle } from 'lucide-react';
 
 interface ValidationErrorsDialogProps {
   isOpen: boolean;
@@ -38,7 +38,15 @@ const ValidationErrorsDialog = ({
     return [];
   };
 
+  // Helper function to safely get warnings as array
+  const getValidationWarnings = (): string[] => {
+    if (!record.warnings) return [];
+    if (Array.isArray(record.warnings)) return record.warnings;
+    return [];
+  };
+
   const validationErrors = getValidationErrors();
+  const validationWarnings = getValidationWarnings();
 
   const getActionButtons = (error: string) => {
     // Rate area errors
@@ -227,8 +235,9 @@ const ValidationErrorsDialog = ({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <AlertCircle size={20} className="text-red-600" />
-            Validation Errors - GBL {record.gbl_number}
+            {validationErrors.length > 0 && <AlertCircle size={20} className="text-red-600" />}
+            {validationErrors.length === 0 && validationWarnings.length > 0 && <AlertTriangle size={20} className="text-yellow-600" />}
+            {validationErrors.length > 0 ? 'Validation Errors' : 'Validation Warnings'} - GBL {record.gbl_number}
           </DialogTitle>
         </DialogHeader>
 
@@ -263,22 +272,53 @@ const ValidationErrorsDialog = ({
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h4 className="font-medium text-red-800">Errors Found:</h4>
-            {validationErrors.map((error: string, index: number) => (
-              <div key={index} className="p-3 bg-red-50 border border-red-200 rounded">
-                <div className="flex items-start gap-2">
-                  <Badge variant="destructive" className="text-xs">
-                    Error {index + 1}
-                  </Badge>
-                  <div className="flex-1">
-                    <p className="text-sm text-red-800">{error}</p>
-                    {getActionButtons(error)}
+          {validationErrors.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-medium text-red-800">Errors Found:</h4>
+              {validationErrors.map((error: string, index: number) => (
+                <div key={index} className="p-3 bg-red-50 border border-red-200 rounded">
+                  <div className="flex items-start gap-2">
+                    <Badge variant="destructive" className="text-xs">
+                      Error {index + 1}
+                    </Badge>
+                    <div className="flex-1">
+                      <p className="text-sm text-red-800">{error}</p>
+                      {getActionButtons(error)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {validationWarnings.length > 0 && (
+            <div className="space-y-3">
+              <h4 className="font-medium text-yellow-800">Warnings:</h4>
+              {validationWarnings.map((warning: string, index: number) => (
+                <div key={index} className="p-3 bg-yellow-50 border border-yellow-200 rounded">
+                  <div className="flex items-start gap-2">
+                    <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 text-xs">
+                      Warning {index + 1}
+                    </Badge>
+                    <div className="flex-1">
+                      <p className="text-sm text-yellow-800">{warning}</p>
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onEditField(record, 'pickup_date')}
+                          className="border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+                        >
+                          <Edit size={14} className="mr-1" />
+                          Edit Pickup Date
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex justify-end">
             <Button onClick={onClose}>Close</Button>

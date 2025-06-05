@@ -11,28 +11,28 @@ export interface BulkUploadRecord {
   poe_code: string;
   pod_code: string;
   scac_code: string;
-  estimated_cube?: string;
-  actual_cube?: string;
-  
-  // Validation state
-  status: 'pending' | 'valid' | 'invalid';
+  estimated_cube: string;
+  actual_cube: string;
+  status: 'valid' | 'invalid' | 'pending';
   errors: string[];
+  warnings?: string[];
   
-  // Translated values (populated during processing)
+  // Resolved IDs
   target_poe_id?: string;
   target_pod_id?: string;
   tsp_id?: string;
-  
-  // Special property for triggering revalidation
-  _revalidate?: string;
 }
 
-export interface BulkUploadState {
-  records: BulkUploadRecord[];
-  summary: {
-    total: number;
-    valid: number;
-    invalid: number;
-    pending: number;
-  };
+export interface BulkUploadResult {
+  success: boolean;
+  message: string;
+  validRecords: number;
+  invalidRecords: number;
+  records?: BulkUploadRecord[];
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  warnings?: string[];
 }

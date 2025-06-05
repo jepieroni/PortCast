@@ -1,3 +1,4 @@
+
 import { BulkUploadRecord } from './bulkUploadTypes';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -53,7 +54,7 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
     }
   }
   
-  // Parse pickup date for cube validation
+  // Parse pickup date for cube validation and date range warnings
   let pickupDate: Date | null = null;
   if (!record.pickup_date || record.pickup_date.trim() === '') {
     errors.push('Pickup date is required');
@@ -65,12 +66,23 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
     } else {
       pickupDate = parseDate(dateStr);
       if (pickupDate) {
-        // Check if pickup date is not older than 30 days
+        // Date range warnings (not hard validation failures)
+        const today = new Date();
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
+        const oneHundredTwentyDaysFromNow = new Date();
+        oneHundredTwentyDaysFromNow.setDate(oneHundredTwentyDaysFromNow.getDate() + 120);
+        
+        // Store warnings separately from errors
+        if (!record.warnings) record.warnings = [];
+        
         if (pickupDate < thirtyDaysAgo) {
-          errors.push('Pickup date cannot be older than 30 days');
+          record.warnings.push(`WARNING: Pickup date is more than 30 days in the past (${pickupDate.toLocaleDateString()}) - please verify this is correct`);
+        }
+        
+        if (pickupDate > oneHundredTwentyDaysFromNow) {
+          record.warnings.push(`WARNING: Pickup date is more than 120 days in the future (${pickupDate.toLocaleDateString()}) - please verify this is correct`);
         }
       }
     }
