@@ -1,10 +1,10 @@
-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import EditableField from './EditableField';
+import { StatusBadgeComponent } from './review/StatusBadgeComponent';
 
 interface ShipmentReviewTableProps {
   stagingData: any[];
@@ -47,45 +47,6 @@ const ShipmentReviewTable = ({
     return [];
   };
 
-  const getStatusBadge = (status: string, validationErrors: any, recordId: string) => {
-    // Always show loading badge if record is currently being validated
-    if (validatingRecords.has(recordId)) {
-      return (
-        <Badge variant="secondary" className="animate-pulse">
-          <Loader2 size={12} className="animate-spin mr-1" />
-          Validating...
-        </Badge>
-      );
-    }
-
-    // Show loading badge for pending status (initial state before validation)
-    if (status === 'pending') {
-      return (
-        <Badge variant="secondary" className="animate-pulse">
-          <Loader2 size={12} className="animate-spin mr-1" />
-          Pending...
-        </Badge>
-      );
-    }
-
-    // Only show static badges for records that have completed validation
-    if (status === 'valid') {
-      return <Badge variant="success">Valid</Badge>;
-    } else if (status === 'warning') {
-      return <Badge variant="warning">Warning</Badge>;
-    } else if (status === 'invalid') {
-      return <Badge variant="destructive">Invalid</Badge>;
-    } else {
-      // For any unknown status, show loading
-      return (
-        <Badge variant="secondary" className="animate-pulse">
-          <Loader2 size={12} className="animate-spin mr-1" />
-          Processing...
-        </Badge>
-      );
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -119,7 +80,10 @@ const ShipmentReviewTable = ({
                 return (
                   <TableRow key={record.id} className="hover:bg-muted/50">
                     <TableCell className="p-2">
-                      {getStatusBadge(record.validation_status, record.validation_errors, record.id)}
+                      <StatusBadgeComponent 
+                        record={record} 
+                        validatingRecords={validatingRecords} 
+                      />
                     </TableCell>
                     <TableCell className="p-2">
                       <EditableField
