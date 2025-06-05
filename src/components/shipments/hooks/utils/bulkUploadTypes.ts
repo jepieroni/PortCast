@@ -36,3 +36,13 @@ export interface ValidationResult {
   errors: string[];
   warnings?: string[];
 }
+
+export interface BulkUploadState {
+  records: BulkUploadRecord[];
+  summary: {
+    total: number;
+    valid: number;
+    invalid: number;
+    pending: number;
+  };
+}
