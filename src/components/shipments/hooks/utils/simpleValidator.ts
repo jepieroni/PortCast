@@ -4,62 +4,121 @@ import { BulkUploadRecord } from './bulkUploadTypes';
 export const validateRecord = (record: BulkUploadRecord): string[] => {
   const errors: string[] = [];
 
-  // Required field validation
-  if (!record.gbl_number?.trim()) errors.push('GBL number is required');
-  if (!record.shipper_last_name?.trim()) errors.push('Shipper last name is required');
-  if (!record.shipment_type?.trim()) errors.push('Shipment type is required');
-  if (!record.origin_rate_area?.trim()) errors.push('Origin rate area is required');
-  if (!record.destination_rate_area?.trim()) errors.push('Destination rate area is required');
-  if (!record.pickup_date?.trim()) errors.push('Pickup date is required');
-  if (!record.rdd?.trim()) errors.push('Required delivery date is required');
-  if (!record.poe_code?.trim()) errors.push('POE code is required');
-  if (!record.pod_code?.trim()) errors.push('POD code is required');
-  if (!record.scac_code?.trim()) errors.push('SCAC code is required');
-
-  // Shipment type validation
-  const validTypes = ['inbound', 'outbound', 'intertheater', 'i', 'o', 't'];
-  if (record.shipment_type && !validTypes.includes(record.shipment_type.toLowerCase())) {
-    errors.push('Invalid shipment type. Must be inbound, outbound, or intertheater');
+  // Required field validation - simple null/empty checks
+  if (!record.gbl_number || record.gbl_number.trim() === '') {
+    errors.push('GBL number is required');
+  }
+  
+  if (!record.shipper_last_name || record.shipper_last_name.trim() === '') {
+    errors.push('Shipper last name is required');
+  }
+  
+  if (!record.shipment_type || record.shipment_type.trim() === '') {
+    errors.push('Shipment type is required');
+  } else {
+    // Validate shipment type values
+    const type = record.shipment_type.trim().toLowerCase();
+    if (!['i', 'o', 't', 'inbound', 'outbound', 'intertheater'].includes(type)) {
+      errors.push('Shipment type must be I, O, T, Inbound, Outbound, or Intertheater');
+    }
+  }
+  
+  if (!record.origin_rate_area || record.origin_rate_area.trim() === '') {
+    errors.push('Origin rate area is required');
+  }
+  
+  if (!record.destination_rate_area || record.destination_rate_area.trim() === '') {
+    errors.push('Destination rate area is required');
+  }
+  
+  if (!record.pickup_date || record.pickup_date.trim() === '') {
+    errors.push('Pickup date is required');
+  } else {
+    // Simple date validation - accept MM/DD/YY, MM/DD/YYYY, or YYYY-MM-DD
+    const dateStr = record.pickup_date.trim();
+    if (!isValidDateFormat(dateStr)) {
+      errors.push('Pickup date must be in MM/DD/YY, MM/DD/YYYY, or YYYY-MM-DD format');
+    }
+  }
+  
+  if (!record.rdd || record.rdd.trim() === '') {
+    errors.push('Required delivery date is required');
+  } else {
+    // Simple date validation
+    const dateStr = record.rdd.trim();
+    if (!isValidDateFormat(dateStr)) {
+      errors.push('Required delivery date must be in MM/DD/YY, MM/DD/YYYY, or YYYY-MM-DD format');
+    }
+  }
+  
+  if (!record.poe_code || record.poe_code.trim() === '') {
+    errors.push('POE code is required');
+  }
+  
+  if (!record.pod_code || record.pod_code.trim() === '') {
+    errors.push('POD code is required');
+  }
+  
+  if (!record.scac_code || record.scac_code.trim() === '') {
+    errors.push('SCAC code is required');
   }
 
-  // Date validation
-  if (record.pickup_date && !isValidDate(record.pickup_date)) {
-    errors.push('Invalid pickup date format');
-  }
-  if (record.rdd && !isValidDate(record.rdd)) {
-    errors.push('Invalid required delivery date format');
-  }
-
-  // Cube validation
-  const hasEstimated = record.estimated_cube && Number(record.estimated_cube) > 0;
-  const hasActual = record.actual_cube && Number(record.actual_cube) > 0;
+  // Cube validation - either estimated OR actual, not both, not neither
+  const hasEstimated = record.estimated_cube && record.estimated_cube.trim() !== '' && !isNaN(Number(record.estimated_cube));
+  const hasActual = record.actual_cube && record.actual_cube.trim() !== '' && !isNaN(Number(record.actual_cube));
   
   if (!hasEstimated && !hasActual) {
     errors.push('Either estimated cube or actual cube is required');
   }
+  
   if (hasEstimated && hasActual) {
-    errors.push('Cannot have both estimated and actual cube');
+    errors.push('Cannot have both estimated cube and actual cube - choose one');
+  }
+  
+  // Validate cube numbers if provided
+  if (hasEstimated && Number(record.estimated_cube) <= 0) {
+    errors.push('Estimated cube must be greater than 0');
+  }
+  
+  if (hasActual && Number(record.actual_cube) <= 0) {
+    errors.push('Actual cube must be greater than 0');
   }
 
   return errors;
 };
 
-const isValidDate = (dateString: string): boolean => {
-  // Check ISO format (YYYY-MM-DD)
+const isValidDateFormat = (dateStr: string): boolean => {
+  // Check for YYYY-MM-DD format
   const isoPattern = /^\d{4}-\d{2}-\d{2}$/;
-  if (isoPattern.test(dateString)) {
-    const date = new Date(dateString);
+  if (isoPattern.test(dateStr)) {
+    const date = new Date(dateStr + 'T00:00:00');
     return !isNaN(date.getTime());
   }
 
-  // Check MM/DD/YY format
-  const shortPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/;
-  const match = dateString.match(shortPattern);
+  // Check for MM/DD/YY or MM/DD/YYYY format
+  const usPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/;
+  const match = dateStr.match(usPattern);
   if (match) {
     const [, month, day, year] = match;
-    const fullYear = 2000 + parseInt(year);
-    const date = new Date(fullYear, parseInt(month) - 1, parseInt(day));
-    return !isNaN(date.getTime());
+    const monthNum = parseInt(month);
+    const dayNum = parseInt(day);
+    let yearNum = parseInt(year);
+    
+    // Convert 2-digit year to 4-digit
+    if (yearNum < 100) {
+      yearNum = yearNum < 50 ? 2000 + yearNum : 1900 + yearNum;
+    }
+    
+    // Basic range checks
+    if (monthNum < 1 || monthNum > 12) return false;
+    if (dayNum < 1 || dayNum > 31) return false;
+    if (yearNum < 1900 || yearNum > 2100) return false;
+    
+    // Create date and validate it's real
+    const date = new Date(yearNum, monthNum - 1, dayNum);
+    return date.getFullYear() === yearNum && 
+           date.getMonth() === monthNum - 1 && 
+           date.getDate() === dayNum;
   }
 
   return false;

@@ -21,13 +21,18 @@ export const useBulkUploadNew = () => {
     try {
       // Parse the CSV file
       const text = await file.text();
-      const records = parseCSV(text);
+      console.log('Raw CSV text preview:', text.substring(0, 500));
       
+      const records = parseCSV(text);
       console.log('Parsed records:', records.length);
+      console.log('First record sample:', records[0]);
 
       // Validate each record
-      const validatedRecords = records.map(record => {
+      const validatedRecords = records.map((record, index) => {
+        console.log(`Validating record ${index + 1}:`, record);
         const errors = validateRecord(record);
+        console.log(`Validation errors for record ${index + 1}:`, errors);
+        
         return {
           ...record,
           status: errors.length === 0 ? 'valid' : 'invalid',
@@ -48,7 +53,8 @@ export const useBulkUploadNew = () => {
         summary
       });
 
-      console.log('Validation complete:', summary);
+      console.log('Final validation summary:', summary);
+      console.log('Sample validated records:', validatedRecords.slice(0, 3));
 
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -106,11 +112,11 @@ export const useBulkUploadNew = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // Translate and insert records one by one
+      // Process records one by one
       for (const record of validRecords) {
         // Normalize shipment type
         let shipmentType: ShipmentType = 'inbound';
-        const typeStr = record.shipment_type.toLowerCase();
+        const typeStr = record.shipment_type.toLowerCase().trim();
         if (typeStr === 'i' || typeStr === 'inbound') shipmentType = 'inbound';
         else if (typeStr === 'o' || typeStr === 'outbound') shipmentType = 'outbound';
         else if (typeStr === 't' || typeStr === 'intertheater') shipmentType = 'intertheater';
@@ -131,11 +137,13 @@ export const useBulkUploadNew = () => {
           estimated_cube: record.estimated_cube ? parseInt(record.estimated_cube) : null,
           actual_cube: record.actual_cube ? parseInt(record.actual_cube) : null,
           remaining_cube: record.actual_cube ? parseInt(record.actual_cube) : null,
-          // For now, use placeholder IDs - these would need proper translation
+          // Use placeholder IDs for now
           target_poe_id: '00000000-0000-0000-0000-000000000000',
           target_pod_id: '00000000-0000-0000-0000-000000000000',
           tsp_id: '00000000-0000-0000-0000-000000000000'
         };
+
+        console.log('Inserting shipment data:', shipmentData);
 
         const { error } = await supabase
           .from('shipments')
@@ -184,12 +192,18 @@ const convertDateFormat = (dateString: string): string => {
     return dateString;
   }
 
-  // Convert MM/DD/YY to YYYY-MM-DD
-  const shortPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/;
-  const match = dateString.match(shortPattern);
+  // Convert MM/DD/YY or MM/DD/YYYY to YYYY-MM-DD
+  const usPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/;
+  const match = dateString.match(usPattern);
   if (match) {
     const [, month, day, year] = match;
-    const fullYear = 2000 + parseInt(year);
+    let fullYear = parseInt(year);
+    
+    // Convert 2-digit year to 4-digit
+    if (fullYear < 100) {
+      fullYear = fullYear < 50 ? 2000 + fullYear : 1900 + fullYear;
+    }
+    
     return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
 
