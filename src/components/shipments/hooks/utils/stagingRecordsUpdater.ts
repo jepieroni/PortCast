@@ -79,30 +79,38 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
       let newStatus: string;
       if (validationResult.errors.length > 0) {
         newStatus = 'invalid';
-      } else if (validationResult.warnings.length > 0) {
+      } else if (validationResult.warnings && validationResult.warnings.length > 0) {
         newStatus = 'warning';
       } else {
         newStatus = 'valid';
       }
       
-      // Store validation results - these are jsonb fields that accept arrays directly
+      // Convert to proper arrays before storing
+      const errorsArray = Array.isArray(validationResult.errors) ? validationResult.errors : [];
+      const warningsArray = Array.isArray(validationResult.warnings) ? validationResult.warnings || [] : [];
+      
+      // Store validation results
       stagingUpdates.validation_status = newStatus;
-      stagingUpdates.validation_errors = validationResult.errors;
-      stagingUpdates.validation_warnings = validationResult.warnings;
+      stagingUpdates.validation_errors = errorsArray;
+      stagingUpdates.validation_warnings = warningsArray;
       
       console.log(`Updated validation for record ${recordId}:`, {
         status: newStatus,
-        errors: validationResult.errors.length,
-        warnings: validationResult.warnings.length
+        errors: errorsArray.length,
+        warnings: warningsArray.length
       });
     }
   } else {
     // Update validation status and errors - these are now dynamic
     if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
     
-    // Store validation results - these are jsonb fields that accept arrays directly
-    if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
-    if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
+    // Convert to proper arrays before storing
+    if (updates.errors !== undefined) {
+      stagingUpdates.validation_errors = Array.isArray(updates.errors) ? updates.errors : [];
+    }
+    if (updates.warnings !== undefined) {
+      stagingUpdates.validation_warnings = Array.isArray(updates.warnings) ? updates.warnings : [];
+    }
   }
 
   console.log(`Updating staging record ${recordId} with:`, stagingUpdates);
