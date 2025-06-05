@@ -45,7 +45,7 @@ export const useFileUpload = () => {
           organization_id: profile.organization_id,
           user_id: user.id,
           
-          // Store raw uploaded values
+          // Store raw uploaded values - these are the source of truth
           raw_gbl_number: record.gbl_number || '',
           raw_shipper_last_name: record.shipper_last_name || '',
           raw_shipment_type: record.shipment_type || '',
@@ -59,10 +59,10 @@ export const useFileUpload = () => {
           raw_estimated_cube: record.estimated_cube || '',
           raw_actual_cube: record.actual_cube || '',
           
-          // Also store processed values for backward compatibility
+          // Store processed values for backward compatibility (set enum fields to null for raw data)
           gbl_number: record.gbl_number || '',
           shipper_last_name: record.shipper_last_name || '',
-          shipment_type: record.shipment_type,
+          shipment_type: null, // Set to null since raw value might not match enum
           origin_rate_area: record.origin_rate_area || '',
           destination_rate_area: record.destination_rate_area || '',
           pickup_date: record.pickup_date || '',
