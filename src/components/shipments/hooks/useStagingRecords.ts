@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +79,12 @@ export const useStagingRecords = () => {
 
       // Convert staging records to BulkUploadRecord format using REGULAR fields (not raw)
       const convertedRecords: BulkUploadRecord[] = stagingRecords.map((record) => {
+        console.log(`Converting staging record ${record.id}:`, {
+          raw_pickup_date: record.raw_pickup_date,
+          regular_pickup_date: record.pickup_date,
+          gbl_number: record.gbl_number
+        });
+
         // Convert validation_errors from Json[] to string[]
         let errors: string[] = [];
         if (Array.isArray(record.validation_errors)) {
@@ -94,7 +101,7 @@ export const useStagingRecords = () => {
           shipment_type: record.shipment_type || '',
           origin_rate_area: record.origin_rate_area || '',
           destination_rate_area: record.destination_rate_area || '',
-          pickup_date: record.pickup_date || '',
+          pickup_date: record.pickup_date || '', // Use regular field, NOT raw
           rdd: record.rdd || '',
           poe_code: record.raw_poe_code || '', // These don't have regular equivalents yet
           pod_code: record.raw_pod_code || '',
@@ -117,15 +124,27 @@ export const useStagingRecords = () => {
       // Perform fresh validation on all records using regular fields
       const validatedRecords = await Promise.all(
         convertedRecords.map(async (record) => {
-          console.log(`Re-validating staging record ${record.id}`);
-          const errors = await validateRecord(record);
-          console.log(`Validation errors for staging record ${record.id}:`, errors);
+          console.log(`Re-validating staging record ${record.id} with pickup_date: "${record.pickup_date}"`);
+          
+          // CRITICAL: Create a separate copy for validation to prevent cross-contamination
+          const validationCopy = JSON.parse(JSON.stringify(record));
+          const errors = await validateRecord(validationCopy);
+          
+          console.log(`Validation complete for staging record ${record.id}:`, {
+            errors: errors.length,
+            warnings: validationCopy.warnings?.length || 0,
+            pickup_date_used: validationCopy.pickup_date
+          });
           
           return {
             ...record,
             status: errors.length === 0 ? 'valid' : 'invalid',
             errors,
-            warnings: record.warnings || [] // Preserve warnings from validation
+            warnings: validationCopy.warnings || [], // Copy warnings from validation
+            // Copy any resolved IDs from validation
+            target_poe_id: validationCopy.target_poe_id || record.target_poe_id,
+            target_pod_id: validationCopy.target_pod_id || record.target_pod_id,
+            tsp_id: validationCopy.tsp_id || record.tsp_id
           } as BulkUploadRecord;
         })
       );
