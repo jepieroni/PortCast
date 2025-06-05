@@ -16,7 +16,7 @@ const SimplifiedReviewTable = ({
   validatingRecords,
   onViewEditClick
 }: SimplifiedReviewTableProps) => {
-  const getStatusBadge = (status: string, validationErrors: any, recordId: string, warnings?: string[]) => {
+  const getStatusBadge = (status: string, validationErrors: any, recordId: string, validationWarnings?: any[]) => {
     // Always show loading badge if record is currently being validated
     if (validatingRecords.has(recordId)) {
       return (
@@ -40,7 +40,13 @@ const SimplifiedReviewTable = ({
     // Only show static badges for records that have completed validation
     if (status === 'valid') {
       // Check if there are warnings to show a warning badge instead
-      if (warnings && warnings.length > 0) {
+      // Handle both array format and check if it has actual warning content
+      const hasWarnings = validationWarnings && 
+                          Array.isArray(validationWarnings) && 
+                          validationWarnings.length > 0 &&
+                          validationWarnings.some(w => w && w.toString().trim() !== '');
+      
+      if (hasWarnings) {
         return (
           <div className="flex gap-1">
             <Badge className="bg-green-100 text-green-800 border-green-200">Valid</Badge>
@@ -74,7 +80,11 @@ const SimplifiedReviewTable = ({
     }
 
     // Show action button text based on status and warnings
-    const hasWarnings = record.warnings && record.warnings.length > 0;
+    // Check for warnings using the correct field name from the database
+    const hasWarnings = record.validation_warnings && 
+                        Array.isArray(record.validation_warnings) && 
+                        record.validation_warnings.length > 0 &&
+                        record.validation_warnings.some(w => w && w.toString().trim() !== '');
     
     if (record.validation_status === 'valid') {
       const buttonText = hasWarnings ? 'Review Warnings' : 'View/Edit Details';
@@ -129,7 +139,7 @@ const SimplifiedReviewTable = ({
               {stagingData.map((record) => (
                 <TableRow key={record.id} className="hover:bg-muted/50">
                   <TableCell className="p-4">
-                    {getStatusBadge(record.validation_status, record.validation_errors, record.id, record.warnings)}
+                    {getStatusBadge(record.validation_status, record.validation_errors, record.id, record.validation_warnings)}
                   </TableCell>
                   <TableCell className="p-4 font-medium">
                     {record.gbl_number || 'N/A'}
