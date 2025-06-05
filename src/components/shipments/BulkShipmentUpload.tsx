@@ -1,7 +1,8 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, Database } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBulkUploadNew } from './hooks/useBulkUploadNew';
 import { NewBulkUploadReview } from './components/NewBulkUploadReview';
@@ -19,11 +20,20 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
     uploadFile,
     updateRecord,
     processValidRecords,
+    loadStagingRecords,
+    checkForStagingRecords,
     isUploading,
     uploadError,
     bulkState,
+    hasStagingRecords,
+    isCheckingStagingRecords,
     clearState
   } = useBulkUploadNew();
+
+  // Check for staging records on component mount
+  useEffect(() => {
+    checkForStagingRecords();
+  }, []);
 
   const validateFileType = (file: File) => {
     const allowedTypes = [
@@ -81,9 +91,15 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
     await uploadFile(file);
   };
 
+  const handleLoadStagingRecords = async () => {
+    await loadStagingRecords();
+  };
+
   const handleBackToUpload = () => {
     clearState();
     setFile(null);
+    // Re-check for staging records when returning to upload
+    checkForStagingRecords();
   };
 
   const handleComplete = () => {
@@ -118,6 +134,23 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
         <h2 className="text-2xl font-bold">Bulk Shipment Upload</h2>
       </div>
 
+      {/* Warning message when staging records exist */}
+      {hasStagingRecords && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="text-orange-600 mt-0.5" size={20} />
+              <div>
+                <h3 className="font-semibold text-orange-800">Previous Unprocessed Uploads Found</h3>
+                <p className="text-orange-700 text-sm mt-1">
+                  You have unprocessed shipments from previous uploads that must be reviewed and processed before uploading new files.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -127,15 +160,18 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* File upload area - disabled when staging records exist */}
             <div 
               className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                isDragOver 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-300 hover:border-gray-400'
+                hasStagingRecords 
+                  ? 'border-gray-200 bg-gray-50 opacity-50' 
+                  : isDragOver 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-300 hover:border-gray-400'
               }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
+              onDragOver={!hasStagingRecords ? handleDragOver : undefined}
+              onDragLeave={!hasStagingRecords ? handleDragLeave : undefined}
+              onDrop={!hasStagingRecords ? handleDrop : undefined}
             >
               <input
                 type="file"
@@ -143,15 +179,20 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
                 onChange={handleInputChange}
                 className="hidden"
                 id="file-upload"
+                disabled={hasStagingRecords}
               />
-              <label htmlFor="file-upload" className="cursor-pointer">
-                <FileSpreadsheet size={48} className="mx-auto mb-4 text-gray-400" />
-                <p className="text-lg font-medium">Choose file or drag and drop</p>
-                <p className="text-sm text-gray-500">CSV or Excel files (.csv, .xls, .xlsx)</p>
+              <label htmlFor="file-upload" className={hasStagingRecords ? "cursor-not-allowed" : "cursor-pointer"}>
+                <FileSpreadsheet size={48} className={`mx-auto mb-4 ${hasStagingRecords ? 'text-gray-300' : 'text-gray-400'}`} />
+                <p className={`text-lg font-medium ${hasStagingRecords ? 'text-gray-400' : ''}`}>
+                  {hasStagingRecords ? 'File upload disabled' : 'Choose file or drag and drop'}
+                </p>
+                <p className={`text-sm ${hasStagingRecords ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {hasStagingRecords ? 'Process previous uploads first' : 'CSV or Excel files (.csv, .xls, .xlsx)'}
+                </p>
               </label>
             </div>
             
-            {file && (
+            {file && !hasStagingRecords && (
               <div className="bg-blue-50 p-3 rounded">
                 <p className="font-medium">{file.name}</p>
                 <p className="text-sm text-gray-600">{(file.size / 1024).toFixed(1)} KB</p>
@@ -168,12 +209,26 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
               </div>
             )}
 
+            {/* Upload button - disabled when staging records exist */}
             <Button 
               onClick={handleUpload}
-              disabled={!file || isUploading}
+              disabled={!file || isUploading || hasStagingRecords}
               className="w-full"
             >
               {isUploading ? 'Processing...' : 'Upload and Review'}
+            </Button>
+
+            {/* Review previous uploads button */}
+            <Button 
+              onClick={handleLoadStagingRecords}
+              disabled={!hasStagingRecords || isUploading || isCheckingStagingRecords}
+              variant="outline"
+              className="w-full border-orange-600 text-orange-600 hover:bg-orange-50"
+            >
+              <Database size={16} className="mr-2" />
+              {isCheckingStagingRecords ? 'Checking...' : 
+               isUploading ? 'Loading...' : 
+               'Review Previous Unprocessed Uploads'}
             </Button>
           </CardContent>
         </Card>
@@ -211,7 +266,7 @@ const BulkShipmentUpload = ({ onBack }: BulkShipmentUploadProps) => {
                 <div className="text-sm">
                   <p className="font-medium text-yellow-800">Note:</p>
                   <p className="text-yellow-700">
-                    This new system provides immediate validation and simple editing capabilities.
+                    This system automatically detects and manages unprocessed uploads from previous sessions.
                   </p>
                 </div>
               </div>
