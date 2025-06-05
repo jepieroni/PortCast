@@ -33,15 +33,18 @@ export const useFileUpload = () => {
       // Save all records to staging table immediately with raw data
       // The staging table now accepts ANY values in ANY format
       const stagingRecords = records.map((record, index) => {
+        // Generate a proper UUID for each record instead of using "row-X"
+        const recordUuid = crypto.randomUUID();
+        
         console.log(`Preparing record ${index + 1} for staging:`, {
-          id: record.id,
+          id: recordUuid,
           gbl_number: record.gbl_number,
           shipment_type: record.shipment_type,
           pickup_date: record.pickup_date
         });
 
         return {
-          id: record.id,
+          id: recordUuid, // Use proper UUID instead of "row-X"
           upload_session_id: uploadSessionId,
           organization_id: profile.organization_id,
           user_id: user.id,
@@ -63,7 +66,7 @@ export const useFileUpload = () => {
           // Store processed values for backward compatibility
           gbl_number: record.gbl_number || '',
           shipper_last_name: record.shipper_last_name || '',
-          shipment_type: record.shipment_type || '', // Now can accept any text value
+          shipment_type: record.shipment_type || '', // Now text field - accepts any value
           origin_rate_area: record.origin_rate_area || '',
           destination_rate_area: record.destination_rate_area || '',
           pickup_date: record.pickup_date || '',
@@ -103,7 +106,7 @@ export const useFileUpload = () => {
       const validatedRecords = stagingData?.map((record) => {
         // Use raw values as the source of truth
         const bulkRecord: BulkUploadRecord = {
-          id: record.id,
+          id: record.id, // Now this will be a proper UUID
           gbl_number: record.raw_gbl_number || '',
           shipper_last_name: record.raw_shipper_last_name || '',
           shipment_type: record.raw_shipment_type || '',
