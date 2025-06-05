@@ -85,7 +85,7 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         newStatus = 'valid';
       }
       
-      // Update validation results in staging updates
+      // Update validation results in staging updates - convert to proper Json format
       stagingUpdates.validation_status = newStatus;
       stagingUpdates.validation_errors = validationResult.errors;
       stagingUpdates.validation_warnings = validationResult.warnings;
