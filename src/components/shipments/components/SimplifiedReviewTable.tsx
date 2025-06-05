@@ -42,7 +42,7 @@ const SimplifiedReviewTable = ({
       return <Badge className="bg-green-100 text-green-800 border-green-200">Valid</Badge>;
     } else if (status === 'warning') {
       return (
-        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+        <Badge className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-50">
           <AlertTriangle size={12} className="mr-1" />
           Warning
         </Badge>
@@ -84,7 +84,7 @@ const SimplifiedReviewTable = ({
           size="sm" 
           variant={buttonVariant}
           onClick={() => onViewEditClick(record)}
-          className={`h-8 text-xs px-3 ${hasWarnings ? 'border-yellow-300 text-yellow-700 hover:bg-yellow-50' : ''}`}
+          className={`h-8 text-xs px-3 ${hasWarnings ? 'border-amber-300 text-amber-700 hover:bg-amber-50' : ''}`}
         >
           {buttonText}
         </Button>
@@ -95,7 +95,7 @@ const SimplifiedReviewTable = ({
           size="sm" 
           variant="outline"
           onClick={() => onViewEditClick(record)}
-          className="h-8 text-xs px-3 border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+          className="h-8 text-xs px-3 border-amber-300 text-amber-700 hover:bg-amber-50"
         >
           Review Warnings
         </Button>
@@ -188,8 +188,8 @@ const SimplifiedReviewTable = ({
                         )}
                         
                         {validationWarnings.length > 0 && (
-                          <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
-                            <div className="text-sm text-yellow-800">
+                          <div className="bg-amber-50 border border-amber-200 rounded p-2">
+                            <div className="text-sm text-amber-800">
                               <strong>Warnings:</strong>
                               <ul className="list-disc list-inside mt-1">
                                 {validationWarnings.map((warning, index) => (

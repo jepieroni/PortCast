@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { BulkUploadRecord } from './bulkUploadTypes';
+import { validateRecordComplete } from './simpleValidator';
 
 export const updateStagingRecord = async (recordId: string, updates: Partial<BulkUploadRecord>) => {
   const { data: { user } } = await supabase.auth.getUser();
@@ -28,12 +29,81 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
   if (updates.target_pod_id !== undefined) stagingUpdates.target_pod_id = updates.target_pod_id;
   if (updates.tsp_id !== undefined) stagingUpdates.tsp_id = updates.tsp_id;
 
-  // Update validation status and errors - these are now dynamic
-  if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
-  if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
+  // IMPORTANT: If we're updating any validation-related fields, we need to re-run complete validation
+  const validationRelatedFields = ['gbl_number', 'shipper_last_name', 'shipment_type', 'origin_rate_area', 
+                                   'destination_rate_area', 'pickup_date', 'rdd', 'estimated_cube', 'actual_cube'];
   
-  // CRITICAL: Warnings are now dynamic like errors, not preserved static data
-  if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
+  const hasValidationRelatedUpdates = validationRelatedFields.some(field => updates[field] !== undefined);
+  
+  if (hasValidationRelatedUpdates) {
+    console.log(`Re-validating record ${recordId} due to field updates`);
+    
+    // Get the current record to re-validate
+    const { data: currentRecord } = await supabase
+      .from('shipment_uploads_staging')
+      .select('*')
+      .eq('id', recordId)
+      .single();
+    
+    if (currentRecord) {
+      // Create a record with the updates applied for validation
+      const recordToValidate: BulkUploadRecord = {
+        id: currentRecord.id,
+        gbl_number: updates.gbl_number !== undefined ? updates.gbl_number : currentRecord.gbl_number,
+        shipper_last_name: updates.shipper_last_name !== undefined ? updates.shipper_last_name : currentRecord.shipper_last_name,
+        shipment_type: updates.shipment_type !== undefined ? updates.shipment_type : currentRecord.shipment_type,
+        origin_rate_area: updates.origin_rate_area !== undefined ? updates.origin_rate_area : currentRecord.origin_rate_area,
+        destination_rate_area: updates.destination_rate_area !== undefined ? updates.destination_rate_area : currentRecord.destination_rate_area,
+        pickup_date: updates.pickup_date !== undefined ? updates.pickup_date : currentRecord.pickup_date,
+        rdd: updates.rdd !== undefined ? updates.rdd : currentRecord.rdd,
+        poe_code: currentRecord.raw_poe_code || '',
+        pod_code: currentRecord.raw_pod_code || '',
+        scac_code: currentRecord.raw_scac_code || '',
+        estimated_cube: updates.estimated_cube !== undefined ? updates.estimated_cube : currentRecord.estimated_cube,
+        actual_cube: updates.actual_cube !== undefined ? updates.actual_cube : currentRecord.actual_cube,
+        status: 'pending' as const,
+        errors: [],
+        warnings: [],
+        target_poe_id: updates.target_poe_id,
+        target_pod_id: updates.target_pod_id,
+        tsp_id: updates.tsp_id,
+        validation_status: currentRecord.validation_status,
+        validation_errors: currentRecord.validation_errors,
+        validation_warnings: currentRecord.validation_warnings
+      };
+      
+      // Run complete validation including warnings
+      const validationResult = await validateRecordComplete(recordToValidate);
+      
+      // Determine new status based on validation results
+      let newStatus: string;
+      if (validationResult.errors.length > 0) {
+        newStatus = 'invalid';
+      } else if (validationResult.warnings.length > 0) {
+        newStatus = 'warning';
+      } else {
+        newStatus = 'valid';
+      }
+      
+      // Update validation results in staging updates
+      stagingUpdates.validation_status = newStatus;
+      stagingUpdates.validation_errors = validationResult.errors;
+      stagingUpdates.validation_warnings = validationResult.warnings;
+      
+      console.log(`Updated validation for record ${recordId}:`, {
+        status: newStatus,
+        errors: validationResult.errors.length,
+        warnings: validationResult.warnings.length
+      });
+    }
+  } else {
+    // Update validation status and errors - these are now dynamic
+    if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
+    if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
+    
+    // CRITICAL: Warnings are now dynamic like errors, not preserved static data
+    if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
+  }
 
   console.log(`Updating staging record ${recordId} with:`, stagingUpdates);
 

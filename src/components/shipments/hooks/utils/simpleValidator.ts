@@ -77,6 +77,7 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
         
         // Date range warnings (not hard validation failures)
         const today = new Date();
+        today.setHours(23, 59, 59, 999); // Set to end of today for comparison
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
@@ -85,6 +86,7 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
         
         console.log(`Date range check for ${workingRecord.gbl_number}:`, {
           pickupDate: pickupDate.toLocaleDateString(),
+          today: today.toLocaleDateString(),
           thirtyDaysAgo: thirtyDaysAgo.toLocaleDateString(),
           oneHundredTwentyDaysFromNow: oneHundredTwentyDaysFromNow.toLocaleDateString(),
           isOlderThan30Days: pickupDate < thirtyDaysAgo,
@@ -218,6 +220,21 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
   });
 
   return errors;
+};
+
+// Create a function that returns both errors AND warnings for complete validation
+export const validateRecordComplete = async (record: BulkUploadRecord): Promise<{ errors: string[], warnings: string[] }> => {
+  const errors = await validateRecord(record);
+  const warnings = record.warnings || [];
+  
+  console.log(`Complete validation for ${record.gbl_number}:`, {
+    errors: errors.length,
+    warnings: warnings.length,
+    errorMessages: errors,
+    warningMessages: warnings
+  });
+  
+  return { errors, warnings };
 };
 
 const validatePortCode = async (portCode: string, portType: string): Promise<{ portId?: string; error?: string }> => {
