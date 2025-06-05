@@ -34,3 +34,8 @@ export interface BulkUploadSummary {
   warning: number;
   pending: number;
 }
+
+export interface BulkUploadState {
+  records: BulkUploadRecord[];
+  summary: BulkUploadSummary;
+}
