@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,9 @@ const ShipmentReviewTable = ({
     return [];
   };
 
+  console.log(`📋 SHIPMENT REVIEW TABLE: Rendering table with ${stagingData.length} records`);
+  console.log(`📋 SHIPMENT REVIEW TABLE: Records data:`, stagingData);
+
   return (
     <Card>
       <CardHeader>
@@ -77,6 +81,9 @@ const ShipmentReviewTable = ({
             <TableBody>
               {stagingData.map((record) => {
                 const isValidating = validatingRecords.has(record.id);
+                console.log(`📋 SHIPMENT REVIEW TABLE: Rendering row for ${record.gbl_number || record.id}`);
+                console.log(`📋 SHIPMENT REVIEW TABLE: About to render StatusBadgeComponent for record:`, record);
+                
                 return (
                   <TableRow key={record.id} className="hover:bg-muted/50">
                     <TableCell className="p-2">

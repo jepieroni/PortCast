@@ -21,17 +21,17 @@ export const StatusBadgeComponent = ({
   // Priority: Use database status if available, otherwise use computed status
   const finalStatus = dbStatus || computedStatus;
   
-  console.log(`🎨 STATUS BADGE: === COMPREHENSIVE DEBUG for ${record.gbl_number || recordId} ===`);
-  console.log(`🎨 STATUS BADGE: Full record:`, record);
-  console.log(`🎨 STATUS BADGE: dbStatus = "${dbStatus}"`);
-  console.log(`🎨 STATUS BADGE: computedStatus = "${computedStatus}"`);
-  console.log(`🎨 STATUS BADGE: finalStatus = "${finalStatus}"`);
-  console.log(`🎨 STATUS BADGE: validatingRecords.has(recordId) =`, validatingRecords.has(recordId));
-  console.log(`🎨 STATUS BADGE: About to check conditions...`);
+  console.log(`🟢 STATUS BADGE COMPONENT: === RENDERING for ${record.gbl_number || recordId} ===`);
+  console.log(`🟢 STATUS BADGE COMPONENT: Full record:`, record);
+  console.log(`🟢 STATUS BADGE COMPONENT: dbStatus = "${dbStatus}"`);
+  console.log(`🟢 STATUS BADGE COMPONENT: computedStatus = "${computedStatus}"`);
+  console.log(`🟢 STATUS BADGE COMPONENT: finalStatus = "${finalStatus}"`);
+  console.log(`🟢 STATUS BADGE COMPONENT: validatingRecords.has(recordId) =`, validatingRecords.has(recordId));
+  console.log(`🟢 STATUS BADGE COMPONENT: About to check conditions...`);
   
   // Always show loading badge if record is currently being validated
   if (validatingRecords.has(recordId)) {
-    console.log(`🎨 STATUS BADGE: CONDITION: Validating - RENDERING LOADING BADGE`);
+    console.log(`🟢 STATUS BADGE COMPONENT: CONDITION: Validating - RENDERING LOADING BADGE`);
     return (
       <Badge variant="secondary" className="animate-pulse">
         <Loader2 size={12} className="animate-spin mr-1" />
@@ -42,7 +42,7 @@ export const StatusBadgeComponent = ({
 
   // Show loading badge for pending status (initial state before validation)
   if (finalStatus === 'pending') {
-    console.log(`🎨 STATUS BADGE: CONDITION: Pending - RENDERING PENDING BADGE`);
+    console.log(`🟢 STATUS BADGE COMPONENT: CONDITION: Pending - RENDERING PENDING BADGE`);
     return (
       <Badge variant="secondary" className="animate-pulse">
         <Loader2 size={12} className="animate-spin mr-1" />
@@ -53,7 +53,7 @@ export const StatusBadgeComponent = ({
 
   // Check for warning status and force yellow styling - REMOVE variant prop entirely
   if (finalStatus === 'warning') {
-    console.log(`🎨 STATUS BADGE: CONDITION: Warning - RENDERING YELLOW WARNING BADGE`);
+    console.log(`🟢 STATUS BADGE COMPONENT: CONDITION: Warning - RENDERING YELLOW WARNING BADGE`);
     
     return (
       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-yellow-500 text-white hover:bg-yellow-600 border-yellow-500">
@@ -65,7 +65,7 @@ export const StatusBadgeComponent = ({
 
   // Only show static badges for records that have completed validation
   if (finalStatus === 'valid') {
-    console.log(`🎨 STATUS BADGE: CONDITION: Valid - RENDERING GREEN VALID BADGE`);
+    console.log(`🟢 STATUS BADGE COMPONENT: CONDITION: Valid - RENDERING GREEN VALID BADGE`);
     return (
       <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 bg-green-500 text-white hover:bg-green-600 border-green-500">
         <CheckCircle size={12} className="mr-1" />
@@ -73,7 +73,7 @@ export const StatusBadgeComponent = ({
       </span>
     );
   } else if (finalStatus === 'invalid') {
-    console.log(`🎨 STATUS BADGE: CONDITION: Invalid - RENDERING RED INVALID BADGE`);
+    console.log(`🟢 STATUS BADGE COMPONENT: CONDITION: Invalid - RENDERING RED INVALID BADGE`);
     return (
       <Badge variant="destructive">
         <XCircle size={12} className="mr-1" />
@@ -82,7 +82,7 @@ export const StatusBadgeComponent = ({
     );
   } else {
     // For any unknown status, show loading
-    console.log(`🎨 STATUS BADGE: CONDITION: Unknown status "${finalStatus}" - RENDERING LOADING FALLBACK`);
+    console.log(`🟢 STATUS BADGE COMPONENT: CONDITION: Unknown status "${finalStatus}" - RENDERING LOADING FALLBACK`);
     return (
       <Badge variant="secondary" className="animate-pulse">
         <Loader2 size={12} className="animate-spin mr-1" />
