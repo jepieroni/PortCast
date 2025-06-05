@@ -87,6 +87,19 @@ export const RecordItem = ({
         </div>
       )}
 
+      {record.warnings && record.warnings.length > 0 && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+          <div className="text-sm text-yellow-800">
+            <strong>Warnings:</strong>
+            <ul className="list-disc list-inside mt-1">
+              {record.warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       {isEditing ? (
         <RecordEditForm
           record={record}
