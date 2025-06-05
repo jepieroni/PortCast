@@ -13,7 +13,7 @@ export interface BulkUploadRecord {
   scac_code: string;
   estimated_cube: string;
   actual_cube: string;
-  status: 'valid' | 'invalid' | 'pending';
+  status: 'valid' | 'invalid' | 'pending' | 'warning';
   errors: string[];
   warnings?: string[];
   

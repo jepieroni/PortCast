@@ -26,14 +26,16 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
 
   console.log(`Converted warnings for ${record.gbl_number}:`, warnings);
 
-  // Determine status with proper typing
-  let status: 'valid' | 'invalid' | 'pending';
-  if (errors.length === 0 && record.validation_status !== 'pending') {
-    status = 'valid';
-  } else if (record.validation_status === 'pending') {
+  // Determine status with proper typing including 'warning'
+  let status: 'valid' | 'invalid' | 'pending' | 'warning';
+  if (record.validation_status === 'pending') {
     status = 'pending';
-  } else {
+  } else if (errors.length > 0) {
     status = 'invalid';
+  } else if (warnings.length > 0) {
+    status = 'warning';
+  } else {
+    status = 'valid';
   }
 
   const convertedRecord: BulkUploadRecord = {
