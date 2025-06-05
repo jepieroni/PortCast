@@ -85,26 +85,22 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         newStatus = 'valid';
       }
       
-      // Convert to proper arrays before storing
-      const errorsArray = Array.isArray(validationResult.errors) ? validationResult.errors : [];
-      const warningsArray = Array.isArray(validationResult.warnings) ? validationResult.warnings || [] : [];
-      
-      // Store validation results
+      // Store validation results - convert to JSON for database storage
       stagingUpdates.validation_status = newStatus;
-      stagingUpdates.validation_errors = errorsArray;
-      stagingUpdates.validation_warnings = warningsArray;
+      stagingUpdates.validation_errors = validationResult.errors;
+      stagingUpdates.validation_warnings = validationResult.warnings || [];
       
       console.log(`Updated validation for record ${recordId}:`, {
         status: newStatus,
-        errors: errorsArray.length,
-        warnings: warningsArray.length
+        errors: validationResult.errors.length,
+        warnings: (validationResult.warnings || []).length
       });
     }
   } else {
     // Update validation status and errors - these are now dynamic
     if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
     
-    // Convert to proper arrays before storing
+    // Store arrays directly for database
     if (updates.errors !== undefined) {
       stagingUpdates.validation_errors = Array.isArray(updates.errors) ? updates.errors : [];
     }
