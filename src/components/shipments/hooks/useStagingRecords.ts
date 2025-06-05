@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,13 +77,12 @@ export const useStagingRecords = () => {
 
       console.log('Loading staging records:', stagingRecords.length);
 
-      // Convert staging records to BulkUploadRecord format using REGULAR fields (not raw)
+      // Convert staging records to BulkUploadRecord format
       const convertedRecords: BulkUploadRecord[] = stagingRecords.map((record) => {
         console.log(`Converting staging record ${record.id}:`, {
-          raw_pickup_date: record.raw_pickup_date,
-          regular_pickup_date: record.pickup_date,
           gbl_number: record.gbl_number,
-          validation_status: record.validation_status
+          validation_status: record.validation_status,
+          validation_warnings: record.validation_warnings
         });
 
         // Convert validation_errors from Json[] to string[]
@@ -93,13 +93,15 @@ export const useStagingRecords = () => {
           );
         }
 
-        // Convert validation_warnings from Json[] to string[] (now exists after migration)
+        // Convert validation_warnings from Json[] to string[] - CRITICAL FIX
         let warnings: string[] = [];
         if (Array.isArray(record.validation_warnings)) {
           warnings = record.validation_warnings.map(warning => 
             typeof warning === 'string' ? warning : JSON.stringify(warning)
           );
         }
+
+        console.log(`Converted warnings for ${record.gbl_number}:`, warnings);
 
         return {
           id: record.id,
@@ -121,7 +123,7 @@ export const useStagingRecords = () => {
           status: errors.length === 0 && record.validation_status !== 'pending' ? 'valid' : 
                   record.validation_status === 'pending' ? 'pending' : 'invalid',
           errors,
-          warnings, // Now properly loaded from staging table
+          warnings, // Use the converted warnings from the database
           
           // Carry over resolved IDs if they exist
           target_poe_id: record.target_poe_id,
@@ -130,69 +132,10 @@ export const useStagingRecords = () => {
         };
       });
 
-      // Perform fresh validation on all records using regular fields
-      const validatedRecords = await Promise.all(
-        convertedRecords.map(async (record) => {
-          console.log(`Re-validating staging record ${record.id} with pickup_date: "${record.pickup_date}"`);
-          
-          // CRITICAL: Create a completely separate copy for validation to prevent cross-contamination
-          const validationCopy = {
-            id: record.id,
-            gbl_number: record.gbl_number,
-            shipper_last_name: record.shipper_last_name,
-            shipment_type: record.shipment_type,
-            origin_rate_area: record.origin_rate_area,
-            destination_rate_area: record.destination_rate_area,
-            pickup_date: record.pickup_date,
-            rdd: record.rdd,
-            poe_code: record.poe_code,
-            pod_code: record.pod_code,
-            scac_code: record.scac_code,
-            estimated_cube: record.estimated_cube,
-            actual_cube: record.actual_cube,
-            status: record.status,
-            errors: [...record.errors],
-            warnings: [...(record.warnings || [])],
-            target_poe_id: record.target_poe_id,
-            target_pod_id: record.target_pod_id,
-            tsp_id: record.tsp_id
-          };
-          
-          const errors = await validateRecord(validationCopy);
-          
-          console.log(`Validation complete for staging record ${record.id}:`, {
-            errors: errors.length,
-            warnings: validationCopy.warnings?.length || 0,
-            pickup_date_used: validationCopy.pickup_date,
-            final_status: errors.length === 0 ? 'valid' : 'invalid',
-            warningMessages: validationCopy.warnings || []
-          });
+      console.log('Converted records with warnings:', convertedRecords.filter(r => r.warnings && r.warnings.length > 0));
 
-          // Update the staging record with new validation results
-          await updateStagingRecord(record.id, {
-            status: errors.length === 0 ? 'valid' : 'invalid',
-            errors,
-            warnings: validationCopy.warnings || [],
-            target_poe_id: validationCopy.target_poe_id,
-            target_pod_id: validationCopy.target_pod_id,
-            tsp_id: validationCopy.tsp_id
-          });
-          
-          return {
-            ...record,
-            status: errors.length === 0 ? 'valid' : 'invalid',
-            errors,
-            warnings: validationCopy.warnings || [], // CRITICAL: Use warnings from validation
-            // Copy any resolved IDs from validation
-            target_poe_id: validationCopy.target_poe_id || record.target_poe_id,
-            target_pod_id: validationCopy.target_pod_id || record.target_pod_id,
-            tsp_id: validationCopy.tsp_id || record.tsp_id
-          } as BulkUploadRecord;
-        })
-      );
-
-      console.log('Staging records loaded and validated');
-      return validatedRecords;
+      // Return the converted records without re-validation since they're already validated
+      return convertedRecords;
 
     } catch (error: any) {
       console.error('Error loading staging records:', error);
