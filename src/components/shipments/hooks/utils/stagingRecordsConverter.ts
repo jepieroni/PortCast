@@ -26,7 +26,17 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
 
   console.log(`Converted warnings for ${record.gbl_number}:`, warnings);
 
-  const convertedRecord = {
+  // Determine status with proper typing
+  let status: 'valid' | 'invalid' | 'pending';
+  if (errors.length === 0 && record.validation_status !== 'pending') {
+    status = 'valid';
+  } else if (record.validation_status === 'pending') {
+    status = 'pending';
+  } else {
+    status = 'invalid';
+  }
+
+  const convertedRecord: BulkUploadRecord = {
     id: record.id,
     // Use REGULAR fields for validation and editing (these are the corrected values)
     gbl_number: record.gbl_number || '',
@@ -42,9 +52,8 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     estimated_cube: record.estimated_cube || '',
     actual_cube: record.actual_cube || '',
     
-    // Determine status: if no errors and no pending status, it's valid
-    status: errors.length === 0 && record.validation_status !== 'pending' ? 'valid' : 
-            record.validation_status === 'pending' ? 'pending' : 'invalid',
+    // Use the properly typed status
+    status,
     errors,
     warnings, // Now dynamic validation results, not preserved static data
     
