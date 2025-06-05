@@ -25,33 +25,33 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     }
   }
 
-  // Convert validation_warnings from Json to string[]
+  // Convert validation_warnings from Json to string[] - FIXED THIS PART
   let warnings: string[] = [];
   if (record.validation_warnings) {
     if (typeof record.validation_warnings === 'string') {
       try {
         const parsed = JSON.parse(record.validation_warnings);
-        warnings = Array.isArray(parsed) ? parsed : [];
+        warnings = Array.isArray(parsed) ? parsed.filter(w => w && w.toString().trim() !== '') : [];
       } catch {
-        warnings = [record.validation_warnings];
+        warnings = record.validation_warnings.trim() !== '' ? [record.validation_warnings] : [];
       }
     } else if (Array.isArray(record.validation_warnings)) {
-      warnings = record.validation_warnings.map(warning => 
-        typeof warning === 'string' ? warning : JSON.stringify(warning)
-      );
+      warnings = record.validation_warnings
+        .map(warning => typeof warning === 'string' ? warning : JSON.stringify(warning))
+        .filter(w => w && w.toString().trim() !== '');
     }
   }
 
   console.log(`Converted warnings for ${record.gbl_number}:`, warnings);
 
-  // Determine status with proper typing including 'warning'
+  // Determine status - CRITICAL: Check warnings BEFORE deciding status
   let status: 'valid' | 'invalid' | 'pending' | 'warning';
   if (record.validation_status === 'pending') {
     status = 'pending';
   } else if (errors.length > 0) {
     status = 'invalid';
   } else if (warnings.length > 0) {
-    status = 'warning';
+    status = 'warning';  // This should trigger for records with warnings
   } else {
     status = 'valid';
   }
@@ -72,10 +72,10 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     estimated_cube: record.estimated_cube || '',
     actual_cube: record.actual_cube || '',
     
-    // Use the properly typed status
+    // Use the properly determined status
     status,
     errors,
-    warnings, // Now dynamic validation results, not preserved static data
+    warnings, // This should now have the actual warnings
     
     // Carry over resolved IDs if they exist
     target_poe_id: record.target_poe_id,
@@ -83,7 +83,7 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
     tsp_id: record.tsp_id,
     
     // CRITICAL: Pass through the database fields that SimplifiedReviewTable expects
-    validation_status: record.validation_status,
+    validation_status: status, // Use the calculated status, not the raw database status
     validation_errors: record.validation_errors,
     validation_warnings: record.validation_warnings
   };
@@ -91,7 +91,8 @@ export const convertStagingRecordToBulkRecord = (record: any): BulkUploadRecord 
   console.log(`Final converted record for ${record.gbl_number}:`, {
     status: convertedRecord.status,
     warnings: convertedRecord.warnings,
-    validation_warnings: convertedRecord.validation_warnings
+    validation_warnings: convertedRecord.validation_warnings,
+    finalStatus: convertedRecord.validation_status
   });
 
   return convertedRecord;
