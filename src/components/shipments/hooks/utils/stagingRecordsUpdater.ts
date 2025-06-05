@@ -99,9 +99,9 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
   } else {
     // Update validation status and errors - these are now dynamic
     if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
-    if (updates.errors !== undefined) stagingUpdates.validation_errors = JSON.stringify(updates.errors);
     
-    // CRITICAL: Warnings are now dynamic like errors, not preserved static data
+    // CRITICAL FIX: Convert string arrays to JSON strings before storing
+    if (updates.errors !== undefined) stagingUpdates.validation_errors = JSON.stringify(updates.errors);
     if (updates.warnings !== undefined) stagingUpdates.validation_warnings = JSON.stringify(updates.warnings);
   }
 
