@@ -1,151 +1,209 @@
 
-import { useState } from 'react';
-import { BulkUploadRecord, BulkUploadState } from './utils/bulkUploadTypes';
+import { useState, useCallback } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { BulkUploadRecord } from './utils/bulkUploadTypes';
 import { useStagingRecords } from './useStagingRecords';
-import { useFileUpload } from './useFileUpload';
-import { useRecordProcessing } from './useRecordProcessing';
+import { useShipmentProcessing } from './useShipmentProcessing';
+import { validateRecordComplete } from './utils/simpleValidator';
 
 export const useBulkUploadNew = () => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [bulkState, setBulkState] = useState<BulkUploadState | null>(null);
-
+  const { toast } = useToast();
   const {
     hasStagingRecords,
     isCheckingStagingRecords,
     checkForStagingRecords,
-    loadStagingRecords: loadStagingRecordsFromHook,
+    loadStagingRecords,
     updateStagingRecord,
     cleanupStagingRecords,
     clearStagingState
   } = useStagingRecords();
 
-  const { uploadFile: uploadFileFromHook } = useFileUpload();
-  const { updateRecord: updateRecordFromHook, processValidRecords: processValidRecordsFromHook } = useRecordProcessing();
+  const [records, setRecords] = useState<BulkUploadRecord[]>([]);
+  const [summary, setSummary] = useState({
+    total: 0,
+    valid: 0,
+    invalid: 0,
+    warning: 0,
+    pending: 0
+  });
+  const [uploadSessionId, setUploadSessionId] = useState<string>('');
 
-  const loadStagingRecords = async () => {
-    setIsUploading(true);
-    setUploadError(null);
+  const { isProcessing, processValidShipments } = useShipmentProcessing(uploadSessionId);
 
+  const loadExistingRecords = useCallback(async () => {
     try {
-      const validatedRecords = await loadStagingRecordsFromHook();
-      
-      if (validatedRecords.length === 0) {
-        return;
+      console.log('Loading staging records...');
+      const stagingRecords = await loadStagingRecords();
+      console.log('Loading staging records:', stagingRecords.length);
+
+      if (stagingRecords.length > 0) {
+        setRecords(stagingRecords);
+        
+        // Calculate summary from loaded records
+        const newSummary = {
+          total: stagingRecords.length,
+          valid: stagingRecords.filter(r => r.status === 'valid').length,
+          invalid: stagingRecords.filter(r => r.status === 'invalid').length,
+          warning: stagingRecords.filter(r => r.status === 'warning').length,
+          pending: stagingRecords.filter(r => r.status === 'pending').length
+        };
+        
+        setSummary(newSummary);
+        console.log('Staging records loaded and validated:', newSummary);
+        
+        return stagingRecords;
       }
-
-      // Calculate summary - FIXED: Include warning count
-      const summary = {
-        total: validatedRecords.length,
-        valid: validatedRecords.filter(r => r.status === 'valid').length,
-        invalid: validatedRecords.filter(r => r.status === 'invalid').length,
-        warning: validatedRecords.filter(r => r.status === 'warning').length,
-        pending: 0
-      };
-
-      setBulkState({
-        records: validatedRecords,
-        summary
+      
+      return [];
+    } catch (error: any) {
+      console.error('Error loading existing records:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load existing records: " + error.message,
+        variant: "destructive"
       });
-
-      console.log('Staging records loaded and validated:', summary);
-
-    } catch (error: any) {
-      console.error('Error loading staging records:', error);
-      setUploadError(error.message || 'Failed to load staging records');
-    } finally {
-      setIsUploading(false);
+      return [];
     }
-  };
+  }, [loadStagingRecords, toast]);
 
-  const uploadFile = async (file: File) => {
-    setIsUploading(true);
-    setUploadError(null);
-
+  const updateRecord = useCallback(async (recordId: string, updates: Partial<BulkUploadRecord>) => {
+    console.log(`Updating record ${recordId} with:`, updates);
+    
     try {
-      const result = await uploadFileFromHook(file);
-      
-      // FIXED: Add warning count to the result summary
-      const correctedResult = {
-        ...result,
-        summary: {
-          ...result.summary,
-          warning: result.records ? result.records.filter(r => r.status === 'warning').length : 0
-        }
-      };
-      
-      setBulkState(correctedResult);
-    } catch (error: any) {
-      console.error('Upload error:', error);
-      setUploadError(error.message || 'Failed to process file');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const updateRecord = async (recordId: string, updates: Partial<BulkUploadRecord>) => {
-    if (!bulkState) return;
-
-    try {
-      // Update the staging record first
+      // Update the staging record in the database
       await updateStagingRecord(recordId, updates);
-
-      // Then update the in-memory records
-      const updatedRecords = await updateRecordFromHook(bulkState.records, recordId, updates);
-
-      // FIXED: Include warning count in summary calculation
-      const summary = {
-        total: updatedRecords.length,
-        valid: updatedRecords.filter(r => r.status === 'valid').length,
-        invalid: updatedRecords.filter(r => r.status === 'invalid').length,
-        warning: updatedRecords.filter(r => r.status === 'warning').length,
-        pending: 0
-      };
-
-      setBulkState({
-        records: updatedRecords,
-        summary
+      
+      // Update the local records state
+      setRecords(prevRecords => {
+        const updatedRecords = prevRecords.map(record => {
+          if (record.id === recordId) {
+            const updatedRecord = { ...record, ...updates };
+            console.log(`Updated record ${recordId}:`, {
+              original_shipment_type: record.shipment_type,
+              updated_shipment_type: updatedRecord.shipment_type,
+              original_pickup_date: record.pickup_date,
+              updated_pickup_date: updatedRecord.pickup_date,
+              cleared_warnings: updatedRecord.approved_warnings?.length > 0 ? 'YES' : 'NO',
+              approved_warnings_count: updatedRecord.approved_warnings?.length || 0,
+              status_before: record.status,
+              status_after: updatedRecord.status
+            });
+            
+            // CRITICAL FIX: Don't re-validate if we're just updating approved warnings
+            // The staging updater already handles re-validation with approved warnings
+            if (updates.approved_warnings && !updates.gbl_number && !updates.pickup_date) {
+              console.log('🔥 BULK UPLOAD NEW: Skipping re-validation - approved warnings update only');
+              return updatedRecord;
+            }
+            
+            // Only re-validate if actual field data changed (not just approved warnings)
+            const hasFieldChanges = Object.keys(updates).some(key => 
+              key !== 'approved_warnings' && key !== 'status' && key !== 'errors' && key !== 'warnings'
+            );
+            
+            if (hasFieldChanges) {
+              console.log('🔥 BULK UPLOAD NEW: Re-validating due to field changes');
+              // Re-validate with the current approved warnings
+              validateRecordComplete(updatedRecord, updatedRecord.approved_warnings).then(validationResult => {
+                console.log(`Complete validation result for record ${recordId}:`, validationResult);
+                
+                let newStatus: string;
+                if (validationResult.errors.length > 0) {
+                  newStatus = 'invalid';
+                } else if (validationResult.warnings.length > 0) {
+                  newStatus = 'warning';
+                } else {
+                  newStatus = 'valid';
+                }
+                
+                console.log(`Setting status to ${newStatus} for record ${recordId} based on:`, {
+                  errorsCount: validationResult.errors.length,
+                  warningsCount: validationResult.warnings.length,
+                  freshValidationWarnings: validationResult.warnings
+                });
+                
+                // Update record with new validation results
+                const finalRecord = {
+                  ...updatedRecord,
+                  status: newStatus as 'valid' | 'invalid' | 'warning' | 'pending',
+                  errors: validationResult.errors,
+                  warnings: validationResult.warnings
+                };
+                
+                setRecords(prev => prev.map(r => r.id === recordId ? finalRecord : r));
+              });
+            }
+            
+            return updatedRecord;
+          }
+          return record;
+        });
+        
+        return updatedRecords;
       });
+
+      // Update summary
+      setSummary(prevSummary => {
+        const updatedRecords = records.map(r => r.id === recordId ? { ...r, ...updates } : r);
+        return {
+          total: updatedRecords.length,
+          valid: updatedRecords.filter(r => r.status === 'valid').length,
+          invalid: updatedRecords.filter(r => r.status === 'invalid').length,
+          warning: updatedRecords.filter(r => r.status === 'warning').length,
+          pending: updatedRecords.filter(r => r.status === 'pending').length
+        };
+      });
+
     } catch (error: any) {
       console.error('Error updating record:', error);
-      setUploadError(error.message || 'Failed to update record');
+      toast({
+        title: "Error", 
+        description: "Failed to update record: " + error.message,
+        variant: "destructive"
+      });
     }
-  };
+  }, [updateStagingRecord, records, toast]);
 
-  const processValidRecords = async () => {
-    if (!bulkState) return;
-
-    setIsUploading(true);
+  const processRecords = async () => {
     try {
-      const validRecords = await processValidRecordsFromHook(bulkState.records);
+      // Get the latest staging data for processing
+      const stagingRecords = await loadStagingRecords();
+      await processValidShipments(stagingRecords);
       
-      if (validRecords) {
-        // Clean up staging records for processed shipments
-        const recordIds = validRecords.map(r => r.id);
-        await cleanupStagingRecords(recordIds);
-
-        setBulkState(null);
-        clearStagingState();
-      }
-    } finally {
-      setIsUploading(false);
+      // Clear local state after successful processing
+      setRecords([]);
+      setSummary({ total: 0, valid: 0, invalid: 0, warning: 0, pending: 0 });
+      clearStagingState();
+      
+      toast({
+        title: "Success",
+        description: "Shipments processed successfully!",
+      });
+    } catch (error: any) {
+      console.error('Error processing records:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process shipments: " + error.message,
+        variant: "destructive"
+      });
     }
   };
 
   return {
-    uploadFile,
-    updateRecord,
-    processValidRecords,
-    loadStagingRecords,
-    checkForStagingRecords,
-    isUploading,
-    uploadError,
-    bulkState,
+    // State
+    records,
+    summary,
+    uploadSessionId,
     hasStagingRecords,
     isCheckingStagingRecords,
-    clearState: () => {
-      setBulkState(null);
-      clearStagingState();
-    }
+    isProcessing,
+    
+    // Actions
+    checkForStagingRecords,
+    loadExistingRecords,
+    updateRecord,
+    processRecords,
+    setUploadSessionId,
+    clearStagingState
   };
 };
