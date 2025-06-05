@@ -85,10 +85,10 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         newStatus = 'valid';
       }
       
-      // FIXED: Assign arrays directly to Json fields, not stringified
+      // FIXED: Cast string arrays to Json type for database storage
       stagingUpdates.validation_status = newStatus;
-      stagingUpdates.validation_errors = validationResult.errors;
-      stagingUpdates.validation_warnings = validationResult.warnings;
+      stagingUpdates.validation_errors = validationResult.errors as any;
+      stagingUpdates.validation_warnings = validationResult.warnings as any;
       
       console.log(`Updated validation for record ${recordId}:`, {
         status: newStatus,
@@ -100,9 +100,9 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
     // Update validation status and errors - these are now dynamic
     if (updates.status !== undefined) stagingUpdates.validation_status = updates.status;
     
-    // FIXED: Assign arrays directly to Json fields, not stringified
-    if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors;
-    if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings;
+    // FIXED: Cast string arrays to Json type for database storage
+    if (updates.errors !== undefined) stagingUpdates.validation_errors = updates.errors as any;
+    if (updates.warnings !== undefined) stagingUpdates.validation_warnings = updates.warnings as any;
   }
 
   console.log(`Updating staging record ${recordId} with:`, stagingUpdates);
