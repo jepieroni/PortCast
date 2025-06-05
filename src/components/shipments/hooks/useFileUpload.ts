@@ -138,8 +138,15 @@ export const useFileUpload = () => {
             warningMessages: bulkRecord.warnings || []
           });
           
-          // Update the staging record with validation results INCLUDING warnings
-          const finalStatus = errors.length === 0 ? 'valid' : 'invalid';
+          // FIXED: Update the staging record with validation results INCLUDING warnings AND correct status
+          let finalStatus: string;
+          if (errors.length > 0) {
+            finalStatus = 'invalid';
+          } else if (bulkRecord.warnings && bulkRecord.warnings.length > 0) {
+            finalStatus = 'warning';  // THIS WAS THE BUG - it was setting to 'valid' instead of 'warning'
+          } else {
+            finalStatus = 'valid';
+          }
           
           console.log(`Updating staging record ${record.id} with validation results:`, {
             status: finalStatus,
@@ -172,11 +179,12 @@ export const useFileUpload = () => {
         }) || []
       );
 
-      // Calculate summary
+      // Calculate summary - FIXED: Include warning count
       const summary = {
         total: validatedRecords.length,
         valid: validatedRecords.filter(r => r.status === 'valid').length,
         invalid: validatedRecords.filter(r => r.status === 'invalid').length,
+        warning: validatedRecords.filter(r => r.status === 'warning').length,
         pending: 0 // No longer pending after full validation
       };
 
