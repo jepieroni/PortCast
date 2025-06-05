@@ -22,6 +22,9 @@ export interface BulkUploadRecord {
   target_poe_id?: string;
   target_pod_id?: string;
   tsp_id?: string;
+  
+  // Special property for triggering revalidation
+  _revalidate?: string;
 }
 
 export interface BulkUploadState {
