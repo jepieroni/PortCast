@@ -1,7 +1,7 @@
 import { BulkUploadRecord } from './bulkUploadTypes';
 import { supabase } from '@/integrations/supabase/client';
 
-export const validateRecord = async (record: BulkUploadRecord): Promise<string[]> => {
+export const validateRecord = async (record: BulkUploadRecord, approvedWarnings?: string[]): Promise<string[]> => {
   const errors: string[] = [];
   
   // CRITICAL: Create a deep copy to prevent cross-contamination between records
@@ -75,7 +75,7 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
         // Initialize warnings array if it doesn't exist
         if (!workingRecord.warnings) workingRecord.warnings = [];
         
-        // Date range warnings (not hard validation failures)
+        // Date range warnings (not hard validation failures) - only add if not already approved
         const today = new Date();
         today.setHours(23, 59, 59, 999); // Set to end of today for comparison
         const thirtyDaysAgo = new Date();
@@ -90,16 +90,19 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
           thirtyDaysAgo: thirtyDaysAgo.toLocaleDateString(),
           oneHundredTwentyDaysFromNow: oneHundredTwentyDaysFromNow.toLocaleDateString(),
           isOlderThan30Days: pickupDate < thirtyDaysAgo,
-          isMoreThan120DaysInFuture: pickupDate > oneHundredTwentyDaysFromNow
+          isMoreThan120DaysInFuture: pickupDate > oneHundredTwentyDaysFromNow,
+          approvedWarnings: approvedWarnings || []
         });
         
-        if (pickupDate < thirtyDaysAgo) {
+        // Only add warning if not already approved
+        if (pickupDate < thirtyDaysAgo && !approvedWarnings?.includes('pickup_date_past_30_days')) {
           const warningMessage = `WARNING: Pickup date is more than 30 days in the past (${pickupDate.toLocaleDateString()}) - please verify this is correct`;
           workingRecord.warnings.push(warningMessage);
           console.log(`Added past date warning for ${workingRecord.gbl_number}: ${warningMessage}`);
         }
         
-        if (pickupDate > oneHundredTwentyDaysFromNow) {
+        // Only add warning if not already approved
+        if (pickupDate > oneHundredTwentyDaysFromNow && !approvedWarnings?.includes('pickup_date_future_120_days')) {
           const warningMessage = `WARNING: Pickup date is more than 120 days in the future (${pickupDate.toLocaleDateString()}) - please verify this is correct`;
           workingRecord.warnings.push(warningMessage);
           console.log(`Added future date warning for ${workingRecord.gbl_number}: ${warningMessage}`);
@@ -216,22 +219,24 @@ export const validateRecord = async (record: BulkUploadRecord): Promise<string[]
   console.log(`Validation complete for ${workingRecord.gbl_number}:`, {
     errors: errors.length,
     warnings: workingRecord.warnings?.length || 0,
-    warningMessages: workingRecord.warnings || []
+    warningMessages: workingRecord.warnings || [],
+    approvedWarnings: approvedWarnings || []
   });
 
   return errors;
 };
 
-// Create a function that returns both errors AND warnings for complete validation
-export const validateRecordComplete = async (record: BulkUploadRecord): Promise<{ errors: string[], warnings: string[] }> => {
-  const errors = await validateRecord(record);
+// Create a function that returns both errors AND warnings for complete validation with approved warnings support
+export const validateRecordComplete = async (record: BulkUploadRecord, approvedWarnings?: string[]): Promise<{ errors: string[], warnings: string[] }> => {
+  const errors = await validateRecord(record, approvedWarnings);
   const warnings = record.warnings || [];
   
   console.log(`Complete validation for ${record.gbl_number}:`, {
     errors: errors.length,
     warnings: warnings.length,
     errorMessages: errors,
-    warningMessages: warnings
+    warningMessages: warnings,
+    approvedWarnings: approvedWarnings || []
   });
   
   return { errors, warnings };

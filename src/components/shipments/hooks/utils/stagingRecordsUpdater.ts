@@ -31,14 +31,20 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
   if (updates.target_pod_id !== undefined) stagingUpdates.target_pod_id = updates.target_pod_id;
   if (updates.tsp_id !== undefined) stagingUpdates.tsp_id = updates.tsp_id;
 
+  // Handle approved warnings updates
+  if (updates.approved_warnings !== undefined) {
+    stagingUpdates.approved_warnings = updates.approved_warnings;
+  }
+
   // IMPORTANT: If we're updating any validation-related fields, we need to re-run complete validation
   const validationRelatedFields = ['gbl_number', 'shipper_last_name', 'shipment_type', 'origin_rate_area', 
                                    'destination_rate_area', 'pickup_date', 'rdd', 'estimated_cube', 'actual_cube'];
   
   const hasValidationRelatedUpdates = validationRelatedFields.some(field => updates[field] !== undefined);
+  const hasApprovedWarningsUpdate = updates.approved_warnings !== undefined;
   
-  if (hasValidationRelatedUpdates) {
-    console.log(`🔧 STAGING UPDATER: Re-validating record ${recordId} due to field updates`);
+  if (hasValidationRelatedUpdates || hasApprovedWarningsUpdate) {
+    console.log(`🔧 STAGING UPDATER: Re-validating record ${recordId} due to field updates or approved warnings`);
     
     // Get the current record to re-validate
     const { data: currentRecord } = await supabase
@@ -53,7 +59,8 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         gbl_number: currentRecord.gbl_number,
         pickup_date: currentRecord.pickup_date,
         validation_status: currentRecord.validation_status,
-        validation_warnings: currentRecord.validation_warnings
+        validation_warnings: currentRecord.validation_warnings,
+        approved_warnings: currentRecord.approved_warnings
       });
 
       // Helper function to safely convert Json to string array
@@ -73,6 +80,13 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         return [];
       };
 
+      // Get approved warnings (use updated value if provided, otherwise current)
+      const approvedWarnings = updates.approved_warnings !== undefined ? 
+        updates.approved_warnings : 
+        jsonToStringArray(currentRecord.approved_warnings);
+
+      console.log(`🔧 STAGING UPDATER: Using approved warnings:`, approvedWarnings);
+
       // Create a record with the updates applied for validation
       const recordToValidate: BulkUploadRecord = {
         id: currentRecord.id,
@@ -91,6 +105,7 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         status: 'pending' as const,
         errors: [],
         warnings: [],
+        approved_warnings: approvedWarnings,
         target_poe_id: updates.target_poe_id,
         target_pod_id: updates.target_pod_id,
         tsp_id: updates.tsp_id,
@@ -103,21 +118,21 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         id: recordToValidate.id,
         gbl_number: recordToValidate.gbl_number,
         pickup_date: recordToValidate.pickup_date,
-        originalPickupDate: currentRecord.pickup_date,
-        updatedPickupDate: updates.pickup_date
+        approvedWarnings: recordToValidate.approved_warnings
       });
       
-      // Run complete validation including warnings
-      const validationResult = await validateRecordComplete(recordToValidate);
+      // Run complete validation including warnings, passing approved warnings
+      const validationResult = await validateRecordComplete(recordToValidate, approvedWarnings);
       
       console.log(`🔧 STAGING UPDATER: Validation result:`, {
         errors: validationResult.errors,
         warnings: validationResult.warnings,
         errorsCount: validationResult.errors.length,
-        warningsCount: validationResult.warnings.length
+        warningsCount: validationResult.warnings.length,
+        approvedWarnings: approvedWarnings
       });
       
-      // Determine new status based on validation results
+      // Determine new status based on validation results and approved warnings
       let newStatus: string;
       if (validationResult.errors.length > 0) {
         newStatus = 'invalid';
@@ -138,7 +153,7 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
         validation_status: stagingUpdates.validation_status,
         validation_errors: stagingUpdates.validation_errors,
         validation_warnings: stagingUpdates.validation_warnings,
-        pickup_date: stagingUpdates.pickup_date
+        approved_warnings: stagingUpdates.approved_warnings
       });
     }
   } else {
@@ -180,6 +195,16 @@ export const updateStagingRecord = async (recordId: string, updates: Partial<Bul
     gbl_number: verifyRecord?.gbl_number,
     pickup_date: verifyRecord?.pickup_date,
     validation_status: verifyRecord?.validation_status,
-    validation_warnings: verifyRecord?.validation_warnings
+    validation_warnings: verifyRecord?.validation_warnings,
+    approved_warnings: verifyRecord?.approved_warnings
+  });
+};
+
+// New function specifically for approving warnings
+export const approveWarnings = async (recordId: string, approvedWarningTypes: string[]) => {
+  console.log(`🔧 STAGING UPDATER: Approving warnings for record ${recordId}:`, approvedWarningTypes);
+  
+  await updateStagingRecord(recordId, {
+    approved_warnings: approvedWarningTypes
   });
 };

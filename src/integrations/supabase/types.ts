@@ -498,6 +498,7 @@ export type Database = {
       shipment_uploads_staging: {
         Row: {
           actual_cube: string | null
+          approved_warnings: Json | null
           created_at: string
           destination_rate_area: string | null
           estimated_cube: string | null
@@ -534,6 +535,7 @@ export type Database = {
         }
         Insert: {
           actual_cube?: string | null
+          approved_warnings?: Json | null
           created_at?: string
           destination_rate_area?: string | null
           estimated_cube?: string | null
@@ -570,6 +572,7 @@ export type Database = {
         }
         Update: {
           actual_cube?: string | null
+          approved_warnings?: Json | null
           created_at?: string
           destination_rate_area?: string | null
           estimated_cube?: string | null

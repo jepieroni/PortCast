@@ -1,4 +1,6 @@
 
+export type BulkUploadStatus = 'pending' | 'valid' | 'invalid' | 'warning';
+
 export interface BulkUploadRecord {
   id: string;
   gbl_number: string;
@@ -13,42 +15,22 @@ export interface BulkUploadRecord {
   scac_code: string;
   estimated_cube: string;
   actual_cube: string;
-  status: 'valid' | 'invalid' | 'pending' | 'warning';
+  status: BulkUploadStatus;
   errors: string[];
   warnings?: string[];
-  
-  // Resolved IDs
+  approved_warnings?: string[]; // Add approved warnings field
   target_poe_id?: string;
   target_pod_id?: string;
   tsp_id?: string;
-  
-  // Database fields that SimplifiedReviewTable expects
   validation_status?: string;
-  validation_errors?: any[];
-  validation_warnings?: any[];
+  validation_errors?: string[];
+  validation_warnings?: string[];
 }
 
-export interface BulkUploadResult {
-  success: boolean;
-  message: string;
-  validRecords: number;
-  invalidRecords: number;
-  records?: BulkUploadRecord[];
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  errors: string[];
-  warnings?: string[];
-}
-
-export interface BulkUploadState {
-  records: BulkUploadRecord[];
-  summary: {
-    total: number;
-    valid: number;
-    invalid: number;
-    warning: number;
-    pending: number;
-  };
+export interface BulkUploadSummary {
+  total: number;
+  valid: number;
+  invalid: number;
+  warning: number;
+  pending: number;
 }

@@ -3,26 +3,37 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { BulkUploadRecord } from '../../hooks/utils/bulkUploadTypes';
 import { RecordEditForm } from './RecordEditForm';
-import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { WarningApprovalDialog } from './WarningApprovalDialog';
+import { AlertTriangle, CheckCircle, XCircle, Eye } from 'lucide-react';
 
 interface RecordItemProps {
   record: BulkUploadRecord;
   isEditing: boolean;
   onEditToggle: () => void;
   onUpdateRecord: (recordId: string, updates: Partial<BulkUploadRecord>) => void;
+  onApproveWarnings?: (recordId: string, approvedWarningTypes: string[]) => void;
 }
 
 export const RecordItem = ({
   record,
   isEditing,
   onEditToggle,
-  onUpdateRecord
+  onUpdateRecord,
+  onApproveWarnings
 }: RecordItemProps) => {
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  
   console.log(`🔍 RECORD ITEM: Rendering badge for ${record.gbl_number} with status: ${record.status}`);
   
   const handleFieldChange = (field: string, value: string) => {
     console.log(`Updating field ${field} to value:`, value);
     onUpdateRecord(record.id, { [field]: value });
+  };
+
+  const handleApproveWarnings = (approvedWarningTypes: string[]) => {
+    if (onApproveWarnings) {
+      onApproveWarnings(record.id, approvedWarningTypes);
+    }
   };
 
   const renderStatusBadge = () => {
@@ -65,13 +76,26 @@ export const RecordItem = ({
           {renderStatusBadge()}
           <span className="font-medium">{record.gbl_number}</span>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onEditToggle}
-        >
-          {isEditing ? 'Cancel' : 'Edit'}
-        </Button>
+        <div className="flex gap-2">
+          {record.status === 'warning' && record.warnings && record.warnings.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowWarningDialog(true)}
+              className="text-yellow-600 border-yellow-200 hover:bg-yellow-50"
+            >
+              <Eye size={14} className="mr-1" />
+              Review Warnings
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onEditToggle}
+          >
+            {isEditing ? 'Cancel' : 'Edit'}
+          </Button>
+        </div>
       </div>
 
       {record.errors.length > 0 && (
@@ -110,6 +134,14 @@ export const RecordItem = ({
           {record.shipper_last_name} • {record.shipment_type} • {record.pickup_date}
         </div>
       )}
+
+      <WarningApprovalDialog
+        open={showWarningDialog}
+        onOpenChange={setShowWarningDialog}
+        warnings={record.warnings || []}
+        onApprove={handleApproveWarnings}
+        gblNumber={record.gbl_number}
+      />
     </div>
   );
 };
