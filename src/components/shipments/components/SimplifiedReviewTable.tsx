@@ -89,6 +89,17 @@ const SimplifiedReviewTable = ({
           {buttonText}
         </Button>
       );
+    } else if (record.validation_status === 'warning') {
+      return (
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => onViewEditClick(record)}
+          className="h-8 text-xs px-3 border-yellow-300 text-yellow-700 hover:bg-yellow-50"
+        >
+          Review Warnings
+        </Button>
+      );
     } else if (record.validation_status === 'invalid') {
       return (
         <Button 
@@ -103,6 +114,34 @@ const SimplifiedReviewTable = ({
     }
 
     return null;
+  };
+
+  const getValidationWarnings = (record: any): string[] => {
+    if (!record.validation_warnings) return [];
+    if (Array.isArray(record.validation_warnings)) return record.validation_warnings;
+    if (typeof record.validation_warnings === 'string') {
+      try {
+        const parsed = JSON.parse(record.validation_warnings);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [record.validation_warnings];
+      }
+    }
+    return [];
+  };
+
+  const getValidationErrors = (record: any): string[] => {
+    if (!record.validation_errors) return [];
+    if (Array.isArray(record.validation_errors)) return record.validation_errors;
+    if (typeof record.validation_errors === 'string') {
+      try {
+        const parsed = JSON.parse(record.validation_errors);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [record.validation_errors];
+      }
+    }
+    return [];
   };
 
   return (
@@ -125,22 +164,55 @@ const SimplifiedReviewTable = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {stagingData.map((record) => (
-                <TableRow key={record.id} className="hover:bg-muted/50">
-                  <TableCell className="p-4">
-                    {getStatusBadge(record.validation_status, record.validation_errors, record.id, record.validation_warnings)}
-                  </TableCell>
-                  <TableCell className="p-4 font-medium">
-                    {record.gbl_number || 'N/A'}
-                  </TableCell>
-                  <TableCell className="p-4">
-                    {record.shipper_last_name || 'N/A'}
-                  </TableCell>
-                  <TableCell className="p-4">
-                    {getActionButton(record)}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {stagingData.map((record) => {
+                const validationErrors = getValidationErrors(record);
+                const validationWarnings = getValidationWarnings(record);
+                
+                return (
+                  <TableRow key={record.id} className="hover:bg-muted/50">
+                    <TableCell className="p-4">
+                      <div className="space-y-2">
+                        {getStatusBadge(record.validation_status, record.validation_errors, record.id, record.validation_warnings)}
+                        
+                        {validationErrors.length > 0 && (
+                          <div className="bg-red-50 border border-red-200 rounded p-2">
+                            <div className="text-sm text-red-800">
+                              <strong>Errors:</strong>
+                              <ul className="list-disc list-inside mt-1">
+                                {validationErrors.map((error, index) => (
+                                  <li key={index}>{error}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {validationWarnings.length > 0 && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                            <div className="text-sm text-yellow-800">
+                              <strong>Warnings:</strong>
+                              <ul className="list-disc list-inside mt-1">
+                                {validationWarnings.map((warning, index) => (
+                                  <li key={index}>{warning}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="p-4 font-medium">
+                      {record.gbl_number || 'N/A'}
+                    </TableCell>
+                    <TableCell className="p-4">
+                      {record.shipper_last_name || 'N/A'}
+                    </TableCell>
+                    <TableCell className="p-4">
+                      {getActionButton(record)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
