@@ -1,3 +1,4 @@
+
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { validateRecord } from './utils/simpleValidator';
@@ -15,7 +16,7 @@ export const useRecordProcessing = () => {
   ): Promise<BulkUploadRecord[]> => {
     console.log(`Updating record ${recordId} with:`, updates);
 
-    // Update records in memory only - do NOT touch staging table raw fields
+    // Update records in memory and ensure we NEVER touch raw fields in staging table
     const updatedRecords = await Promise.all(
       records.map(async (record) => {
         if (record.id === recordId) {
@@ -36,11 +37,11 @@ export const useRecordProcessing = () => {
           const errors = await validateRecord(updatedRecord);
           console.log(`Re-validation errors for record ${recordId}:`, errors);
 
-          // Only update staging with validation results and processed fields - NEVER raw fields
+          // Update staging table with ONLY the regular fields (never raw fields)
           await supabase
             .from('shipment_uploads_staging')
             .update({
-              // Update processed fields for backward compatibility
+              // Update REGULAR fields for working/corrected values
               gbl_number: updatedRecord.gbl_number,
               shipper_last_name: updatedRecord.shipper_last_name,
               shipment_type: updatedRecord.shipment_type,

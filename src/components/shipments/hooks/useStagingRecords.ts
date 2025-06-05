@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,7 +76,7 @@ export const useStagingRecords = () => {
 
       console.log('Loading staging records:', stagingRecords.length);
 
-      // Convert staging records to BulkUploadRecord format using raw values
+      // Convert staging records to BulkUploadRecord format using REGULAR fields (not raw)
       const convertedRecords: BulkUploadRecord[] = stagingRecords.map((record) => {
         // Convert validation_errors from Json[] to string[]
         let errors: string[] = [];
@@ -89,18 +88,19 @@ export const useStagingRecords = () => {
 
         return {
           id: record.id,
-          gbl_number: record.raw_gbl_number || record.gbl_number || '',
-          shipper_last_name: record.raw_shipper_last_name || record.shipper_last_name || '',
-          shipment_type: record.raw_shipment_type || record.shipment_type || '',
-          origin_rate_area: record.raw_origin_rate_area || record.origin_rate_area || '',
-          destination_rate_area: record.raw_destination_rate_area || record.destination_rate_area || '',
-          pickup_date: record.raw_pickup_date || record.pickup_date || '',
-          rdd: record.raw_rdd || record.rdd || '',
-          poe_code: record.raw_poe_code || '',
+          // Use REGULAR fields for validation and editing (these are the corrected values)
+          gbl_number: record.gbl_number || '',
+          shipper_last_name: record.shipper_last_name || '',
+          shipment_type: record.shipment_type || '',
+          origin_rate_area: record.origin_rate_area || '',
+          destination_rate_area: record.destination_rate_area || '',
+          pickup_date: record.pickup_date || '',
+          rdd: record.rdd || '',
+          poe_code: record.raw_poe_code || '', // These don't have regular equivalents yet
           pod_code: record.raw_pod_code || '',
           scac_code: record.raw_scac_code || '',
-          estimated_cube: record.raw_estimated_cube || record.estimated_cube || '',
-          actual_cube: record.raw_actual_cube || record.actual_cube || '',
+          estimated_cube: record.estimated_cube || '',
+          actual_cube: record.actual_cube || '',
           
           // Set validation state based on existing validation
           status: record.validation_status === 'valid' ? 'valid' : 'invalid',
@@ -113,7 +113,7 @@ export const useStagingRecords = () => {
         };
       });
 
-      // Perform fresh validation on all records
+      // Perform fresh validation on all records using regular fields
       const validatedRecords = await Promise.all(
         convertedRecords.map(async (record) => {
           console.log(`Re-validating staging record ${record.id}`);
@@ -148,7 +148,7 @@ export const useStagingRecords = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Only update processed fields for backward compatibility and display
+      // Only update REGULAR fields (these are the working/corrected values)
       if (updates.gbl_number !== undefined) stagingUpdates.gbl_number = updates.gbl_number;
       if (updates.shipper_last_name !== undefined) stagingUpdates.shipper_last_name = updates.shipper_last_name;
       if (updates.shipment_type !== undefined) stagingUpdates.shipment_type = updates.shipment_type;
