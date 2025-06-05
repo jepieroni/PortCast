@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -165,7 +164,8 @@ export const useStagingRecords = () => {
             errors: errors.length,
             warnings: validationCopy.warnings?.length || 0,
             pickup_date_used: validationCopy.pickup_date,
-            final_status: errors.length === 0 ? 'valid' : 'invalid'
+            final_status: errors.length === 0 ? 'valid' : 'invalid',
+            warningMessages: validationCopy.warnings || []
           });
 
           // Update the staging record with new validation results
@@ -182,7 +182,7 @@ export const useStagingRecords = () => {
             ...record,
             status: errors.length === 0 ? 'valid' : 'invalid',
             errors,
-            warnings: validationCopy.warnings || [], // Copy warnings from validation
+            warnings: validationCopy.warnings || [], // CRITICAL: Use warnings from validation
             // Copy any resolved IDs from validation
             target_poe_id: validationCopy.target_poe_id || record.target_poe_id,
             target_pod_id: validationCopy.target_pod_id || record.target_pod_id,
