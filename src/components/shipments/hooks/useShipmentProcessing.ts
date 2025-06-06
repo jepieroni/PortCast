@@ -15,9 +15,9 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
       console.log(`🚀 SHIPMENT PROCESSING: === PROCESS VALID SHIPMENTS START ===`);
       console.log(`🚀 SHIPMENT PROCESSING: Total staging records received:`, stagingData.length);
       
-      // Log each record's status
+      // Log each record's status AND user_id
       stagingData.forEach((record, index) => {
-        console.log(`🚀 SHIPMENT PROCESSING: Record ${index + 1}: ID=${record.id}, GBL=${record.gbl_number}, Status=${record.validation_status}, Warnings=${record.validation_warnings?.length || 0}, ApprovedWarnings=${record.approved_warnings?.length || 0}`);
+        console.log(`🚀 SHIPMENT PROCESSING: Record ${index + 1}: ID=${record.id}, GBL=${record.gbl_number}, Status=${record.validation_status}, Warnings=${record.validation_warnings?.length || 0}, ApprovedWarnings=${record.approved_warnings?.length || 0}, USER_ID=${record.user_id}`);
       });
       
       const validRecords = stagingData.filter(r => r.validation_status === 'valid');
@@ -30,9 +30,17 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
 
       console.log(`🚀 SHIPMENT PROCESSING: Processing ${validRecords.length} valid records`);
       
-      // Log details of valid records
+      // Log details of valid records including user_id
       validRecords.forEach((record, index) => {
-        console.log(`🚀 SHIPMENT PROCESSING: Valid record ${index + 1}: GBL=${record.gbl_number}, ApprovedWarnings=${record.approved_warnings?.length || 0}, ValidationWarnings=${record.validation_warnings?.length || 0}`);
+        console.log(`🚀 SHIPMENT PROCESSING: Valid record ${index + 1}: GBL=${record.gbl_number}, ApprovedWarnings=${record.approved_warnings?.length || 0}, ValidationWarnings=${record.validation_warnings?.length || 0}, USER_ID=${record.user_id}, USER_ID_TYPE=${typeof record.user_id}`);
+      });
+      
+      // Get current user info for fallback
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      console.log(`🚀 SHIPMENT PROCESSING: Current authenticated user:`, {
+        user_id: user?.id,
+        user_email: user?.email,
+        userError: userError
       });
       
       // Insert valid records into shipments table with proper integer conversion
@@ -69,7 +77,9 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
           raw_shipment_type: record.shipment_type,
           estimated_cube_raw: record.estimated_cube,
           actual_cube_raw: record.actual_cube,
-          remaining_cube_raw: record.remaining_cube
+          remaining_cube_raw: record.remaining_cube,
+          record_user_id: record.user_id,
+          record_user_id_type: typeof record.user_id
         });
 
         const estimated_cube = safeParseInt(record.estimated_cube);
@@ -77,14 +87,25 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
         const remaining_cube = safeParseInt(record.remaining_cube);
         const shipment_type = convertShipmentType(record.shipment_type);
 
+        // CRITICAL: Determine user_id - use record's user_id or fallback to current user
+        const final_user_id = record.user_id || user?.id;
+        
+        console.log(`🚀 SHIPMENT PROCESSING: USER_ID RESOLUTION for ${record.gbl_number}:`, {
+          record_user_id: record.user_id,
+          current_user_id: user?.id,
+          final_user_id: final_user_id,
+          final_user_id_type: typeof final_user_id
+        });
+
         console.log(`🚀 SHIPMENT PROCESSING: Converted values for ${record.gbl_number}:`, {
           shipment_type,
           estimated_cube,
           actual_cube,
-          remaining_cube
+          remaining_cube,
+          final_user_id
         });
 
-        return {
+        const shipmentRecord = {
           gbl_number: record.gbl_number,
           shipper_last_name: record.shipper_last_name,
           shipment_type,
@@ -98,11 +119,23 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
           target_poe_id: record.target_poe_id,
           target_pod_id: record.target_pod_id,
           tsp_id: record.tsp_id,
-          user_id: record.user_id
+          user_id: final_user_id
         };
+
+        console.log(`🚀 SHIPMENT PROCESSING: Final shipment record for ${record.gbl_number}:`, shipmentRecord);
+
+        return shipmentRecord;
       });
 
       console.log(`🚀 SHIPMENT PROCESSING: Prepared shipment data for insertion:`, shipmentData);
+
+      // Additional validation before insert
+      shipmentData.forEach((shipment, index) => {
+        const nullFields = Object.entries(shipment).filter(([key, value]) => value === null || value === undefined);
+        if (nullFields.length > 0) {
+          console.warn(`🚀 SHIPMENT PROCESSING: Warning - Record ${index + 1} has null fields:`, nullFields);
+        }
+      });
 
       const { error } = await supabase
         .from('shipments')
