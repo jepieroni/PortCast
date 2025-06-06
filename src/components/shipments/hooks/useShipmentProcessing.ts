@@ -46,7 +46,27 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
           return isNaN(parsed) ? null : parsed;
         };
 
-        console.log(`🚀 SHIPMENT PROCESSING: Converting cube values for ${record.gbl_number}:`, {
+        // Helper function to convert shipment type to proper enum value
+        const convertShipmentType = (type: string): 'inbound' | 'outbound' | 'intertheater' => {
+          const normalizedType = type?.toLowerCase().trim();
+          switch (normalizedType) {
+            case 'i':
+            case 'inbound':
+              return 'inbound';
+            case 'o':
+            case 'outbound':
+              return 'outbound';
+            case 't':
+            case 'intertheater':
+              return 'intertheater';
+            default:
+              console.warn(`🚀 SHIPMENT PROCESSING: Unknown shipment type "${type}", defaulting to inbound`);
+              return 'inbound';
+          }
+        };
+
+        console.log(`🚀 SHIPMENT PROCESSING: Converting values for ${record.gbl_number}:`, {
+          raw_shipment_type: record.shipment_type,
           estimated_cube_raw: record.estimated_cube,
           actual_cube_raw: record.actual_cube,
           remaining_cube_raw: record.remaining_cube
@@ -55,8 +75,10 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
         const estimated_cube = safeParseInt(record.estimated_cube);
         const actual_cube = safeParseInt(record.actual_cube);
         const remaining_cube = safeParseInt(record.remaining_cube);
+        const shipment_type = convertShipmentType(record.shipment_type);
 
-        console.log(`🚀 SHIPMENT PROCESSING: Converted cube values for ${record.gbl_number}:`, {
+        console.log(`🚀 SHIPMENT PROCESSING: Converted values for ${record.gbl_number}:`, {
+          shipment_type,
           estimated_cube,
           actual_cube,
           remaining_cube
@@ -65,7 +87,7 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
         return {
           gbl_number: record.gbl_number,
           shipper_last_name: record.shipper_last_name,
-          shipment_type: record.shipment_type,
+          shipment_type,
           origin_rate_area: record.origin_rate_area,
           destination_rate_area: record.destination_rate_area,
           pickup_date: record.pickup_date,
