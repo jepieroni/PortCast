@@ -6,7 +6,7 @@ import { validateRecordComplete } from './utils/simpleValidator';
 
 interface UseBulkRecordOperationsProps {
   records: BulkUploadRecord[];
-  setRecords: (records: BulkUploadRecord[]) => void;
+  setRecords: React.Dispatch<React.SetStateAction<BulkUploadRecord[]>>;
   updateSummary: (records: BulkUploadRecord[]) => void;
   updateStagingRecord: (recordId: string, updates: Partial<BulkUploadRecord>) => Promise<void>;
 }
