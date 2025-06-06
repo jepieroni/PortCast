@@ -27,8 +27,13 @@ export const useBulkUploadNew = () => {
     pending: 0
   });
   const [uploadSessionId, setUploadSessionId] = useState<string>('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { isProcessing, processValidShipments } = useShipmentProcessing(uploadSessionId);
+
+  // Create bulkState object for compatibility with BulkShipmentUpload
+  const bulkState = records.length > 0 ? { records, summary } : null;
 
   const loadExistingRecords = useCallback(async () => {
     try {
@@ -103,8 +108,10 @@ export const useBulkUploadNew = () => {
             
             if (hasFieldChanges) {
               console.log('🔥 BULK UPLOAD NEW: Re-validating due to field changes');
-              // Re-validate with the current approved warnings
-              validateRecordComplete(updatedRecord, updatedRecord.approved_warnings).then(validationResult => {
+              // Re-validate with the current approved warnings including what was passed in updates
+              const approvedWarningsForValidation = updates.approved_warnings || updatedRecord.approved_warnings || [];
+              
+              validateRecordComplete(updatedRecord, approvedWarningsForValidation).then(validationResult => {
                 console.log(`Complete validation result for record ${recordId}:`, validationResult);
                 
                 let newStatus: string;
@@ -189,6 +196,32 @@ export const useBulkUploadNew = () => {
     }
   };
 
+  // Placeholder functions for compatibility with BulkShipmentUpload
+  const uploadFile = async (file: File) => {
+    setIsUploading(true);
+    setUploadError(null);
+    try {
+      // This would normally handle file upload logic
+      // For now, just set an error to indicate this needs implementation
+      throw new Error('File upload functionality needs to be implemented in the new system');
+    } catch (error: any) {
+      setUploadError(error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const processValidRecords = async () => {
+    await processRecords();
+  };
+
+  const clearState = () => {
+    setRecords([]);
+    setSummary({ total: 0, valid: 0, invalid: 0, warning: 0, pending: 0 });
+    setUploadError(null);
+    clearStagingState();
+  };
+
   return {
     // State
     records,
@@ -196,14 +229,21 @@ export const useBulkUploadNew = () => {
     uploadSessionId,
     hasStagingRecords,
     isCheckingStagingRecords,
-    isProcessing,
+    isProcessing: isProcessing || isUploading,
+    isUploading,
+    uploadError,
+    bulkState,
     
     // Actions
     checkForStagingRecords,
     loadExistingRecords,
+    loadStagingRecords: loadExistingRecords, // Alias for compatibility
     updateRecord,
     processRecords,
+    processValidRecords,
+    uploadFile,
     setUploadSessionId,
-    clearStagingState
+    clearStagingState,
+    clearState
   };
 };
