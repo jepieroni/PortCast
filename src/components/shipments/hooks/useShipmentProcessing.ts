@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +13,7 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
     try {
       console.log(`🚀 SHIPMENT PROCESSING: === PROCESS VALID SHIPMENTS START ===`);
       console.log(`🚀 SHIPMENT PROCESSING: Total staging records received:`, stagingData.length);
+      console.log(`🚀 SHIPMENT PROCESSING: Upload session ID for cleanup:`, uploadSessionId);
       
       // Log each record's status AND user_id
       stagingData.forEach((record, index) => {
@@ -148,6 +148,34 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
 
       console.log(`🚀 SHIPMENT PROCESSING: Successfully inserted ${shipmentData.length} shipments`);
 
+      // Enhanced cleanup logging - check what records exist before cleanup
+      console.log(`🚀 SHIPMENT PROCESSING: Starting cleanup for upload_session_id: ${uploadSessionId}`);
+      
+      // First, check what staging records exist for this session
+      const { data: stagingRecordsForSession, error: checkError } = await supabase
+        .from('shipment_uploads_staging')
+        .select('id, upload_session_id, gbl_number')
+        .eq('upload_session_id', uploadSessionId);
+        
+      if (checkError) {
+        console.error('🚀 SHIPMENT PROCESSING: Error checking staging records for cleanup:', checkError);
+      } else {
+        console.log(`🚀 SHIPMENT PROCESSING: Found ${stagingRecordsForSession?.length || 0} staging records with matching upload_session_id:`, stagingRecordsForSession);
+      }
+
+      // Also check if any of the processed records have different upload_session_ids
+      const processedRecordIds = validRecords.map(r => r.id);
+      const { data: processedStagingRecords, error: processedCheckError } = await supabase
+        .from('shipment_uploads_staging')
+        .select('id, upload_session_id, gbl_number')
+        .in('id', processedRecordIds);
+        
+      if (processedCheckError) {
+        console.error('🚀 SHIPMENT PROCESSING: Error checking processed staging records:', processedCheckError);
+      } else {
+        console.log(`🚀 SHIPMENT PROCESSING: Upload session IDs of processed records:`, processedStagingRecords);
+      }
+
       // Clean up staging data for this session
       const { error: deleteError } = await supabase
         .from('shipment_uploads_staging')
@@ -158,7 +186,17 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
         console.error('🚀 SHIPMENT PROCESSING: Cleanup error:', deleteError);
         // Don't throw here as the main operation succeeded
       } else {
-        console.log(`🚀 SHIPMENT PROCESSING: Successfully cleaned up staging data`);
+        console.log(`🚀 SHIPMENT PROCESSING: Successfully cleaned up staging data for session ${uploadSessionId}`);
+        
+        // Verify cleanup worked
+        const { data: remainingRecords, error: verifyError } = await supabase
+          .from('shipment_uploads_staging')
+          .select('id, upload_session_id, gbl_number')
+          .eq('upload_session_id', uploadSessionId);
+          
+        if (!verifyError) {
+          console.log(`🚀 SHIPMENT PROCESSING: Remaining records after cleanup: ${remainingRecords?.length || 0}`, remainingRecords);
+        }
       }
 
       // Invalidate shipments query to refresh the main table
