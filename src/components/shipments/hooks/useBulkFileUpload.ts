@@ -9,7 +9,7 @@ export const useBulkFileUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, onSuccess?: (result: any) => void) => {
     setIsUploading(true);
     setUploadError(null);
     
@@ -50,11 +50,18 @@ export const useBulkFileUpload = () => {
       const { records: validatedRecords, summary } = await processAndValidateRecords(uploadSessionId);
       console.log(`🚀 BULK FILE UPLOAD: Validation complete:`, summary);
       
-      return {
+      const result = {
         uploadSessionId,
         records: validatedRecords,
         summary
       };
+
+      // Call the success callback if provided
+      if (onSuccess) {
+        onSuccess(result);
+      }
+      
+      return result;
       
     } catch (error: any) {
       console.error('🚀 BULK FILE UPLOAD: Upload error:', error);

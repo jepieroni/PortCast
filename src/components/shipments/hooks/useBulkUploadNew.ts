@@ -34,7 +34,7 @@ export const useBulkUploadNew = () => {
 
   const { isProcessing, processValidShipments } = useShipmentProcessing(uploadSessionId);
   
-  const { isUploading, uploadError, uploadFile, clearUploadError } = useBulkFileUpload();
+  const { isUploading, uploadError, uploadFile: baseUploadFile, clearUploadError } = useBulkFileUpload();
 
   const { updateRecord } = useBulkRecordOperations({
     records,
@@ -42,6 +42,28 @@ export const useBulkUploadNew = () => {
     updateSummary,
     updateStagingRecord
   });
+
+  // Enhanced upload file function that integrates with state management
+  const uploadFile = async (file: File) => {
+    try {
+      const result = await baseUploadFile(file, (result) => {
+        // Set the state when upload is successful
+        setRecords(result.records);
+        setSummary(result.summary);
+        setUploadSessionId(result.uploadSessionId);
+        console.log('🚀 BULK UPLOAD NEW: State updated after successful upload:', {
+          recordsCount: result.records.length,
+          summary: result.summary,
+          uploadSessionId: result.uploadSessionId
+        });
+      });
+      
+      return result;
+    } catch (error: any) {
+      console.error('🚀 BULK UPLOAD NEW: Upload failed:', error);
+      throw error;
+    }
+  };
 
   const loadExistingRecords = useCallback(async () => {
     try {
