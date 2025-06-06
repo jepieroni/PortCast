@@ -35,23 +35,50 @@ export const useShipmentProcessing = (uploadSessionId: string) => {
         console.log(`🚀 SHIPMENT PROCESSING: Valid record ${index + 1}: GBL=${record.gbl_number}, ApprovedWarnings=${record.approved_warnings?.length || 0}, ValidationWarnings=${record.validation_warnings?.length || 0}`);
       });
       
-      // Insert valid records into shipments table
-      const shipmentData = validRecords.map(record => ({
-        gbl_number: record.gbl_number,
-        shipper_last_name: record.shipper_last_name,
-        shipment_type: record.shipment_type,
-        origin_rate_area: record.origin_rate_area,
-        destination_rate_area: record.destination_rate_area,
-        pickup_date: record.pickup_date,
-        rdd: record.rdd,
-        estimated_cube: record.estimated_cube,
-        actual_cube: record.actual_cube,
-        remaining_cube: record.remaining_cube,
-        target_poe_id: record.target_poe_id,
-        target_pod_id: record.target_pod_id,
-        tsp_id: record.tsp_id,
-        user_id: record.user_id
-      }));
+      // Insert valid records into shipments table with proper integer conversion
+      const shipmentData = validRecords.map(record => {
+        // Helper function to safely convert to integer
+        const safeParseInt = (value: any): number | null => {
+          if (value === null || value === undefined || value === '') {
+            return null;
+          }
+          const parsed = parseInt(String(value), 10);
+          return isNaN(parsed) ? null : parsed;
+        };
+
+        console.log(`🚀 SHIPMENT PROCESSING: Converting cube values for ${record.gbl_number}:`, {
+          estimated_cube_raw: record.estimated_cube,
+          actual_cube_raw: record.actual_cube,
+          remaining_cube_raw: record.remaining_cube
+        });
+
+        const estimated_cube = safeParseInt(record.estimated_cube);
+        const actual_cube = safeParseInt(record.actual_cube);
+        const remaining_cube = safeParseInt(record.remaining_cube);
+
+        console.log(`🚀 SHIPMENT PROCESSING: Converted cube values for ${record.gbl_number}:`, {
+          estimated_cube,
+          actual_cube,
+          remaining_cube
+        });
+
+        return {
+          gbl_number: record.gbl_number,
+          shipper_last_name: record.shipper_last_name,
+          shipment_type: record.shipment_type,
+          origin_rate_area: record.origin_rate_area,
+          destination_rate_area: record.destination_rate_area,
+          pickup_date: record.pickup_date,
+          rdd: record.rdd,
+          estimated_cube,
+          actual_cube,
+          remaining_cube,
+          target_poe_id: record.target_poe_id,
+          target_pod_id: record.target_pod_id,
+          tsp_id: record.tsp_id,
+          user_id: record.user_id
+        };
+      });
 
       console.log(`🚀 SHIPMENT PROCESSING: Prepared shipment data for insertion:`, shipmentData);
 
