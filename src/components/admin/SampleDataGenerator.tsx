@@ -17,10 +17,10 @@ const SampleDataGenerator = () => {
   const { generateSampleData } = useSampleDataGenerator();
 
   const handleGenerate = async () => {
-    if (rowCount < 1 || rowCount > 20) {
+    if (rowCount < 1 || rowCount > 50) {
       toast({
         title: "Invalid row count",
-        description: "Please enter a number between 1 and 20",
+        description: "Please enter a number between 1 and 50",
         variant: "destructive"
       });
       return;
@@ -70,7 +70,7 @@ const SampleDataGenerator = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileSpreadsheet size={20} />
+          <FileSpreadsheet size=50} />
           Generate Sample Bulk Upload File
         </CardTitle>
       </CardHeader>
@@ -87,7 +87,7 @@ const SampleDataGenerator = () => {
               onChange={(e) => setRowCount(parseInt(e.target.value) || 0)}
               placeholder="Enter number of rows"
             />
-            <p className="text-sm text-gray-500 mt-1">Maximum: 20 rows</p>
+            <p className="text-sm text-gray-500 mt-1">Maximum: 50 rows</p>
           </div>
           <div>
             <Label htmlFor="fileName">File Name</Label>
