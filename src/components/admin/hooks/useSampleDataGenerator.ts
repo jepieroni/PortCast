@@ -1,10 +1,10 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface RateArea {
   rate_area: string;
   is_conus: boolean;
+  use_for_sample_data: boolean;
 }
 
 interface Port {
@@ -93,7 +93,8 @@ export const useSampleDataGenerator = () => {
   const fetchRateAreas = async (): Promise<RateArea[]> => {
     const { data, error } = await supabase
       .from('rate_areas')
-      .select('rate_area, is_conus');
+      .select('rate_area, is_conus, use_for_sample_data')
+      .eq('use_for_sample_data', true);
     
     if (error) throw error;
     return data || [];
@@ -174,7 +175,7 @@ export const useSampleDataGenerator = () => {
       const nonConusRateAreas = rateAreas.filter(ra => !ra.is_conus);
 
       if (conusRateAreas.length === 0 || nonConusRateAreas.length === 0) {
-        throw new Error('Insufficient rate area data. Need both CONUS and non-CONUS rate areas.');
+        throw new Error('Insufficient rate area data. Need both CONUS and non-CONUS rate areas marked for sample data use.');
       }
 
       if (ports.length === 0) {

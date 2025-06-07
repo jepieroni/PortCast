@@ -414,6 +414,7 @@ export type Database = {
           name: string | null
           rate_area: string
           updated_at: string | null
+          use_for_sample_data: boolean
         }
         Insert: {
           country_id: string
@@ -424,6 +425,7 @@ export type Database = {
           name?: string | null
           rate_area: string
           updated_at?: string | null
+          use_for_sample_data?: boolean
         }
         Update: {
           country_id?: string
@@ -434,6 +436,7 @@ export type Database = {
           name?: string | null
           rate_area?: string
           updated_at?: string | null
+          use_for_sample_data?: boolean
         }
         Relationships: [
           {
