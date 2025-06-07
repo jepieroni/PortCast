@@ -70,7 +70,7 @@ const SampleDataGenerator = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileSpreadsheet size=50} />
+          <FileSpreadsheet size={20} />
           Generate Sample Bulk Upload File
         </CardTitle>
       </CardHeader>
