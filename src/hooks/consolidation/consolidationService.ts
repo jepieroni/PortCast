@@ -25,6 +25,7 @@ export async function fetchConsolidationShipments(
   });
 
   // Fetch shipments with POE/POD and region information
+  // Fixed: Use explicit column hints to resolve ambiguous relationships
   const query = supabase
     .from('shipments')
     .select(`
@@ -34,20 +35,20 @@ export async function fetchConsolidationShipments(
       estimated_cube,
       user_id,
       pickup_date,
-      poe:target_poe_id(
+      poe:ports!target_poe_id(
         id, 
         name, 
         code,
         port_region_memberships(
-          region:region_id(id, name)
+          region:port_regions(id, name)
         )
       ),
-      pod:target_pod_id(
+      pod:ports!target_pod_id(
         id, 
         name, 
         code,
         port_region_memberships(
-          region:region_id(id, name)
+          region:port_regions(id, name)
         )
       )
     `)
