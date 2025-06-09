@@ -95,54 +95,23 @@ export function processFlexibleGrouping(
 
       // POE FLEXIBILITY INHERITANCE:
       // If the setting has POE flexible and same destination, check if origins are in same region
-      if (setting.poeFlexible && shipment.target_pod_id === settingPodId && poeRegion?.id && settingPoeRegion?.id) {
+      if (setting.poeFlexible && shipment.target_pod_id === settingPodId && 
+          poeRegion?.id && settingPoeRegion?.id && settingPoeRegion.id === poeRegion.id) {
         console.log(`    🔍 Checking POE flexibility inheritance:`);
-        console.log(`      Same destination: ${shipment.target_pod_id} === ${settingPodId}`);
-        console.log(`      Current POE region: ${poeRegion.name} (${poeRegion.id})`);
-        console.log(`      Setting POE region: ${settingPoeRegion.name} (${settingPoeRegion.id})`);
-        
-        if (settingPoeRegion.id === poeRegion.id) {
-          console.log(`    ✅ INHERITING POE FLEXIBILITY from ${key} (same region + same destination)`);
-          effectivePoeFlexible = true;
-        }
+        console.log(`      Same destination: ${shipment.target_pod_id} === ${settingPodId} ✓`);
+        console.log(`      Same POE region: ${poeRegion.name} === ${settingPoeRegion.name} ✓`);
+        console.log(`    ✅ INHERITING POE FLEXIBILITY from ${key} (same region + same destination)`);
+        effectivePoeFlexible = true;
       }
 
       // POD FLEXIBILITY INHERITANCE:
       // If the setting has POD flexible and same origin, check if destinations are in same region
-      if (setting.podFlexible && shipment.target_poe_id === settingPoeId && podRegion?.id && settingPodRegion?.id) {
-        console.log(`    🔍 Checking POD flexibility inheritance:`);
-        console.log(`      Same origin: ${shipment.target_poe_id} === ${settingPoeId}`);
-        console.log(`      Current POD region: ${podRegion.name} (${podRegion.id})`);
-        console.log(`      Setting POD region: ${settingPodRegion.name} (${settingPodRegion.id})`);
-        
-        if (settingPodRegion.id === podRegion.id) {
-          console.log(`    ✅ INHERITING POD FLEXIBILITY from ${key} (same region + same origin)`);
-          effectivePodFlexible = true;
-        }
-      }
-
-      // ADDITIONAL CHECK: For POE flexibility, also check if we have the same destination and are in the same POE region
-      // This handles the case where Norfolk->Bahrain should inherit flexibility from Baltimore->Bahrain
-      if (setting.poeFlexible && shipment.target_pod_id === settingPodId && 
-          poeRegion?.id && settingPoeRegion?.id && settingPoeRegion.id === poeRegion.id &&
-          shipment.target_poe_id !== settingPoeId) {
-        console.log(`    🔍 Additional POE regional check:`);
-        console.log(`      Same destination: ${shipment.target_pod_id} === ${settingPodId} ✓`);
-        console.log(`      Same POE region: ${poeRegion.name} === ${settingPoeRegion.name} ✓`);
-        console.log(`      Different POE ports: ${shipment.target_poe_id} !== ${settingPoeId} ✓`);
-        console.log(`    ✅ INHERITING POE FLEXIBILITY (regional inheritance)`);
-        effectivePoeFlexible = true;
-      }
-
-      // ADDITIONAL CHECK: For POD flexibility, also check if we have the same origin and are in the same POD region
       if (setting.podFlexible && shipment.target_poe_id === settingPoeId && 
-          podRegion?.id && settingPodRegion?.id && settingPodRegion.id === podRegion.id &&
-          shipment.target_pod_id !== settingPodId) {
-        console.log(`    🔍 Additional POD regional check:`);
+          podRegion?.id && settingPodRegion?.id && settingPodRegion.id === podRegion.id) {
+        console.log(`    🔍 Checking POD flexibility inheritance:`);
         console.log(`      Same origin: ${shipment.target_poe_id} === ${settingPoeId} ✓`);
         console.log(`      Same POD region: ${podRegion.name} === ${settingPodRegion.name} ✓`);
-        console.log(`      Different POD ports: ${shipment.target_pod_id} !== ${settingPodId} ✓`);
-        console.log(`    ✅ INHERITING POD FLEXIBILITY (regional inheritance)`);
+        console.log(`    ✅ INHERITING POD FLEXIBILITY from ${key} (same region + same origin)`);
         effectivePodFlexible = true;
       }
     });
