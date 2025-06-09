@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, TrendingUp, Ship } from 'lucide-react';
 import { ConsolidationGroup } from '@/hooks/useConsolidationData';
+import { usePortRegions } from '@/hooks/usePortRegions';
 
 interface ConsolidationCardProps {
   poe_name: string;
@@ -29,20 +30,26 @@ const ConsolidationCard = ({
   consolidationData,
   onClick
 }: ConsolidationCardProps) => {
+  const { portRegions, portRegionMemberships } = usePortRegions();
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
-  
-  const getTitle = () => {
-    if (type === 'intertheater') {
-      return `${poe_code || poe_name} → ${pod_code || pod_name}`;
+
+  // Get port region names for POE and POD
+  const getPoeRegionName = () => {
+    const membership = portRegionMemberships.find(m => m.port_id === consolidationData.poe_id);
+    if (membership) {
+      const region = portRegions.find(r => r.id === membership.region_id);
+      return region?.name || 'Unknown Region';
     }
-    return pod_code || pod_name;
+    return 'No Region';
   };
 
-  const getSubtitle = () => {
-    if (type === 'intertheater') {
-      return `${poe_name} to ${pod_name}`;
+  const getPodRegionName = () => {
+    const membership = portRegionMemberships.find(m => m.port_id === consolidationData.pod_id);
+    if (membership) {
+      const region = portRegions.find(r => r.id === membership.region_id);
+      return region?.name || 'Unknown Region';
     }
-    return `From ${poe_code || poe_name}`;
+    return 'No Region';
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -57,18 +64,20 @@ const ConsolidationCard = ({
       onClick={handleCardClick}
     >
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <Ship size={18} className="text-blue-600" />
-            {getTitle()}
+        <div className="flex items-center gap-2 mb-2">
+          <Ship size={18} className="text-blue-600" />
+          <CardTitle className="text-lg font-semibold">
+            {type === 'intertheater' ? 'Intertheater Route' : `${type.charAt(0).toUpperCase() + type.slice(1)} Route`}
           </CardTitle>
-          {hasUserShipments && (
-            <Badge variant="default" className="bg-blue-600">
-              Your Shipments
-            </Badge>
-          )}
         </div>
-        <p className="text-sm text-gray-600">{getSubtitle()}</p>
+        <div className="space-y-1 text-sm">
+          <div className="font-medium">
+            From: {poe_code || poe_name} (Region: {getPoeRegionName()})
+          </div>
+          <div className="font-medium">
+            To: {pod_code || pod_name} (Region: {getPodRegionName()})
+          </div>
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-4">

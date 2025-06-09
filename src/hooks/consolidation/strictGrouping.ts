@@ -33,9 +33,7 @@ export function processStrictGrouping(shipments: ShipmentData[], userId: string)
         pod_code: podData.code || '',
         shipment_count: 0,
         total_cube: 0,
-        has_user_shipments: false,
-        is_poe_flexible: false,
-        is_pod_flexible: false
+        has_user_shipments: false
       };
       console.log(`➕ Created new group: ${key}`, groupedData[key]);
     }
