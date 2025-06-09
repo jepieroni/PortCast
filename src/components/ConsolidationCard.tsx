@@ -15,7 +15,7 @@ interface ConsolidationCardProps {
   hasUserShipments: boolean;
   type: 'inbound' | 'outbound' | 'intertheater';
   consolidationData: ConsolidationGroup;
-  onFlexibilityChange: (portId: string, poeFlexible: boolean, podFlexible: boolean) => void;
+  onFlexibilityChange: (originDestinationKey: string, poeFlexible: boolean, podFlexible: boolean) => void;
   onClick?: () => void;
 }
 
@@ -36,6 +36,9 @@ const ConsolidationCard = ({
   const [podFlexible, setPodFlexible] = useState(consolidationData.is_pod_flexible || false);
 
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
+  
+  // FIXED: Generate the origin-destination key
+  const originDestinationKey = `${consolidationData.poe_id}-${consolidationData.pod_id}`;
   
   const getTitle = () => {
     if (type === 'intertheater') {
@@ -59,7 +62,7 @@ const ConsolidationCard = ({
 
   const handlePoeFlexibilityChange = (checked: boolean) => {
     console.log('🎛️ POE Flexibility Change:', {
-      cardId: `${consolidationData.poe_id}-${consolidationData.pod_id}`,
+      originDestinationKey,
       poe_id: consolidationData.poe_id,
       poe_name: consolidationData.poe_name,
       newPoeFlexible: checked,
@@ -67,12 +70,12 @@ const ConsolidationCard = ({
     });
     
     setPoeFlexible(checked);
-    onFlexibilityChange(consolidationData.poe_id, checked, podFlexible);
+    onFlexibilityChange(originDestinationKey, checked, podFlexible);
   };
 
   const handlePodFlexibilityChange = (checked: boolean) => {
     console.log('🎛️ POD Flexibility Change:', {
-      cardId: `${consolidationData.poe_id}-${consolidationData.pod_id}`,
+      originDestinationKey,
       pod_id: consolidationData.pod_id,
       pod_name: consolidationData.pod_name,
       currentPoeFlexible: poeFlexible,
@@ -80,7 +83,7 @@ const ConsolidationCard = ({
     });
     
     setPodFlexible(checked);
-    onFlexibilityChange(consolidationData.pod_id, poeFlexible, checked);
+    onFlexibilityChange(originDestinationKey, poeFlexible, checked);
   };
 
   const handleCardClick = (e: React.MouseEvent) => {

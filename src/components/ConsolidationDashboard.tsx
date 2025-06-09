@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft } from 'lucide-react';
@@ -33,9 +34,10 @@ const ConsolidationDashboard = ({
     flexibilitySettings
   );
 
-  const handleFlexibilityChange = (portId: string, poeFlexible: boolean, podFlexible: boolean) => {
+  // FIXED: Changed to handle origin-destination pairs
+  const handleFlexibilityChange = (originDestinationKey: string, poeFlexible: boolean, podFlexible: boolean) => {
     console.log('🔧 DASHBOARD: Flexibility change received:', {
-      portId,
+      originDestinationKey,
       poeFlexible,
       podFlexible,
       currentSettings: flexibilitySettings
@@ -44,13 +46,20 @@ const ConsolidationDashboard = ({
     setFlexibilitySettings(prev => {
       const newSettings = {
         flexiblePorts: {
-          ...prev.flexiblePorts,
-          [portId]: {
-            poeFlexible,
-            podFlexible
-          }
+          ...prev.flexiblePorts
         }
       };
+      
+      // FIXED: If both are false, remove the setting entirely (toggle back to strict)
+      if (!poeFlexible && !podFlexible) {
+        delete newSettings.flexiblePorts[originDestinationKey];
+        console.log('🗑️ DASHBOARD: Removed flexibility setting for:', originDestinationKey);
+      } else {
+        newSettings.flexiblePorts[originDestinationKey] = {
+          poeFlexible,
+          podFlexible
+        };
+      }
       
       console.log('🔧 DASHBOARD: New flexibility settings:', newSettings);
       return newSettings;
