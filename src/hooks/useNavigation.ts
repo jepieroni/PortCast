@@ -1,17 +1,25 @@
 
 import { useState } from 'react';
 
-export type ViewType = 'main' | 'shipments' | 'consolidation' | 'inbound' | 'outbound' | 'intertheater' | 'registration' | 'admin';
+export type ViewType = 'main' | 'shipments' | 'consolidation' | 'inbound' | 'outbound' | 'intertheater' | 'registration' | 'admin' | 'consolidation-details';
 
 export const useNavigation = () => {
   const [currentView, setCurrentView] = useState<ViewType>('main');
   const [outlookDays, setOutlookDays] = useState<number[]>([7]);
+  const [consolidationParams, setConsolidationParams] = useState<any>(null);
 
-  const navigateTo = (view: ViewType) => {
+  const navigateTo = (view: ViewType, params?: any) => {
     setCurrentView(view);
+    if (view === 'consolidation-details' && params) {
+      setConsolidationParams(params);
+    }
   };
 
-  const goToMain = () => setCurrentView('main');
+  const goToMain = () => {
+    setCurrentView('main');
+    setConsolidationParams(null);
+  };
+  
   const goToRegistration = () => setCurrentView('registration');
   const goToAdmin = () => setCurrentView('admin');
   const goToShipments = () => setCurrentView('shipments');
@@ -20,6 +28,7 @@ export const useNavigation = () => {
   return {
     currentView,
     outlookDays,
+    consolidationParams,
     setOutlookDays,
     navigateTo,
     goToMain,

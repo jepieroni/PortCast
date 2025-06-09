@@ -14,6 +14,7 @@ const Index = () => {
   const {
     currentView,
     outlookDays,
+    consolidationParams,
     setOutlookDays,
     navigateTo,
     goToMain,
@@ -25,7 +26,6 @@ const Index = () => {
     // Check if we need to navigate to a specific view after coming from edit
     if (location.state?.navigateTo) {
       navigateTo(location.state.navigateTo);
-      // Clear the state to prevent repeated navigation
       window.history.replaceState({}, document.title);
     }
   }, [location.state, navigateTo]);
@@ -35,7 +35,6 @@ const Index = () => {
     return <LoadingScreen />;
   }
 
-  // Show auth form if not logged in
   if (!user) {
     return <Auth onSuccess={goToMain} />;
   }
@@ -62,6 +61,7 @@ const Index = () => {
         onNavigate={navigateTo}
         onBack={goToMain}
         onAddShipment={goToRegistration}
+        consolidationParams={consolidationParams}
       />
     </AppLayout>
   );

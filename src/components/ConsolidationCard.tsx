@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, TrendingUp, Ship } from 'lucide-react';
@@ -12,6 +11,7 @@ interface ConsolidationCardProps {
   availableShipments: number;
   hasUserShipments: boolean;
   type: 'inbound' | 'outbound' | 'intertheater';
+  onClick?: () => void;
 }
 
 const ConsolidationCard = ({ 
@@ -22,7 +22,8 @@ const ConsolidationCard = ({
   totalCube, 
   availableShipments, 
   hasUserShipments,
-  type 
+  type,
+  onClick
 }: ConsolidationCardProps) => {
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
   
@@ -41,9 +42,12 @@ const ConsolidationCard = ({
   };
   
   return (
-    <Card className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-      hasUserShipments ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:scale-105'
-    }`}>
+    <Card 
+      className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
+        hasUserShipments ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:scale-105'
+      }`}
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">

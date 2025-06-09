@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft } from 'lucide-react';
@@ -12,6 +11,7 @@ interface ConsolidationDashboardProps {
   onOutlookDaysChange: (days: number[]) => void;
   onBack: () => void;
   onTabChange: (tab: string) => void;
+  onCardClick?: (cardData: any) => void;
 }
 
 const ConsolidationDashboard = ({ 
@@ -19,7 +19,8 @@ const ConsolidationDashboard = ({
   outlookDays, 
   onOutlookDaysChange, 
   onBack, 
-  onTabChange 
+  onTabChange,
+  onCardClick
 }: ConsolidationDashboardProps) => {
   const { data: consolidations, isLoading, error } = useConsolidationData(type, outlookDays);
 
@@ -101,6 +102,7 @@ const ConsolidationDashboard = ({
               availableShipments={consolidation.shipment_count}
               hasUserShipments={consolidation.has_user_shipments}
               type={type}
+              onClick={() => onCardClick?.(consolidation)}
             />
           ))}
         </div>
