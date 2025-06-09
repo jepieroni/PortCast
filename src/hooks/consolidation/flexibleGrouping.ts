@@ -40,27 +40,56 @@ export function processFlexibleGrouping(
       podRegion
     });
 
-    // Check flexibility for this specific origin-destination pair
-    const originDestinationKey = `${shipment.target_poe_id}-${shipment.target_pod_id}`;
-    const flexibleSetting = flexibilitySettings.flexiblePorts[originDestinationKey];
+    // Check flexibility for this specific origin-destination pair AND
+    // check if any flexibility setting affects this shipment's regions
+    const originalOriginDestinationKey = `${shipment.target_poe_id}-${shipment.target_pod_id}`;
+    const directFlexibleSetting = flexibilitySettings.flexiblePorts[originalOriginDestinationKey];
     
-    const poeFlexible = flexibleSetting?.poeFlexible || false;
-    const podFlexible = flexibleSetting?.podFlexible || false;
+    // Check if this shipment should be affected by ANY flexibility setting
+    // by looking at all flexibility settings and seeing if this shipment's regions match
+    let effectivePoeFlexible = directFlexibleSetting?.poeFlexible || false;
+    let effectivePodFlexible = directFlexibleSetting?.podFlexible || false;
 
-    console.log('🎯 Origin-Destination Flexibility Check:', { 
-      originDestinationKey,
-      flexibleSetting,
-      poeFlexible, 
-      podFlexible,
+    // Check if this shipment should be grouped due to other flexibility settings
+    Object.entries(flexibilitySettings.flexiblePorts).forEach(([key, setting]) => {
+      const [poeId, podId] = key.split('-');
+      
+      // If POE flexibility is enabled for the same region, this shipment should be flexible too
+      if (setting.poeFlexible && poeRegion?.id) {
+        // Find the port for this flexibility setting to get its region
+        const flexSettingShipment = shipments.find(s => 
+          s.target_poe_id === poeId && s.target_pod_id === podId
+        );
+        if (flexSettingShipment?.poe?.port_region_memberships?.[0]?.region?.id === poeRegion.id) {
+          effectivePoeFlexible = true;
+        }
+      }
+
+      // Same for POD flexibility
+      if (setting.podFlexible && podRegion?.id) {
+        const flexSettingShipment = shipments.find(s => 
+          s.target_poe_id === poeId && s.target_pod_id === podId
+        );
+        if (flexSettingShipment?.pod?.port_region_memberships?.[0]?.region?.id === podRegion.id) {
+          effectivePodFlexible = true;
+        }
+      }
+    });
+
+    console.log('🎯 Effective Flexibility Check:', { 
+      originalOriginDestinationKey,
+      directFlexibleSetting,
+      effectivePoeFlexible, 
+      effectivePodFlexible,
       poeRegionId: poeRegion?.id,
       podRegionId: podRegion?.id
     });
 
-    // Create grouping key based on flexibility
+    // Create grouping key based on effective flexibility
     let groupKey: string;
     let groupData: Partial<ConsolidationGroup>;
 
-    if (poeFlexible && podFlexible) {
+    if (effectivePoeFlexible && effectivePodFlexible) {
       console.log('🔄 Both POE and POD flexible - grouping by regions');
       groupKey = `region-${poeRegion?.id || 'unknown'}-region-${podRegion?.id || 'unknown'}`;
       groupData = {
@@ -77,7 +106,7 @@ export function processFlexibleGrouping(
         is_poe_flexible: true,
         is_pod_flexible: true
       };
-    } else if (poeFlexible) {
+    } else if (effectivePoeFlexible) {
       console.log('🔄 POE flexible, POD strict - grouping by POE region + specific POD');
       groupKey = `region-${poeRegion?.id || 'unknown'}-${shipment.target_pod_id}`;
       groupData = {
@@ -94,7 +123,7 @@ export function processFlexibleGrouping(
         is_poe_flexible: true,
         is_pod_flexible: false
       };
-    } else if (podFlexible) {
+    } else if (effectivePodFlexible) {
       console.log('🔄 POE strict, POD flexible - grouping by specific POE + POD region');
       groupKey = `${shipment.target_poe_id}-region-${podRegion?.id || 'unknown'}`;
       groupData = {
@@ -152,16 +181,16 @@ export function processFlexibleGrouping(
     }
 
     // Track individual ports within flexible groups
-    if (poeFlexible || podFlexible) {
+    if (effectivePoeFlexible || effectivePodFlexible) {
       const group = groupedData[groupKey];
-      if (poeFlexible && !group.grouped_ports?.poe_ports?.find(p => p.id === shipment.target_poe_id)) {
+      if (effectivePoeFlexible && !group.grouped_ports?.poe_ports?.find(p => p.id === shipment.target_poe_id)) {
         group.grouped_ports?.poe_ports?.push({
           id: shipment.target_poe_id,
           name: poeData.name,
           code: poeData.code
         });
       }
-      if (podFlexible && !group.grouped_ports?.pod_ports?.find(p => p.id === shipment.target_pod_id)) {
+      if (effectivePodFlexible && !group.grouped_ports?.pod_ports?.find(p => p.id === shipment.target_pod_id)) {
         group.grouped_ports?.pod_ports?.push({
           id: shipment.target_pod_id,
           name: podData.name,
