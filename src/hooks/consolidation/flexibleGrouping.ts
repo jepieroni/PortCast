@@ -1,4 +1,5 @@
 
+
 import { ConsolidationGroup, ShipmentData, FlexibilitySettings } from './types';
 
 export function processFlexibleGrouping(
@@ -52,55 +53,77 @@ export function processFlexibleGrouping(
       podRegion
     });
 
-    // Check flexibility for this specific origin-destination pair AND
-    // check if any flexibility setting affects this shipment's regions
+    // Start with no flexibility
+    let effectivePoeFlexible = false;
+    let effectivePodFlexible = false;
+
+    // Check for direct flexibility setting first
     const originalOriginDestinationKey = `${shipment.target_poe_id}-${shipment.target_pod_id}`;
     const directFlexibleSetting = flexibilitySettings.flexiblePorts[originalOriginDestinationKey];
     
-    // Check if this shipment should be affected by ANY flexibility setting
-    // by looking at all flexibility settings and seeing if this shipment's regions match
-    let effectivePoeFlexible = directFlexibleSetting?.poeFlexible || false;
-    let effectivePodFlexible = directFlexibleSetting?.podFlexible || false;
+    if (directFlexibleSetting) {
+      effectivePoeFlexible = directFlexibleSetting.poeFlexible;
+      effectivePodFlexible = directFlexibleSetting.podFlexible;
+      console.log('✅ DIRECT FLEXIBILITY SETTING FOUND:', {
+        key: originalOriginDestinationKey,
+        poeFlexible: effectivePoeFlexible,
+        podFlexible: effectivePodFlexible
+      });
+    }
 
     console.log('🔍 CHECKING REGIONAL FLEXIBILITY INHERITANCE:');
-    // Check if this shipment should be grouped due to other flexibility settings
+    
+    // Check all flexibility settings to see if this shipment should inherit flexibility
     Object.entries(flexibilitySettings.flexiblePorts).forEach(([key, setting]) => {
-      const [poeId, podId] = key.split('-');
+      const [settingPoeId, settingPodId] = key.split('-');
       console.log(`  Checking setting ${key}:`, setting);
       
-      // If POE flexibility is enabled for the same destination, check if origins are in same region
-      if (setting.poeFlexible && shipment.target_pod_id === podId && poeRegion?.id) {
-        // Find the port for this flexibility setting to get its region
-        const flexSettingShipment = shipments.find(s => 
-          s.target_poe_id === poeId && s.target_pod_id === podId
-        );
-        const flexSettingPoeRegion = flexSettingShipment?.poe?.port_region_memberships?.[0]?.region;
+      // Find the shipment that matches this flexibility setting to get its region data
+      const settingShipment = shipments.find(s => 
+        s.target_poe_id === settingPoeId && s.target_pod_id === settingPodId
+      );
+      
+      if (!settingShipment) {
+        console.log(`    ⚠️ No shipment found for setting ${key}`);
+        return;
+      }
+
+      const settingPoeRegion = settingShipment.poe?.port_region_memberships?.[0]?.region;
+      const settingPodRegion = settingShipment.pod?.port_region_memberships?.[0]?.region;
+
+      console.log(`    Setting regions: POE=${settingPoeRegion?.name}, POD=${settingPodRegion?.name}`);
+      console.log(`    Current regions: POE=${poeRegion?.name}, POD=${podRegion?.name}`);
+
+      // POE FLEXIBILITY INHERITANCE:
+      // If the setting has POE flexible and same destination, check if origins are in same region
+      if (setting.poeFlexible && shipment.target_pod_id === settingPodId && poeRegion?.id && settingPoeRegion?.id) {
+        console.log(`    🔍 Checking POE flexibility inheritance:`);
+        console.log(`      Same destination: ${shipment.target_pod_id} === ${settingPodId}`);
+        console.log(`      Current POE region: ${poeRegion.name} (${poeRegion.id})`);
+        console.log(`      Setting POE region: ${settingPoeRegion.name} (${settingPoeRegion.id})`);
         
-        console.log(`    POE Flexibility check: Current POE region ${poeRegion.id} vs Setting POE region ${flexSettingPoeRegion?.id}`);
-        
-        if (flexSettingPoeRegion?.id === poeRegion.id) {
-          console.log(`    ✅ INHERITING POE FLEXIBILITY from ${key}`);
+        if (settingPoeRegion.id === poeRegion.id) {
+          console.log(`    ✅ INHERITING POE FLEXIBILITY from ${key} (same region + same destination)`);
           effectivePoeFlexible = true;
         }
       }
 
-      // If POD flexibility is enabled for the same origin, check if destinations are in same region
-      if (setting.podFlexible && shipment.target_poe_id === poeId && podRegion?.id) {
-        const flexSettingShipment = shipments.find(s => 
-          s.target_poe_id === poeId && s.target_pod_id === podId
-        );
-        const flexSettingPodRegion = flexSettingShipment?.pod?.port_region_memberships?.[0]?.region;
+      // POD FLEXIBILITY INHERITANCE:
+      // If the setting has POD flexible and same origin, check if destinations are in same region
+      if (setting.podFlexible && shipment.target_poe_id === settingPoeId && podRegion?.id && settingPodRegion?.id) {
+        console.log(`    🔍 Checking POD flexibility inheritance:`);
+        console.log(`      Same origin: ${shipment.target_poe_id} === ${settingPoeId}`);
+        console.log(`      Current POD region: ${podRegion.name} (${podRegion.id})`);
+        console.log(`      Setting POD region: ${settingPodRegion.name} (${settingPodRegion.id})`);
         
-        console.log(`    POD Flexibility check: Current POD region ${podRegion.id} vs Setting POD region ${flexSettingPodRegion?.id}`);
-        
-        if (flexSettingPodRegion?.id === podRegion.id) {
-          console.log(`    ✅ INHERITING POD FLEXIBILITY from ${key}`);
+        if (settingPodRegion.id === podRegion.id) {
+          console.log(`    ✅ INHERITING POD FLEXIBILITY from ${key} (same region + same origin)`);
           effectivePodFlexible = true;
         }
       }
     });
 
-    console.log('🎯 Effective Flexibility Check:', { 
+    console.log('🎯 Final Effective Flexibility Check:', { 
       originalOriginDestinationKey,
       directFlexibleSetting,
       effectivePoeFlexible, 
@@ -242,3 +265,4 @@ export function processFlexibleGrouping(
   });
   return result;
 }
+
