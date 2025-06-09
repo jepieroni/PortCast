@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fetchConsolidationShipments } from './consolidation/consolidationService';
 import { processStrictGrouping } from './consolidation/strictGrouping';
-import { processFlexibleGrouping } from './consolidation/flexibleGrouping';
 
 // Re-export types for backward compatibility
 export type { ConsolidationGroup, FlexibilitySettings } from './consolidation/types';
@@ -14,12 +13,11 @@ export const useConsolidationData = (
   flexibilitySettings?: import('./consolidation/types').FlexibilitySettings
 ) => {
   return useQuery({
-    queryKey: ['consolidation-data', type, outlookDays[0], flexibilitySettings],
+    queryKey: ['consolidation-data', type, outlookDays[0]],
     queryFn: async () => {
       console.log('📊 Query Parameters:', {
         type,
-        outlookDays: outlookDays[0],
-        flexibilitySettings: JSON.stringify(flexibilitySettings, null, 2)
+        outlookDays: outlookDays[0]
       });
 
       const shipments = await fetchConsolidationShipments(type, outlookDays[0]);
@@ -27,13 +25,9 @@ export const useConsolidationData = (
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      if (!flexibilitySettings || Object.keys(flexibilitySettings.flexiblePorts).length === 0) {
-        console.log('🔒 Using STRICT grouping (no flexibility settings)');
-        return processStrictGrouping(shipments, user.id);
-      } else {
-        console.log('🔄 Using FLEXIBLE grouping with settings:', flexibilitySettings);
-        return processFlexibleGrouping(shipments, user.id, flexibilitySettings);
-      }
+      // Always use strict grouping for now until new flexible strategy is implemented
+      console.log('🔒 Using STRICT grouping');
+      return processStrictGrouping(shipments, user.id);
     }
   });
 };
