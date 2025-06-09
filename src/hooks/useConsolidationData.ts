@@ -180,6 +180,41 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
     portCount: Object.keys(flexibilitySettings.flexiblePorts).length
   });
 
+  // FIXED: Build region-to-flexibility mapping
+  const flexibleRegions = {
+    poe: new Set<string>(),
+    pod: new Set<string>()
+  };
+
+  // First pass: identify which regions should be flexible based on any port in that region being toggled
+  shipments?.forEach((shipment) => {
+    const poeData = shipment.poe as any;
+    const podData = shipment.pod as any;
+    
+    if (!poeData || !podData) return;
+
+    const poeRegion = poeData.port_region_memberships?.[0]?.region;
+    const podRegion = podData.port_region_memberships?.[0]?.region;
+
+    // Check if ANY port has flexibility settings
+    const poeFlexibleSetting = flexibilitySettings.flexiblePorts[shipment.target_poe_id];
+    const podFlexibleSetting = flexibilitySettings.flexiblePorts[shipment.target_pod_id];
+
+    if (poeFlexibleSetting?.poeFlexible && poeRegion?.id) {
+      flexibleRegions.poe.add(poeRegion.id);
+      console.log('🌍 POE Region marked as flexible:', poeRegion.name, poeRegion.id);
+    }
+    if (podFlexibleSetting?.podFlexible && podRegion?.id) {
+      flexibleRegions.pod.add(podRegion.id);
+      console.log('🌍 POD Region marked as flexible:', podRegion.name, podRegion.id);
+    }
+  });
+
+  console.log('🗺️ FLEXIBLE REGIONS MAP:', {
+    flexiblePoeRegions: Array.from(flexibleRegions.poe),
+    flexiblePodRegions: Array.from(flexibleRegions.pod)
+  });
+
   const groupedData: { [key: string]: ConsolidationGroup } = {};
 
   shipments?.forEach((shipment, index) => {
@@ -199,22 +234,6 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
       return;
     }
 
-    // Check if this specific POE is set to flexible
-    const poeFlexibleSetting = flexibilitySettings.flexiblePorts[shipment.target_poe_id];
-    const podFlexibleSetting = flexibilitySettings.flexiblePorts[shipment.target_pod_id];
-
-    console.log('🎛️ Port flexibility check:', {
-      poe_id: shipment.target_poe_id,
-      pod_id: shipment.target_pod_id,
-      poeFlexibleSetting,
-      podFlexibleSetting
-    });
-
-    const poeFlexible = poeFlexibleSetting?.poeFlexible || false;
-    const podFlexible = podFlexibleSetting?.podFlexible || false;
-
-    console.log('🔀 Flexibility status:', { poeFlexible, podFlexible });
-
     // Get region data
     const poeRegion = poeData.port_region_memberships?.[0]?.region;
     const podRegion = podData.port_region_memberships?.[0]?.region;
@@ -222,6 +241,19 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
     console.log('🗺️ Region data:', {
       poeRegion,
       podRegion
+    });
+
+    // FIXED: Check if this port's REGION is in the flexible regions set
+    const poeFlexible = poeRegion?.id ? flexibleRegions.poe.has(poeRegion.id) : false;
+    const podFlexible = podRegion?.id ? flexibleRegions.pod.has(podRegion.id) : false;
+
+    console.log('🔀 FIXED Flexibility status:', { 
+      poeFlexible, 
+      podFlexible,
+      poeRegionId: poeRegion?.id,
+      podRegionId: podRegion?.id,
+      isPoeRegionFlexible: poeRegion?.id ? flexibleRegions.poe.has(poeRegion.id) : 'NO_REGION',
+      isPodRegionFlexible: podRegion?.id ? flexibleRegions.pod.has(podRegion.id) : 'NO_REGION'
     });
 
     // Create grouping key based on flexibility
