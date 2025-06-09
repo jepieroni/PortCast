@@ -1,5 +1,4 @@
 
-
 import { ConsolidationGroup, ShipmentData, FlexibilitySettings } from './types';
 
 export function processFlexibleGrouping(
@@ -121,9 +120,34 @@ export function processFlexibleGrouping(
           effectivePodFlexible = true;
         }
       }
+
+      // ADDITIONAL CHECK: For POE flexibility, also check if we have the same destination and are in the same POE region
+      // This handles the case where Norfolk->Bahrain should inherit flexibility from Baltimore->Bahrain
+      if (setting.poeFlexible && shipment.target_pod_id === settingPodId && 
+          poeRegion?.id && settingPoeRegion?.id && settingPoeRegion.id === poeRegion.id &&
+          shipment.target_poe_id !== settingPoeId) {
+        console.log(`    🔍 Additional POE regional check:`);
+        console.log(`      Same destination: ${shipment.target_pod_id} === ${settingPodId} ✓`);
+        console.log(`      Same POE region: ${poeRegion.name} === ${settingPoeRegion.name} ✓`);
+        console.log(`      Different POE ports: ${shipment.target_poe_id} !== ${settingPoeId} ✓`);
+        console.log(`    ✅ INHERITING POE FLEXIBILITY (regional inheritance)`);
+        effectivePoeFlexible = true;
+      }
+
+      // ADDITIONAL CHECK: For POD flexibility, also check if we have the same origin and are in the same POD region
+      if (setting.podFlexible && shipment.target_poe_id === settingPoeId && 
+          podRegion?.id && settingPodRegion?.id && settingPodRegion.id === podRegion.id &&
+          shipment.target_pod_id !== settingPodId) {
+        console.log(`    🔍 Additional POD regional check:`);
+        console.log(`      Same origin: ${shipment.target_poe_id} === ${settingPoeId} ✓`);
+        console.log(`      Same POD region: ${podRegion.name} === ${settingPodRegion.name} ✓`);
+        console.log(`      Different POD ports: ${shipment.target_pod_id} !== ${settingPodId} ✓`);
+        console.log(`    ✅ INHERITING POD FLEXIBILITY (regional inheritance)`);
+        effectivePodFlexible = true;
+      }
     });
 
-    console.log('🎯 Final Effective Flexibility Check:', { 
+    console.log('🎯 Effective Flexibility Check:', { 
       originalOriginDestinationKey,
       directFlexibleSetting,
       effectivePoeFlexible, 
@@ -265,4 +289,3 @@ export function processFlexibleGrouping(
   });
   return result;
 }
-
