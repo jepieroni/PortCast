@@ -12,6 +12,18 @@ export function processFlexibleGrouping(
     settingsCount: Object.keys(flexibilitySettings.flexiblePorts).length
   });
 
+  // DEBUG: Log all shipments and their regions
+  console.log('📦 ALL SHIPMENTS WITH REGIONS:');
+  shipments.forEach((shipment, index) => {
+    const poeRegion = shipment.poe?.port_region_memberships?.[0]?.region;
+    const podRegion = shipment.pod?.port_region_memberships?.[0]?.region;
+    console.log(`Shipment ${index + 1}:`, {
+      poe: `${shipment.poe?.name} (${shipment.poe?.code}) - Region: ${poeRegion?.name}`,
+      pod: `${shipment.pod?.name} (${shipment.pod?.code}) - Region: ${podRegion?.name}`,
+      key: `${shipment.target_poe_id}-${shipment.target_pod_id}`
+    });
+  });
+
   const groupedData: { [key: string]: ConsolidationGroup } = {};
 
   shipments?.forEach((shipment, index) => {
@@ -50,27 +62,39 @@ export function processFlexibleGrouping(
     let effectivePoeFlexible = directFlexibleSetting?.poeFlexible || false;
     let effectivePodFlexible = directFlexibleSetting?.podFlexible || false;
 
+    console.log('🔍 CHECKING REGIONAL FLEXIBILITY INHERITANCE:');
     // Check if this shipment should be grouped due to other flexibility settings
     Object.entries(flexibilitySettings.flexiblePorts).forEach(([key, setting]) => {
       const [poeId, podId] = key.split('-');
+      console.log(`  Checking setting ${key}:`, setting);
       
-      // If POE flexibility is enabled for the same region, this shipment should be flexible too
-      if (setting.poeFlexible && poeRegion?.id) {
+      // If POE flexibility is enabled for the same destination, check if origins are in same region
+      if (setting.poeFlexible && shipment.target_pod_id === podId && poeRegion?.id) {
         // Find the port for this flexibility setting to get its region
         const flexSettingShipment = shipments.find(s => 
           s.target_poe_id === poeId && s.target_pod_id === podId
         );
-        if (flexSettingShipment?.poe?.port_region_memberships?.[0]?.region?.id === poeRegion.id) {
+        const flexSettingPoeRegion = flexSettingShipment?.poe?.port_region_memberships?.[0]?.region;
+        
+        console.log(`    POE Flexibility check: Current POE region ${poeRegion.id} vs Setting POE region ${flexSettingPoeRegion?.id}`);
+        
+        if (flexSettingPoeRegion?.id === poeRegion.id) {
+          console.log(`    ✅ INHERITING POE FLEXIBILITY from ${key}`);
           effectivePoeFlexible = true;
         }
       }
 
-      // Same for POD flexibility
-      if (setting.podFlexible && podRegion?.id) {
+      // If POD flexibility is enabled for the same origin, check if destinations are in same region
+      if (setting.podFlexible && shipment.target_poe_id === poeId && podRegion?.id) {
         const flexSettingShipment = shipments.find(s => 
           s.target_poe_id === poeId && s.target_pod_id === podId
         );
-        if (flexSettingShipment?.pod?.port_region_memberships?.[0]?.region?.id === podRegion.id) {
+        const flexSettingPodRegion = flexSettingShipment?.pod?.port_region_memberships?.[0]?.region;
+        
+        console.log(`    POD Flexibility check: Current POD region ${podRegion.id} vs Setting POD region ${flexSettingPodRegion?.id}`);
+        
+        if (flexSettingPodRegion?.id === podRegion.id) {
+          console.log(`    ✅ INHERITING POD FLEXIBILITY from ${key}`);
           effectivePodFlexible = true;
         }
       }
@@ -171,6 +195,8 @@ export function processFlexibleGrouping(
         grouped_ports: { poe_ports: [], pod_ports: [] }
       } as ConsolidationGroup;
       console.log(`➕ Created new flexible group: ${groupKey}`);
+    } else {
+      console.log(`📝 Adding to existing group: ${groupKey}`);
     }
 
     groupedData[groupKey].shipment_count += 1;
@@ -189,6 +215,7 @@ export function processFlexibleGrouping(
           name: poeData.name,
           code: poeData.code
         });
+        console.log(`  📍 Added POE port to group: ${poeData.name} (${poeData.code})`);
       }
       if (effectivePodFlexible && !group.grouped_ports?.pod_ports?.find(p => p.id === shipment.target_pod_id)) {
         group.grouped_ports?.pod_ports?.push({
@@ -196,18 +223,21 @@ export function processFlexibleGrouping(
           name: podData.name,
           code: podData.code
         });
+        console.log(`  📍 Added POD port to group: ${podData.name} (${podData.code})`);
       }
     }
 
     console.log(`✅ Updated group ${groupKey}:`, {
       shipment_count: groupedData[groupKey].shipment_count,
-      total_cube: groupedData[groupKey].total_cube
+      total_cube: groupedData[groupKey].total_cube,
+      grouped_ports: groupedData[groupKey].grouped_ports
     });
   });
 
   const result = Object.values(groupedData);
   console.log('✅ FLEXIBLE GROUPING COMPLETE:', {
     totalGroups: result.length,
+    groupKeys: Object.keys(groupedData),
     groups: result
   });
   return result;
