@@ -1,9 +1,11 @@
+
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft } from 'lucide-react';
 import ConsolidationCard from '@/components/ConsolidationCard';
-import { useConsolidationData } from '@/hooks/useConsolidationData';
+import { useConsolidationData, FlexibilitySettings } from '@/hooks/useConsolidationData';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useState } from 'react';
 
 interface ConsolidationDashboardProps {
   type: 'inbound' | 'outbound' | 'intertheater';
@@ -22,7 +24,27 @@ const ConsolidationDashboard = ({
   onTabChange,
   onCardClick
 }: ConsolidationDashboardProps) => {
-  const { data: consolidations, isLoading, error } = useConsolidationData(type, outlookDays);
+  const [flexibilitySettings, setFlexibilitySettings] = useState<FlexibilitySettings>({
+    flexiblePorts: {}
+  });
+
+  const { data: consolidations, isLoading, error } = useConsolidationData(
+    type, 
+    outlookDays, 
+    flexibilitySettings
+  );
+
+  const handleFlexibilityChange = (portId: string, poeFlexible: boolean, podFlexible: boolean) => {
+    setFlexibilitySettings(prev => ({
+      flexiblePorts: {
+        ...prev.flexiblePorts,
+        [portId]: {
+          poeFlexible,
+          podFlexible
+        }
+      }
+    }));
+  };
 
   return (
     <div className="space-y-6">
@@ -102,6 +124,8 @@ const ConsolidationDashboard = ({
               availableShipments={consolidation.shipment_count}
               hasUserShipments={consolidation.has_user_shipments}
               type={type}
+              consolidationData={consolidation}
+              onFlexibilityChange={handleFlexibilityChange}
               onClick={() => onCardClick?.(consolidation)}
             />
           ))}

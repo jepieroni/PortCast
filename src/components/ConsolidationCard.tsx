@@ -1,6 +1,10 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Package, TrendingUp, Ship } from 'lucide-react';
+import { ConsolidationGroup } from '@/hooks/useConsolidationData';
+import { useState } from 'react';
 
 interface ConsolidationCardProps {
   poe_name: string;
@@ -11,6 +15,8 @@ interface ConsolidationCardProps {
   availableShipments: number;
   hasUserShipments: boolean;
   type: 'inbound' | 'outbound' | 'intertheater';
+  consolidationData: ConsolidationGroup;
+  onFlexibilityChange: (portId: string, poeFlexible: boolean, podFlexible: boolean) => void;
   onClick?: () => void;
 }
 
@@ -23,22 +29,51 @@ const ConsolidationCard = ({
   availableShipments, 
   hasUserShipments,
   type,
+  consolidationData,
+  onFlexibilityChange,
   onClick
 }: ConsolidationCardProps) => {
+  const [poeFlexible, setPoeFlexible] = useState(consolidationData.is_poe_flexible || false);
+  const [podFlexible, setPodFlexible] = useState(consolidationData.is_pod_flexible || false);
+
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
   
   const getTitle = () => {
     if (type === 'intertheater') {
-      return `${poe_code || poe_name} → ${pod_code || pod_name}`;
+      const poeDisplay = poeFlexible ? consolidationData.poe_region_name : (poe_code || poe_name);
+      const podDisplay = podFlexible ? consolidationData.pod_region_name : (pod_code || pod_name);
+      return `${poeDisplay} → ${podDisplay}`;
     }
-    return pod_code || pod_name;
+    const podDisplay = podFlexible ? consolidationData.pod_region_name : (pod_code || pod_name);
+    return podDisplay;
   };
 
   const getSubtitle = () => {
     if (type === 'intertheater') {
-      return `${poe_name} to ${pod_name}`;
+      const poeDisplay = poeFlexible ? consolidationData.poe_region_name : poe_name;
+      const podDisplay = podFlexible ? consolidationData.pod_region_name : pod_name;
+      return `${poeDisplay} to ${podDisplay}`;
     }
-    return `From ${poe_code || poe_name}`;
+    const poeDisplay = poeFlexible ? consolidationData.poe_region_name : (poe_code || poe_name);
+    return `From ${poeDisplay}`;
+  };
+
+  const handlePoeFlexibilityChange = (checked: boolean) => {
+    setPoeFlexible(checked);
+    onFlexibilityChange(consolidationData.poe_id, checked, podFlexible);
+  };
+
+  const handlePodFlexibilityChange = (checked: boolean) => {
+    setPodFlexible(checked);
+    onFlexibilityChange(consolidationData.pod_id, poeFlexible, checked);
+  };
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger card click if clicking on switches
+    if ((e.target as HTMLElement).closest('.flexibility-controls')) {
+      return;
+    }
+    onClick?.();
   };
   
   return (
@@ -46,7 +81,7 @@ const ConsolidationCard = ({
       className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
         hasUserShipments ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:scale-105'
       }`}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
@@ -64,6 +99,39 @@ const ConsolidationCard = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {/* Flexibility Controls */}
+        <div className="flexibility-controls space-y-3 p-3 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-gray-700">Origin Port Flexibility</span>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span>Strict</span>
+                <Switch
+                  checked={poeFlexible}
+                  onCheckedChange={handlePoeFlexibilityChange}
+                  className="scale-75"
+                />
+                <span>Flexible</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-xs font-medium text-gray-700">Destination Port Flexibility</span>
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span>Strict</span>
+                <Switch
+                  checked={podFlexible}
+                  onCheckedChange={handlePodFlexibilityChange}
+                  className="scale-75"
+                />
+                <span>Flexible</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Package size={16} className="text-gray-500" />
