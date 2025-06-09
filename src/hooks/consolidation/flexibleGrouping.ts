@@ -89,6 +89,8 @@ export function processFlexibleGrouping(
         pod_code: podData.code || '',
         poe_region_id: poeRegion?.id,
         poe_region_name: poeRegion?.name,
+        pod_region_id: podRegion?.id,
+        pod_region_name: podRegion?.name,
         is_poe_flexible: true,
         is_pod_flexible: false
       };
@@ -102,6 +104,8 @@ export function processFlexibleGrouping(
         pod_id: podRegion?.id || shipment.target_pod_id,
         pod_name: podRegion?.name || podData.name,
         pod_code: podRegion?.name || podData.code,
+        poe_region_id: poeRegion?.id,
+        poe_region_name: poeRegion?.name,
         pod_region_id: podRegion?.id,
         pod_region_name: podRegion?.name,
         is_poe_flexible: false,
@@ -117,6 +121,10 @@ export function processFlexibleGrouping(
         pod_id: shipment.target_pod_id,
         pod_name: podData.name || 'Unknown POD',
         pod_code: podData.code || '',
+        poe_region_id: poeRegion?.id,
+        poe_region_name: poeRegion?.name,
+        pod_region_id: podRegion?.id,
+        pod_region_name: podRegion?.name,
         is_poe_flexible: false,
         is_pod_flexible: false
       };

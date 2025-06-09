@@ -1,9 +1,10 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Package, TrendingUp, Ship } from 'lucide-react';
 import { ConsolidationGroup } from '@/hooks/useConsolidationData';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ConsolidationCardProps {
   poe_name: string;
@@ -35,10 +36,26 @@ const ConsolidationCard = ({
   const [poeFlexible, setPoeFlexible] = useState(consolidationData.is_poe_flexible || false);
   const [podFlexible, setPodFlexible] = useState(consolidationData.is_pod_flexible || false);
 
+  // Update local state when consolidationData changes
+  useEffect(() => {
+    setPoeFlexible(consolidationData.is_poe_flexible || false);
+    setPodFlexible(consolidationData.is_pod_flexible || false);
+  }, [consolidationData.is_poe_flexible, consolidationData.is_pod_flexible]);
+
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
   
-  // FIXED: Generate the origin-destination key
-  const originDestinationKey = `${consolidationData.poe_id}-${consolidationData.pod_id}`;
+  // Generate the origin-destination key using the original port IDs, not the region IDs
+  const originDestinationKey = (() => {
+    // For flexible groups, we need to derive the original port IDs
+    if (consolidationData.is_poe_flexible || consolidationData.is_pod_flexible) {
+      // If it's a flexible group, we might have multiple ports grouped together
+      // We'll use the first port from the grouped_ports if available, or fallback to the ID
+      const originalPoeId = consolidationData.grouped_ports?.poe_ports?.[0]?.id || consolidationData.poe_id;
+      const originalPodId = consolidationData.grouped_ports?.pod_ports?.[0]?.id || consolidationData.pod_id;
+      return `${originalPoeId}-${originalPodId}`;
+    }
+    return `${consolidationData.poe_id}-${consolidationData.pod_id}`;
+  })();
   
   const getTitle = () => {
     if (type === 'intertheater') {
@@ -114,6 +131,18 @@ const ConsolidationCard = ({
           )}
         </div>
         <p className="text-sm text-gray-600">{getSubtitle()}</p>
+        
+        {/* Show grouped ports information for flexible groups */}
+        {(poeFlexible || podFlexible) && (
+          <div className="text-xs text-gray-500 mt-1">
+            {poeFlexible && consolidationData.grouped_ports?.poe_ports && consolidationData.grouped_ports.poe_ports.length > 1 && (
+              <div>Origins: {consolidationData.grouped_ports.poe_ports.map(p => p.code).join(', ')}</div>
+            )}
+            {podFlexible && consolidationData.grouped_ports?.pod_ports && consolidationData.grouped_ports.pod_ports.length > 1 && (
+              <div>Destinations: {consolidationData.grouped_ports.pod_ports.map(p => p.code).join(', ')}</div>
+            )}
+          </div>
+        )}
       </CardHeader>
       
       <CardContent className="space-y-4">
