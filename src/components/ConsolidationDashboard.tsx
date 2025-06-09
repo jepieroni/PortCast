@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft } from 'lucide-react';
@@ -35,15 +34,27 @@ const ConsolidationDashboard = ({
   );
 
   const handleFlexibilityChange = (portId: string, poeFlexible: boolean, podFlexible: boolean) => {
-    setFlexibilitySettings(prev => ({
-      flexiblePorts: {
-        ...prev.flexiblePorts,
-        [portId]: {
-          poeFlexible,
-          podFlexible
+    console.log('🔧 DASHBOARD: Flexibility change received:', {
+      portId,
+      poeFlexible,
+      podFlexible,
+      currentSettings: flexibilitySettings
+    });
+
+    setFlexibilitySettings(prev => {
+      const newSettings = {
+        flexiblePorts: {
+          ...prev.flexiblePorts,
+          [portId]: {
+            poeFlexible,
+            podFlexible
+          }
         }
-      }
-    }));
+      };
+      
+      console.log('🔧 DASHBOARD: New flexibility settings:', newSettings);
+      return newSettings;
+    });
   };
 
   return (

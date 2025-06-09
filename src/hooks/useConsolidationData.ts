@@ -42,6 +42,13 @@ export const useConsolidationData = (
   return useQuery({
     queryKey: ['consolidation-data', type, outlookDays[0], flexibilitySettings],
     queryFn: async () => {
+      console.log('🔍 CONSOLIDATION DATA QUERY STARTED');
+      console.log('📊 Query Parameters:', {
+        type,
+        outlookDays: outlookDays[0],
+        flexibilitySettings: JSON.stringify(flexibilitySettings, null, 2)
+      });
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
@@ -52,11 +59,11 @@ export const useConsolidationData = (
       const endDate = new Date(today);
       endDate.setDate(today.getDate() + outlookDays[0]);
 
-      console.log('Consolidation query date range:', {
+      console.log('📅 Date Range:', {
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
         type,
-        flexibilitySettings
+        flexibilitySettings: flexibilitySettings ? 'PROVIDED' : 'NOT PROVIDED'
       });
 
       // Fetch shipments with POE/POD and region information
@@ -92,15 +99,22 @@ export const useConsolidationData = (
 
       const { data: shipments, error } = await query;
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase Query Error:', error);
+        throw error;
+      }
 
-      console.log('Consolidation shipments found:', shipments?.length || 0, shipments);
+      console.log('📦 Raw Shipments Data:', {
+        count: shipments?.length || 0,
+        sampleShipment: shipments?.[0] || 'NO SHIPMENTS',
+        allShipments: shipments
+      });
 
-      if (!flexibilitySettings) {
-        // Original strict grouping logic
+      if (!flexibilitySettings || Object.keys(flexibilitySettings.flexiblePorts).length === 0) {
+        console.log('🔒 Using STRICT grouping (no flexibility settings)');
         return processStrictGrouping(shipments, user.id);
       } else {
-        // New flexible grouping logic
+        console.log('🔄 Using FLEXIBLE grouping with settings:', flexibilitySettings);
         return processFlexibleGrouping(shipments, user.id, flexibilitySettings);
       }
     }
@@ -108,18 +122,26 @@ export const useConsolidationData = (
 };
 
 function processStrictGrouping(shipments: any[], userId: string): ConsolidationGroup[] {
+  console.log('🔒 PROCESSING STRICT GROUPING');
   const groupedData: { [key: string]: ConsolidationGroup } = {};
 
-  shipments?.forEach((shipment) => {
+  shipments?.forEach((shipment, index) => {
+    console.log(`📦 Processing shipment ${index + 1}:`, {
+      poe: shipment.poe,
+      pod: shipment.pod,
+      cube: shipment.actual_cube || shipment.estimated_cube
+    });
+
     const poeData = shipment.poe as any;
     const podData = shipment.pod as any;
     
     if (!poeData || !podData) {
-      console.warn('Skipping shipment without POE/POD data:', shipment);
+      console.warn('⚠️ Skipping shipment without POE/POD data:', shipment);
       return;
     }
 
     const key = `${shipment.target_poe_id}-${shipment.target_pod_id}`;
+    console.log(`🔑 Grouping key: ${key}`);
     
     if (!groupedData[key]) {
       groupedData[key] = {
@@ -135,6 +157,7 @@ function processStrictGrouping(shipments: any[], userId: string): ConsolidationG
         is_poe_flexible: false,
         is_pod_flexible: false
       };
+      console.log(`➕ Created new group: ${key}`, groupedData[key]);
     }
 
     groupedData[key].shipment_count += 1;
@@ -145,46 +168,68 @@ function processStrictGrouping(shipments: any[], userId: string): ConsolidationG
     }
   });
 
-  return Object.values(groupedData);
+  const result = Object.values(groupedData);
+  console.log('✅ STRICT GROUPING COMPLETE:', result);
+  return result;
 }
 
 function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySettings: FlexibilitySettings): ConsolidationGroup[] {
+  console.log('🔄 PROCESSING FLEXIBLE GROUPING');
+  console.log('⚙️ Flexibility Settings Detail:', {
+    flexiblePorts: flexibilitySettings.flexiblePorts,
+    portCount: Object.keys(flexibilitySettings.flexiblePorts).length
+  });
+
   const groupedData: { [key: string]: ConsolidationGroup } = {};
 
-  shipments?.forEach((shipment) => {
+  shipments?.forEach((shipment, index) => {
+    console.log(`\n📦 Processing shipment ${index + 1}:`);
+    console.log('Raw shipment data:', {
+      target_poe_id: shipment.target_poe_id,
+      target_pod_id: shipment.target_pod_id,
+      poe: shipment.poe,
+      pod: shipment.pod
+    });
+
     const poeData = shipment.poe as any;
     const podData = shipment.pod as any;
     
     if (!poeData || !podData) {
-      console.warn('Skipping shipment without POE/POD data:', shipment);
+      console.warn('⚠️ Skipping shipment without POE/POD data:', shipment);
       return;
     }
 
-    // Determine if this shipment's ports should use flexible grouping
-    const poeFlexible = Object.values(flexibilitySettings.flexiblePorts).some(
-      settings => settings.poeFlexible && 
-      (poeData.port_region_memberships?.[0]?.region?.id === 
-       Object.keys(flexibilitySettings.flexiblePorts).find(portId => 
-         flexibilitySettings.flexiblePorts[portId].poeFlexible
-       ))
-    );
+    // Check if this specific POE is set to flexible
+    const poeFlexibleSetting = flexibilitySettings.flexiblePorts[shipment.target_poe_id];
+    const podFlexibleSetting = flexibilitySettings.flexiblePorts[shipment.target_pod_id];
 
-    const podFlexible = Object.values(flexibilitySettings.flexiblePorts).some(
-      settings => settings.podFlexible && 
-      (podData.port_region_memberships?.[0]?.region?.id === 
-       Object.keys(flexibilitySettings.flexiblePorts).find(portId => 
-         flexibilitySettings.flexiblePorts[portId].podFlexible
-       ))
-    );
+    console.log('🎛️ Port flexibility check:', {
+      poe_id: shipment.target_poe_id,
+      pod_id: shipment.target_pod_id,
+      poeFlexibleSetting,
+      podFlexibleSetting
+    });
+
+    const poeFlexible = poeFlexibleSetting?.poeFlexible || false;
+    const podFlexible = podFlexibleSetting?.podFlexible || false;
+
+    console.log('🔀 Flexibility status:', { poeFlexible, podFlexible });
+
+    // Get region data
+    const poeRegion = poeData.port_region_memberships?.[0]?.region;
+    const podRegion = podData.port_region_memberships?.[0]?.region;
+
+    console.log('🗺️ Region data:', {
+      poeRegion,
+      podRegion
+    });
 
     // Create grouping key based on flexibility
     let groupKey: string;
     let groupData: Partial<ConsolidationGroup>;
 
     if (poeFlexible && podFlexible) {
-      // Both flexible - group by regions
-      const poeRegion = poeData.port_region_memberships?.[0]?.region;
-      const podRegion = podData.port_region_memberships?.[0]?.region;
+      console.log('🔄 Both POE and POD flexible - grouping by regions');
       groupKey = `region-${poeRegion?.id || 'unknown'}-region-${podRegion?.id || 'unknown'}`;
       groupData = {
         poe_id: poeRegion?.id || shipment.target_poe_id,
@@ -201,8 +246,7 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
         is_pod_flexible: true
       };
     } else if (poeFlexible) {
-      // POE flexible, POD strict
-      const poeRegion = poeData.port_region_memberships?.[0]?.region;
+      console.log('🔄 POE flexible, POD strict - grouping by POE region + specific POD');
       groupKey = `region-${poeRegion?.id || 'unknown'}-${shipment.target_pod_id}`;
       groupData = {
         poe_id: poeRegion?.id || shipment.target_poe_id,
@@ -217,8 +261,7 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
         is_pod_flexible: false
       };
     } else if (podFlexible) {
-      // POE strict, POD flexible
-      const podRegion = podData.port_region_memberships?.[0]?.region;
+      console.log('🔄 POE strict, POD flexible - grouping by specific POE + POD region');
       groupKey = `${shipment.target_poe_id}-region-${podRegion?.id || 'unknown'}`;
       groupData = {
         poe_id: shipment.target_poe_id,
@@ -233,7 +276,7 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
         is_pod_flexible: true
       };
     } else {
-      // Both strict - original logic
+      console.log('🔒 Both POE and POD strict - using original logic');
       groupKey = `${shipment.target_poe_id}-${shipment.target_pod_id}`;
       groupData = {
         poe_id: shipment.target_poe_id,
@@ -247,6 +290,9 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
       };
     }
 
+    console.log('🔑 Generated grouping key:', groupKey);
+    console.log('📋 Group data:', groupData);
+
     if (!groupedData[groupKey]) {
       groupedData[groupKey] = {
         ...groupData,
@@ -255,6 +301,7 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
         has_user_shipments: false,
         grouped_ports: { poe_ports: [], pod_ports: [] }
       } as ConsolidationGroup;
+      console.log(`➕ Created new flexible group: ${groupKey}`);
     }
 
     groupedData[groupKey].shipment_count += 1;
@@ -282,9 +329,17 @@ function processFlexibleGrouping(shipments: any[], userId: string, flexibilitySe
         });
       }
     }
+
+    console.log(`✅ Updated group ${groupKey}:`, {
+      shipment_count: groupedData[groupKey].shipment_count,
+      total_cube: groupedData[groupKey].total_cube
+    });
   });
 
   const result = Object.values(groupedData);
-  console.log('Consolidation groups with flexibility:', result);
+  console.log('✅ FLEXIBLE GROUPING COMPLETE:', {
+    totalGroups: result.length,
+    groups: result
+  });
   return result;
 }

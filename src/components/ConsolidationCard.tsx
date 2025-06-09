@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -59,11 +58,27 @@ const ConsolidationCard = ({
   };
 
   const handlePoeFlexibilityChange = (checked: boolean) => {
+    console.log('🎛️ POE Flexibility Change:', {
+      cardId: `${consolidationData.poe_id}-${consolidationData.pod_id}`,
+      poe_id: consolidationData.poe_id,
+      poe_name: consolidationData.poe_name,
+      newPoeFlexible: checked,
+      currentPodFlexible: podFlexible
+    });
+    
     setPoeFlexible(checked);
     onFlexibilityChange(consolidationData.poe_id, checked, podFlexible);
   };
 
   const handlePodFlexibilityChange = (checked: boolean) => {
+    console.log('🎛️ POD Flexibility Change:', {
+      cardId: `${consolidationData.poe_id}-${consolidationData.pod_id}`,
+      pod_id: consolidationData.pod_id,
+      pod_name: consolidationData.pod_name,
+      currentPoeFlexible: poeFlexible,
+      newPodFlexible: checked
+    });
+    
     setPodFlexible(checked);
     onFlexibilityChange(consolidationData.pod_id, poeFlexible, checked);
   };
