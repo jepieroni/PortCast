@@ -2,71 +2,43 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ConsolidationGroup } from './consolidation/types';
 import { usePortRegions } from './usePortRegions';
-
-export interface CustomConsolidationGroup extends ConsolidationGroup {
-  is_custom: true;
-  custom_type: 'port_to_region' | 'region_to_port' | 'region_to_region' | 'port_to_port';
-  origin_region_id?: string;
-  origin_region_name?: string;
-  destination_region_id?: string;
-  destination_region_name?: string;
-  combined_from: ConsolidationGroup[];
-  shipment_details: any[];
-  custom_id: string; // Unique identifier for persistence
-}
+import { useCustomConsolidations, CustomConsolidationGroup } from './useCustomConsolidations';
 
 export type ExtendedConsolidationGroup = ConsolidationGroup | CustomConsolidationGroup;
 
-// Storage key for custom consolidations
-const CUSTOM_CONSOLIDATIONS_KEY = 'custom_consolidations';
-
-export const useDragDropConsolidation = (initialConsolidations: ConsolidationGroup[]) => {
+export const useDragDropConsolidation = (
+  initialConsolidations: ConsolidationGroup[],
+  type: 'inbound' | 'outbound' | 'intertheater'
+) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
+  const {
+    customConsolidations,
+    createCustomConsolidation,
+    deleteCustomConsolidation,
+    isLoading: isLoadingCustom
+  } = useCustomConsolidations(type);
+  
   const [consolidations, setConsolidations] = useState<ExtendedConsolidationGroup[]>([]);
   const [draggedCard, setDraggedCard] = useState<ExtendedConsolidationGroup | null>(null);
 
-  // Load custom consolidations from localStorage on mount
+  // Combine initial consolidations with custom ones, removing originals that were combined
   useEffect(() => {
-    const loadCustomConsolidations = () => {
-      try {
-        const stored = localStorage.getItem(CUSTOM_CONSOLIDATIONS_KEY);
-        if (stored) {
-          const customConsolidations: CustomConsolidationGroup[] = JSON.parse(stored);
-          
-          // Filter out original cards that were used to create custom consolidations
-          const originalConsolidationsToKeep = initialConsolidations.filter(original => {
-            return !customConsolidations.some(custom => 
-              custom.combined_from.some(combined => 
-                combined.poe_id === original.poe_id && combined.pod_id === original.pod_id
-              )
-            );
-          });
+    if (!initialConsolidations || isLoadingCustom) return;
 
-          setConsolidations([...originalConsolidationsToKeep, ...customConsolidations]);
-          return;
-        }
-      } catch (error) {
-        console.error('Error loading custom consolidations:', error);
-      }
-      
-      // If no stored consolidations or error, use initial data
-      setConsolidations(initialConsolidations);
-    };
-
-    loadCustomConsolidations();
-  }, [initialConsolidations]);
-
-  // Save custom consolidations to localStorage
-  const saveCustomConsolidations = useCallback((allConsolidations: ExtendedConsolidationGroup[]) => {
-    try {
-      const customConsolidations = allConsolidations.filter(
-        (c): c is CustomConsolidationGroup => 'is_custom' in c
+    // Filter out original consolidations that were used to create custom consolidations
+    const originalConsolidationsToKeep = initialConsolidations.filter(original => {
+      return !customConsolidations.some(custom => 
+        custom.combined_from?.some(combined => 
+          combined.poe_id === original.poe_id && combined.pod_id === original.pod_id
+        )
       );
-      localStorage.setItem(CUSTOM_CONSOLIDATIONS_KEY, JSON.stringify(customConsolidations));
-    } catch (error) {
-      console.error('Error saving custom consolidations:', error);
-    }
-  }, []);
+    });
+
+    const allConsolidations = [...originalConsolidationsToKeep, ...customConsolidations];
+    setConsolidations(allConsolidations);
+    
+    console.log(`📊 Combined consolidations: ${originalConsolidationsToKeep.length} original + ${customConsolidations.length} custom`);
+  }, [initialConsolidations, customConsolidations, isLoadingCustom]);
 
   const getPortRegion = useCallback((portId: string) => {
     const membership = portRegionMemberships.find(m => m.port_id === portId);
@@ -152,8 +124,6 @@ export const useDragDropConsolidation = (initialConsolidations: ConsolidationGro
       if ('is_custom' in consolidation) {
         return consolidation.shipment_details || [];
       }
-      // For regular consolidations, we'll need to fetch shipment details
-      // For now, return empty array and let the details view handle fetching
       return [];
     };
 
@@ -194,19 +164,29 @@ export const useDragDropConsolidation = (initialConsolidations: ConsolidationGro
 
     const customCard = createCustomCard(draggedCard, targetCard);
     
+    // Save to database
+    createCustomConsolidation(customCard);
+    
+    // Update local state immediately for better UX
     const newConsolidations = consolidations
       .filter(card => card !== draggedCard && card !== targetCard)
       .concat(customCard);
     
     setConsolidations(newConsolidations);
-    saveCustomConsolidations(newConsolidations);
     setDraggedCard(null);
-  }, [draggedCard, canDrop, createCustomCard, consolidations, saveCustomConsolidations]);
+  }, [draggedCard, canDrop, createCustomCard, consolidations, createCustomConsolidation]);
 
   const resetToOriginal = useCallback(() => {
+    // Delete all custom consolidations from database
+    customConsolidations.forEach(custom => {
+      if (custom.db_id) {
+        deleteCustomConsolidation(custom.db_id);
+      }
+    });
+    
+    // Reset local state to original consolidations
     setConsolidations(initialConsolidations);
-    localStorage.removeItem(CUSTOM_CONSOLIDATIONS_KEY);
-  }, [initialConsolidations]);
+  }, [customConsolidations, deleteCustomConsolidation, initialConsolidations]);
 
   const getValidDropTargets = useCallback((source: ExtendedConsolidationGroup) => {
     return consolidations.filter(card => card !== source && canDrop(source, card));
@@ -219,6 +199,7 @@ export const useDragDropConsolidation = (initialConsolidations: ConsolidationGro
     handleDrop,
     canDrop,
     resetToOriginal,
-    getValidDropTargets
+    getValidDropTargets,
+    isLoading: isLoadingCustom
   };
 };

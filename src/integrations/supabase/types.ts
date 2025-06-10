@@ -80,6 +80,117 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_consolidation_memberships: {
+        Row: {
+          created_at: string
+          custom_consolidation_id: string
+          id: string
+          shipment_id: string
+        }
+        Insert: {
+          created_at?: string
+          custom_consolidation_id: string
+          id?: string
+          shipment_id: string
+        }
+        Update: {
+          created_at?: string
+          custom_consolidation_id?: string
+          id?: string
+          shipment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_consolidation_memberships_custom_consolidation_id_fkey"
+            columns: ["custom_consolidation_id"]
+            isOneToOne: false
+            referencedRelation: "custom_consolidations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_consolidation_memberships_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_consolidations: {
+        Row: {
+          consolidation_type: Database["public"]["Enums"]["shipment_type"]
+          created_at: string
+          created_by: string | null
+          destination_port_id: string | null
+          destination_region_id: string | null
+          id: string
+          organization_id: string
+          origin_port_id: string | null
+          origin_region_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          consolidation_type: Database["public"]["Enums"]["shipment_type"]
+          created_at?: string
+          created_by?: string | null
+          destination_port_id?: string | null
+          destination_region_id?: string | null
+          id?: string
+          organization_id: string
+          origin_port_id?: string | null
+          origin_region_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          consolidation_type?: Database["public"]["Enums"]["shipment_type"]
+          created_at?: string
+          created_by?: string | null
+          destination_port_id?: string | null
+          destination_region_id?: string | null
+          id?: string
+          organization_id?: string
+          origin_port_id?: string | null
+          origin_region_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_consolidations_destination_port_id_fkey"
+            columns: ["destination_port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_consolidations_destination_region_id_fkey"
+            columns: ["destination_region_id"]
+            isOneToOne: false
+            referencedRelation: "port_regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_consolidations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_consolidations_origin_port_id_fkey"
+            columns: ["origin_port_id"]
+            isOneToOne: false
+            referencedRelation: "ports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "custom_consolidations_origin_region_id_fkey"
+            columns: ["origin_region_id"]
+            isOneToOne: false
+            referencedRelation: "port_regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_requests: {
         Row: {
           approval_token: string
@@ -859,6 +970,10 @@ export type Database = {
       disable_user_account: {
         Args: { _user_id: string }
         Returns: Json
+      }
+      get_consolidation_org_id: {
+        Args: { consolidation_id: string }
+        Returns: string
       }
       get_user_role: {
         Args: { user_id: string }

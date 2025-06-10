@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
@@ -38,8 +37,9 @@ const ConsolidationDashboard = ({
     handleDrop,
     canDrop,
     resetToOriginal,
-    getValidDropTargets
-  } = useDragDropConsolidation(originalConsolidations || []);
+    getValidDropTargets,
+    isLoading: isLoadingCustom
+  } = useDragDropConsolidation(originalConsolidations || [], type);
 
   const { portRegions, portRegionMemberships } = usePortRegions();
 
@@ -89,6 +89,8 @@ const ConsolidationDashboard = ({
   }, [consolidations, portRegions, portRegionMemberships, type]);
 
   const validDropTargets = draggedCard ? getValidDropTargets(draggedCard) : [];
+
+  const isLoadingAny = isLoading || isLoadingCustom;
 
   return (
     <div className="space-y-6">
@@ -147,7 +149,7 @@ const ConsolidationDashboard = ({
         </div>
       )}
 
-      {isLoading ? (
+      {isLoadingAny ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="space-y-4 p-6 border rounded-lg">
