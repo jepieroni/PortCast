@@ -13,10 +13,10 @@ export const fetchConsolidationShipments = async (
   cutoffDate.setDate(cutoffDate.getDate() + outlookDays);
 
   try {
-    console.log('🔍 Step 1: Starting simplified shipments query...');
+    console.log('🔍 Step 1: Starting shipments query...');
     
-    // Simplified approach - just get shipments first without complex joins
-    const { data: shipments, error } = await supabase
+    // First, fetch shipments with basic port data
+    const { data: shipments, error: shipmentsError } = await supabase
       .from('shipments')
       .select(`
         id,
@@ -47,60 +47,84 @@ export const fetchConsolidationShipments = async (
       `)
       .eq('shipment_type', type)
       .lte('pickup_date', cutoffDate.toISOString().split('T')[0])
-      .limit(100); // Add limit to prevent huge queries
+      .limit(100);
 
     console.log('🔍 Step 2: Shipments query completed');
 
-    if (error) {
-      console.error('❌ Error fetching shipments:', error);
-      debugLogger.error('CONSOLIDATION-SERVICE', 'Error fetching shipments', 'fetchConsolidationShipments', { error });
-      throw error;
+    if (shipmentsError) {
+      console.error('❌ Error fetching shipments:', shipmentsError);
+      debugLogger.error('CONSOLIDATION-SERVICE', 'Error fetching shipments', 'fetchConsolidationShipments', { error: shipmentsError });
+      throw shipmentsError;
     }
 
     console.log('✅ Successfully fetched shipments:', shipments?.length || 0);
 
-    // Add port region data if we have shipments
-    if (shipments && shipments.length > 0) {
-      console.log('🔍 Step 3: Adding port region data...');
-      
-      // Get unique port IDs
-      const portIds = new Set();
-      shipments.forEach(s => {
-        if (s.target_poe_id) portIds.add(s.target_poe_id);
-        if (s.target_pod_id) portIds.add(s.target_pod_id);
-      });
+    if (!shipments || shipments.length === 0) {
+      console.log('📭 No shipments found for consolidation');
+      return [];
+    }
 
-      // Fetch port region memberships
-      const { data: portRegions } = await supabase
-        .from('port_region_memberships')
-        .select(`
-          port_id,
-          region:port_regions(id, name)
-        `)
-        .in('port_id', Array.from(portIds));
+    console.log('🔍 Step 3: Enriching with port region data...');
+    
+    // Get unique port IDs - properly typed as string[]
+    const portIds: string[] = [];
+    shipments.forEach(s => {
+      if (s.target_poe_id) portIds.push(s.target_poe_id);
+      if (s.target_pod_id) portIds.push(s.target_pod_id);
+    });
 
-      console.log('🔍 Step 4: Port regions fetched:', portRegions?.length || 0);
+    // Remove duplicates
+    const uniquePortIds = [...new Set(portIds)];
+    console.log('🔍 Step 4: Found unique port IDs:', uniquePortIds.length);
 
-      // Add region data to shipments
-      const enrichedShipments = shipments.map(shipment => ({
+    if (uniquePortIds.length === 0) {
+      console.log('⚠️ No port IDs found in shipments');
+      // Return shipments with empty port_region_memberships
+      return shipments.map(shipment => ({
         ...shipment,
         poe: {
           ...shipment.poe,
-          port_region_memberships: portRegions?.filter(pr => pr.port_id === shipment.target_poe_id) || []
+          port_region_memberships: []
         },
         pod: {
           ...shipment.pod,
-          port_region_memberships: portRegions?.filter(pr => pr.port_id === shipment.target_pod_id) || []
+          port_region_memberships: []
         }
       }));
-
-      console.log('✅ Enriched shipments with port regions');
-      debugLogger.info('CONSOLIDATION-SERVICE', `Successfully processed ${enrichedShipments.length} shipments`, 'fetchConsolidationShipments');
-      return enrichedShipments;
     }
 
-    debugLogger.info('CONSOLIDATION-SERVICE', `No shipments found for ${type}`, 'fetchConsolidationShipments');
-    return shipments || [];
+    // Fetch port region memberships
+    const { data: portRegions, error: portRegionsError } = await supabase
+      .from('port_region_memberships')
+      .select(`
+        port_id,
+        region:port_regions(id, name)
+      `)
+      .in('port_id', uniquePortIds);
+
+    console.log('🔍 Step 5: Port regions fetched:', portRegions?.length || 0);
+
+    if (portRegionsError) {
+      console.warn('⚠️ Error fetching port regions:', portRegionsError);
+      // Continue without port regions
+    }
+
+    // Enrich shipments with port region data
+    const enrichedShipments = shipments.map(shipment => ({
+      ...shipment,
+      poe: {
+        ...shipment.poe,
+        port_region_memberships: portRegions?.filter(pr => pr.port_id === shipment.target_poe_id) || []
+      },
+      pod: {
+        ...shipment.pod,
+        port_region_memberships: portRegions?.filter(pr => pr.port_id === shipment.target_pod_id) || []
+      }
+    }));
+
+    console.log('✅ Enriched shipments with port regions');
+    debugLogger.info('CONSOLIDATION-SERVICE', `Successfully processed ${enrichedShipments.length} shipments`, 'fetchConsolidationShipments');
+    return enrichedShipments;
 
   } catch (error) {
     console.error('❌ Unexpected error in fetchConsolidationShipments:', error);
