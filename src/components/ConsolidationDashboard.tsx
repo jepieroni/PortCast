@@ -36,7 +36,6 @@ const ConsolidationDashboard = ({
   });
 
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
-  const [compatibleCards, setCompatibleCards] = useState<Set<string>>(new Set());
   
   // Stabilize outlookDays array to prevent infinite re-renders
   const stableOutlookDays = useMemo(() => {
@@ -72,20 +71,43 @@ const ConsolidationDashboard = ({
     return defaultGetCardKey(card);
   }, []);
 
-  useEffect(() => {
-    console.log('🔄 ConsolidationDashboard useEffect for compatible cards', {
+  // Calculate compatible cards when selection changes
+  const compatibleCards = useMemo(() => {
+    console.log('🔄 compatibleCards memo recalculating', {
       selectedCardsSize: selectedCards.size,
       consolidationsLength: consolidations.length
     });
-    // Update compatible cards whenever consolidations change
-    const newCompatibleCards = new Set(
-      Array.from(selectedCards).filter(cardKey => {
-        const card = consolidations.find(c => getCardKey(c) === cardKey);
-        return card && canDrop(card, card); // Check if the card is still valid for selection
-      })
-    );
-    setCompatibleCards(newCompatibleCards);
-  }, [consolidations, selectedCards, canDrop, getCardKey]);
+    
+    // If no cards are selected, all cards are compatible for selection
+    if (selectedCards.size === 0) {
+      const allCardKeys = new Set(consolidations.map(c => getCardKey(c)));
+      console.log('🔄 No cards selected, all cards compatible:', allCardKeys.size);
+      return allCardKeys;
+    }
+    
+    // If cards are selected, find which other cards can be combined with them
+    const selectedCardsList = Array.from(selectedCards)
+      .map(cardKey => consolidations.find(c => getCardKey(c) === cardKey))
+      .filter(Boolean) as ExtendedConsolidationGroup[];
+    
+    if (selectedCardsList.length === 0) {
+      return new Set<string>();
+    }
+    
+    const compatibleSet = new Set<string>();
+    
+    consolidations.forEach(card => {
+      const cardKey = getCardKey(card);
+      // A card is compatible if it can be dropped on any selected card
+      const isCompatible = selectedCardsList.some(selectedCard => canDrop(card, selectedCard));
+      if (isCompatible) {
+        compatibleSet.add(cardKey);
+      }
+    });
+    
+    console.log('🔄 Compatible cards calculated:', compatibleSet.size);
+    return compatibleSet;
+  }, [selectedCards, consolidations, canDrop, getCardKey]);
 
   const handleCardSelection = useCallback((card: ExtendedConsolidationGroup, checked: boolean) => {
     console.log('🔄 handleCardSelection called', { checked, cardKey: getCardKey(card) });

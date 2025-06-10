@@ -33,16 +33,22 @@ export const useCombinedConsolidationData = (
     const regularConsolidations = regularConsolidationQuery.data || [];
     
     // Cast custom consolidations to ExtendedConsolidationGroup format
-    const extendedCustom: ExtendedConsolidationGroup[] = customConsolidations.map(custom => ({
-      ...custom,
-      is_custom: true as const
-    }));
+    const extendedCustom: ExtendedConsolidationGroup[] = customConsolidations.map(custom => {
+      console.log('🔄 Processing custom consolidation:', custom.custom_id);
+      return {
+        ...custom,
+        is_custom: true as const
+      };
+    });
     
-    // Cast regular consolidations to ExtendedConsolidationGroup format
-    const extendedRegular: ExtendedConsolidationGroup[] = regularConsolidations.map(regular => ({
-      ...regular,
-      is_custom: false as const
-    }));
+    // Cast regular consolidations to ExtendedConsolidationGroup format - these are NOT custom
+    const extendedRegular: ExtendedConsolidationGroup[] = regularConsolidations.map(regular => {
+      console.log('🔄 Processing regular consolidation:', regular.poe_id + '-' + regular.pod_id);
+      return {
+        ...regular
+        // Note: NOT adding is_custom property, so these will be regular consolidations
+      };
+    });
 
     console.log('🔄 Combining consolidation data:', {
       customCount: extendedCustom.length,

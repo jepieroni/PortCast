@@ -1,4 +1,3 @@
-
 import { Card } from '@/components/ui/card';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
@@ -50,7 +49,18 @@ const ConsolidationCard = ({
 }: ConsolidationCardProps) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
-  const isCustomCard = 'is_custom' in consolidationData && consolidationData.is_custom;
+  
+  // Check if this is a custom card - must have is_custom property set to true
+  const isCustomCard = 'is_custom' in consolidationData && consolidationData.is_custom === true;
+  
+  console.log('🎯 ConsolidationCard rendering:', {
+    poe_name,
+    pod_name,
+    hasIsCustomProperty: 'is_custom' in consolidationData,
+    isCustomValue: 'is_custom' in consolidationData ? consolidationData.is_custom : 'not present',
+    isCustomCard,
+    isCompatibleForSelection
+  });
 
   // Get port region names for POE and POD
   const getPoeRegionName = () => {
@@ -127,7 +137,7 @@ const ConsolidationCard = ({
       classes += "hover:scale-105 ";
     }
 
-    // Add grey-out effect if not compatible for selection
+    // Add grey-out effect if not compatible for selection - but only when checkbox is shown
     if (showCheckbox && !isCompatibleForSelection) {
       classes += "opacity-50 ";
     }
