@@ -35,10 +35,26 @@ export const useRegularConsolidationData = (
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() + maxOutlookDays);
 
-        console.log('🔍 Step 1: Fetching shipments excluding custom consolidation members...');
+        console.log('🔍 Step 1: Getting shipment IDs that are in custom consolidations...');
         
-        // First, fetch shipments excluding those that are part of custom consolidations
-        const { data: shipments, error: shipmentsError } = await supabase
+        // First, get all shipment IDs that are part of custom consolidations
+        const { data: customMembershipIds, error: membershipError } = await supabase
+          .from('custom_consolidation_memberships')
+          .select('shipment_id');
+
+        if (membershipError) {
+          console.error('❌ Error fetching custom consolidation memberships:', membershipError);
+          debugLogger.error('REGULAR-CONSOLIDATION-DATA', 'Error fetching custom consolidation memberships', 'useRegularConsolidationData', { error: membershipError });
+          // Continue without exclusions rather than failing
+        }
+
+        const excludedShipmentIds = customMembershipIds?.map(m => m.shipment_id) || [];
+        console.log('🔍 Step 2: Found shipment IDs in custom consolidations:', excludedShipmentIds.length);
+
+        console.log('🔍 Step 3: Fetching available shipments...');
+        
+        // Build the query for shipments
+        let shipmentsQuery = supabase
           .from('shipments')
           .select(`
             id,
@@ -69,10 +85,16 @@ export const useRegularConsolidationData = (
           `)
           .eq('shipment_type', type)
           .lte('pickup_date', cutoffDate.toISOString().split('T')[0])
-          .not('id', 'in', `(SELECT shipment_id FROM custom_consolidation_memberships)`)
           .limit(100);
 
-        console.log('🔍 Step 2: Shipments query completed');
+        // Only exclude shipments if there are any to exclude
+        if (excludedShipmentIds.length > 0) {
+          shipmentsQuery = shipmentsQuery.not('id', 'in', `(${excludedShipmentIds.map(id => `"${id}"`).join(',')})`);
+        }
+
+        const { data: shipments, error: shipmentsError } = await shipmentsQuery;
+
+        console.log('🔍 Step 4: Shipments query completed');
 
         if (shipmentsError) {
           console.error('❌ Error fetching shipments:', shipmentsError);
@@ -87,7 +109,7 @@ export const useRegularConsolidationData = (
           return [];
         }
 
-        console.log('🔍 Step 3: Enriching with port region data...');
+        console.log('🔍 Step 5: Enriching with port region data...');
         
         // Get unique port IDs
         const portIds: string[] = [];
@@ -98,7 +120,7 @@ export const useRegularConsolidationData = (
 
         // Remove duplicates
         const uniquePortIds = [...new Set(portIds)];
-        console.log('🔍 Step 4: Found unique port IDs:', uniquePortIds.length);
+        console.log('🔍 Step 6: Found unique port IDs:', uniquePortIds.length);
 
         if (uniquePortIds.length === 0) {
           console.log('⚠️ No port IDs found in shipments');
@@ -125,7 +147,7 @@ export const useRegularConsolidationData = (
           `)
           .in('port_id', uniquePortIds);
 
-        console.log('🔍 Step 5: Port regions fetched:', portRegions?.length || 0);
+        console.log('🔍 Step 7: Port regions fetched:', portRegions?.length || 0);
 
         if (portRegionsError) {
           console.warn('⚠️ Error fetching port regions:', portRegionsError);
