@@ -15,7 +15,7 @@ export const fetchConsolidationShipments = async (
     console.log('🔍 Step 1a: Starting custom consolidation memberships query...');
     
     // Simplified first query - remove the inner join which might be causing issues
-    const { data: customMembershipIds, error: membershipError } = await Promise.race([
+    const customMembershipsResult = await Promise.race([
       supabase
         .from('custom_consolidation_memberships')
         .select(`
@@ -29,7 +29,9 @@ export const fetchConsolidationShipments = async (
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Custom memberships query timeout after 15 seconds')), 15000)
       )
-    ]);
+    ]) as any;
+
+    const { data: customMembershipIds, error: membershipError } = customMembershipsResult;
 
     console.log('🔍 Step 1b: Custom memberships query completed');
 
@@ -93,12 +95,14 @@ export const fetchConsolidationShipments = async (
 
     console.log('🔍 Step 3: Executing main query with timeout...');
 
-    const { data: shipments, error } = await Promise.race([
+    const shipmentsResult = await Promise.race([
       query,
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Main shipments query timeout after 20 seconds')), 20000)
       )
-    ]);
+    ]) as any;
+
+    const { data: shipments, error } = shipmentsResult;
 
     console.log('🔍 Step 3a: Main query completed');
 
