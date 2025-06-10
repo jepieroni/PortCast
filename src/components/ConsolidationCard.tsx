@@ -92,18 +92,22 @@ const ConsolidationCard = ({
   };
 
   const handleBreakApart = () => {
-    if (isCustomCard && 'id' in consolidationData) {
-      // For custom consolidations, use the actual database ID (without custom- prefix)
-      const rawId = consolidationData.id;
-      
-      // Type guard to ensure id is a string
-      if (typeof rawId === 'string') {
-        let dbId = rawId;
-        if (dbId.startsWith('custom-')) {
-          dbId = dbId.substring(7); // Remove 'custom-' prefix
-        }
-        onBreakApart?.(dbId);
-      }
+    console.log('🔄 handleBreakApart called in ConsolidationCard', { 
+      isCustomCard, 
+      consolidationData,
+      hasDbId: 'db_id' in consolidationData,
+      dbId: 'db_id' in consolidationData ? consolidationData.db_id : 'not found'
+    });
+    
+    if (isCustomCard && 'db_id' in consolidationData && consolidationData.db_id) {
+      console.log('🔄 Calling onBreakApart with db_id:', consolidationData.db_id);
+      onBreakApart?.(consolidationData.db_id);
+    } else {
+      console.error('❌ Cannot break apart: missing db_id or not a custom card', {
+        isCustomCard,
+        hasDbId: 'db_id' in consolidationData,
+        consolidationData
+      });
     }
   };
 
