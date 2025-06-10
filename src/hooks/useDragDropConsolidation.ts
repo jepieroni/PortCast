@@ -67,9 +67,16 @@ export const useDragDropConsolidation = (
         const existing = consolidations[index];
         if (!existing) return true;
         
-        // Compare by key
-        const newKey = 'is_custom' in newConsolidation ? newConsolidation.custom_id : `${newConsolidation.poe_id}-${newConsolidation.pod_id}`;
-        const existingKey = 'is_custom' in existing ? existing.custom_id : `${existing.poe_id}-${existing.pod_id}`;
+        // Compare by key - properly check for custom consolidations
+        const getKey = (consolidation: ExtendedConsolidationGroup) => {
+          if ('is_custom' in consolidation && consolidation.is_custom) {
+            return (consolidation as CustomConsolidationGroup).custom_id;
+          }
+          return `${consolidation.poe_id}-${consolidation.pod_id}`;
+        };
+        
+        const newKey = getKey(newConsolidation);
+        const existingKey = getKey(existing);
         return newKey !== existingKey;
       });
 
@@ -88,9 +95,24 @@ export const useDragDropConsolidation = (
   }, [initialConsolidations, customConsolidations, isLoadingCustom]);
 
   const handleDrop = useCallback((targetCard: ExtendedConsolidationGroup) => {
+    const getDraggedCardKey = () => {
+      if (!draggedCard) return null;
+      if ('is_custom' in draggedCard && draggedCard.is_custom) {
+        return (draggedCard as CustomConsolidationGroup).custom_id;
+      }
+      return `${draggedCard.poe_id}-${draggedCard.pod_id}`;
+    };
+
+    const getTargetCardKey = () => {
+      if ('is_custom' in targetCard && targetCard.is_custom) {
+        return (targetCard as CustomConsolidationGroup).custom_id;
+      }
+      return `${targetCard.poe_id}-${targetCard.pod_id}`;
+    };
+
     debugLogger.info('DRAG-DROP-HOOK', 'Drop operation initiated', 'handleDrop', {
-      draggedCard: draggedCard ? 'is_custom' in draggedCard ? draggedCard.custom_id : `${draggedCard.poe_id}-${draggedCard.pod_id}` : null,
-      targetCard: 'is_custom' in targetCard ? targetCard.custom_id : `${targetCard.poe_id}-${targetCard.pod_id}`
+      draggedCard: getDraggedCardKey(),
+      targetCard: getTargetCardKey()
     });
 
     if (!draggedCard || !canDrop(draggedCard, targetCard)) {
@@ -126,13 +148,20 @@ export const useDragDropConsolidation = (
       return;
     }
 
+    const getCardKey = (card: ExtendedConsolidationGroup) => {
+      if ('is_custom' in card && card.is_custom) {
+        return (card as CustomConsolidationGroup).custom_id;
+      }
+      return `${card.poe_id}-${card.pod_id}`;
+    };
+
     debugLogger.debug('DRAG-DROP-HOOK', 'Card details for multiple consolidation', 'createMultipleConsolidation', {
       cards: cards.map(c => ({
-        key: 'is_custom' in c ? c.custom_id : `${c.poe_id}-${c.pod_id}`,
+        key: getCardKey(c),
         poe: c.poe_name,
         pod: c.pod_name,
         shipments: c.shipment_count,
-        isCustom: 'is_custom' in c
+        isCustom: 'is_custom' in c && c.is_custom
       }))
     });
 
