@@ -2,6 +2,8 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import ConsolidationCard from '@/components/ConsolidationCard';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
+import { useConsolidationSort } from '@/hooks/consolidation/useConsolidationSort';
+import { usePortRegions } from '@/hooks/usePortRegions';
 import { Loader2 } from 'lucide-react';
 
 interface ConsolidationGridProps {
@@ -39,6 +41,16 @@ const ConsolidationGrid = ({
   onDrop,
   getCardKey
 }: ConsolidationGridProps) => {
+  const { portRegions, portRegionMemberships } = usePortRegions();
+  
+  // Use the sorting hook to properly sort consolidations
+  const sortedConsolidations = useConsolidationSort(
+    consolidations,
+    portRegions,
+    portRegionMemberships,
+    type
+  );
+
   if (isLoading) {
     return (
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -63,7 +75,7 @@ const ConsolidationGrid = ({
     );
   }
 
-  if (!consolidations || consolidations.length === 0) {
+  if (!sortedConsolidations || sortedConsolidations.length === 0) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500 text-lg mb-4">No consolidations available for the selected time period</p>
@@ -83,7 +95,7 @@ const ConsolidationGrid = ({
       )}
       
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {consolidations.map((consolidation, index) => {
+        {sortedConsolidations.map((consolidation, index) => {
           const cardKey = getCardKey(consolidation);
           const isValidTarget = validDropTargets.includes(consolidation);
           const isDragging = draggedCard === consolidation;
