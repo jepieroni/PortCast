@@ -50,6 +50,7 @@ const ConsolidationCard = ({
 }: ConsolidationCardProps) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
+  const isCustomCard = 'is_custom' in consolidationData && consolidationData.is_custom;
 
   // Get port region names for POE and POD
   const getPoeRegionName = () => {
@@ -107,15 +108,22 @@ const ConsolidationCard = ({
   const getCardClasses = () => {
     let classes = "cursor-pointer transition-all duration-200 hover:shadow-lg ";
     
+    // Base styling for custom vs regular cards
+    if (isCustomCard) {
+      classes += "border-2 border-dashed border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100 ";
+    } else {
+      classes += "border border-solid border-gray-200 bg-white ";
+    }
+    
     if (isDragging) {
       classes += "opacity-50 transform rotate-2 ";
     } else if (isValidDropTarget) {
       classes += "ring-2 ring-green-500 bg-green-50 scale-105 ";
     } else if (isSelected) {
       classes += "ring-2 ring-purple-500 bg-purple-50 ";
-    } else if (hasUserShipments) {
+    } else if (hasUserShipments && !isCustomCard) {
       classes += "ring-2 ring-blue-500 bg-blue-50 ";
-    } else {
+    } else if (!isDragging && !isValidDropTarget && !isSelected) {
       classes += "hover:scale-105 ";
     }
 
