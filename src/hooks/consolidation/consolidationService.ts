@@ -6,50 +6,17 @@ export const fetchConsolidationShipments = async (
   type: 'inbound' | 'outbound' | 'intertheater',
   outlookDays: number
 ) => {
+  console.log('🔍 fetchConsolidationShipments called:', { type, outlookDays });
   debugLogger.info('CONSOLIDATION-SERVICE', `Fetching ${type} shipments for ${outlookDays} days`, 'fetchConsolidationShipments');
 
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() + outlookDays);
 
   try {
-    console.log('🔍 Step 1a: Starting custom consolidation memberships query...');
+    console.log('🔍 Step 1: Starting simplified shipments query...');
     
-    // Simplified first query - remove the inner join which might be causing issues
-    const customMembershipsResult = await Promise.race([
-      supabase
-        .from('custom_consolidation_memberships')
-        .select(`
-          shipment_id,
-          custom_consolidations!inner(
-            id,
-            consolidation_type
-          )
-        `)
-        .eq('custom_consolidations.consolidation_type', type),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Custom memberships query timeout after 15 seconds')), 15000)
-      )
-    ]) as any;
-
-    const { data: customMembershipIds, error: membershipError } = customMembershipsResult;
-
-    console.log('🔍 Step 1b: Custom memberships query completed');
-
-    if (membershipError) {
-      console.error('❌ Error fetching custom consolidation memberships:', membershipError);
-      debugLogger.error('CONSOLIDATION-SERVICE', 'Error fetching custom consolidation memberships', 'fetchConsolidationShipments', { error: membershipError });
-      throw membershipError;
-    }
-
-    console.log('✅ Step 1 complete - Custom memberships:', customMembershipIds?.length || 0);
-
-    const excludeShipmentIds = customMembershipIds?.map(m => m.shipment_id) || [];
-    debugLogger.debug('CONSOLIDATION-SERVICE', `Excluding ${excludeShipmentIds.length} shipments already in custom consolidations`, 'fetchConsolidationShipments');
-
-    console.log('🔍 Step 2: Building main shipments query...');
-
-    // Build the main query with timeout protection
-    let query = supabase
+    // Simplified approach - just get shipments first without complex joins
+    const { data: shipments, error } = await supabase
       .from('shipments')
       .select(`
         id,
@@ -70,41 +37,19 @@ export const fetchConsolidationShipments = async (
         poe:ports!target_poe_id(
           id,
           name,
-          code,
-          port_region_memberships(
-            region:port_regions(id, name)
-          )
+          code
         ),
         pod:ports!target_pod_id(
           id,
           name,
-          code,
-          port_region_memberships(
-            region:port_regions(id, name)
-          )
+          code
         )
       `)
       .eq('shipment_type', type)
-      .lte('pickup_date', cutoffDate.toISOString().split('T')[0]);
+      .lte('pickup_date', cutoffDate.toISOString().split('T')[0])
+      .limit(100); // Add limit to prevent huge queries
 
-    // Exclude shipments that are already in custom consolidations
-    if (excludeShipmentIds.length > 0) {
-      console.log('🔍 Step 2a: Adding exclusion filter for', excludeShipmentIds.length, 'shipments');
-      query = query.not('id', 'in', `(${excludeShipmentIds.join(',')})`);
-    }
-
-    console.log('🔍 Step 3: Executing main query with timeout...');
-
-    const shipmentsResult = await Promise.race([
-      query,
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Main shipments query timeout after 20 seconds')), 20000)
-      )
-    ]) as any;
-
-    const { data: shipments, error } = shipmentsResult;
-
-    console.log('🔍 Step 3a: Main query completed');
+    console.log('🔍 Step 2: Shipments query completed');
 
     if (error) {
       console.error('❌ Error fetching shipments:', error);
@@ -112,9 +57,49 @@ export const fetchConsolidationShipments = async (
       throw error;
     }
 
-    console.log('✅ Step 3 complete - Shipments fetched:', shipments?.length || 0);
+    console.log('✅ Successfully fetched shipments:', shipments?.length || 0);
 
-    debugLogger.info('CONSOLIDATION-SERVICE', `Successfully fetched ${shipments?.length || 0} shipments`, 'fetchConsolidationShipments');
+    // Add port region data if we have shipments
+    if (shipments && shipments.length > 0) {
+      console.log('🔍 Step 3: Adding port region data...');
+      
+      // Get unique port IDs
+      const portIds = new Set();
+      shipments.forEach(s => {
+        if (s.target_poe_id) portIds.add(s.target_poe_id);
+        if (s.target_pod_id) portIds.add(s.target_pod_id);
+      });
+
+      // Fetch port region memberships
+      const { data: portRegions } = await supabase
+        .from('port_region_memberships')
+        .select(`
+          port_id,
+          region:port_regions(id, name)
+        `)
+        .in('port_id', Array.from(portIds));
+
+      console.log('🔍 Step 4: Port regions fetched:', portRegions?.length || 0);
+
+      // Add region data to shipments
+      const enrichedShipments = shipments.map(shipment => ({
+        ...shipment,
+        poe: {
+          ...shipment.poe,
+          port_region_memberships: portRegions?.filter(pr => pr.port_id === shipment.target_poe_id) || []
+        },
+        pod: {
+          ...shipment.pod,
+          port_region_memberships: portRegions?.filter(pr => pr.port_id === shipment.target_pod_id) || []
+        }
+      }));
+
+      console.log('✅ Enriched shipments with port regions');
+      debugLogger.info('CONSOLIDATION-SERVICE', `Successfully processed ${enrichedShipments.length} shipments`, 'fetchConsolidationShipments');
+      return enrichedShipments;
+    }
+
+    debugLogger.info('CONSOLIDATION-SERVICE', `No shipments found for ${type}`, 'fetchConsolidationShipments');
     return shipments || [];
 
   } catch (error) {

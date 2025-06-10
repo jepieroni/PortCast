@@ -11,6 +11,13 @@ export const useConsolidationData = (
   const { user } = useAuth();
   const maxOutlookDays = Math.max(...outlookDays);
 
+  console.log('🎯 useConsolidationData called with:', { 
+    type, 
+    maxOutlookDays, 
+    userId: user?.id,
+    enabled: !!user?.id 
+  });
+
   return useQuery({
     queryKey: ['consolidation-data', type, maxOutlookDays, user?.id],
     queryFn: async () => {
@@ -22,14 +29,9 @@ export const useConsolidationData = (
       }
 
       try {
-        // Fetch shipments from database with timeout
+        // Fetch shipments from database
         console.log('📦 Fetching shipments...');
-        const shipments = await Promise.race([
-          fetchConsolidationShipments(type, maxOutlookDays),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Query timeout after 30 seconds')), 30000)
-          )
-        ]);
+        const shipments = await fetchConsolidationShipments(type, maxOutlookDays);
         
         console.log('📦 Raw shipments fetched:', Array.isArray(shipments) ? shipments.length : 0);
 
@@ -50,11 +52,8 @@ export const useConsolidationData = (
       }
     },
     enabled: !!user?.id,
-    staleTime: 1000 * 60 * 1, // Reduced to 1 minute for faster updates
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false,
-    retry: (failureCount, error) => {
-      console.log('🔄 Query retry attempt:', failureCount, error);
-      return failureCount < 2; // Only retry twice
-    }
+    retry: 1
   });
 };
