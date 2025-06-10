@@ -1,9 +1,11 @@
+
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
 import ConsolidationCard from '@/components/ConsolidationCard';
 import { useConsolidationData } from '@/hooks/useConsolidationData';
-import { useDragDropConsolidation } from '@/hooks/useDragDropConsolidation';
+import { useDragDropConsolidation, ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
+import { usePortRegions } from '@/hooks/usePortRegions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useMemo } from 'react';
 
