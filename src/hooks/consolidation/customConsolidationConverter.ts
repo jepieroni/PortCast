@@ -1,63 +1,125 @@
 
-import { CustomConsolidationGroup } from './customConsolidationTypes';
+import { supabase } from '@/integrations/supabase/client';
+import { DatabaseCustomConsolidation, CustomConsolidationGroup } from './customConsolidationTypes';
+import { debugLogger } from '@/services/debugLogger';
 
-export const convertDbToUIFormat = (dbConsolidations: any[]): CustomConsolidationGroup[] => {
-  return dbConsolidations.map(dbConsolidation => {
-    const originPort = dbConsolidation.origin_port;
-    const destinationPort = dbConsolidation.destination_port;
-    const originRegion = dbConsolidation.origin_region;
-    const destinationRegion = dbConsolidation.destination_region;
+export const convertDbToUIFormat = async (dbConsolidations: DatabaseCustomConsolidation[]): Promise<CustomConsolidationGroup[]> => {
+  debugLogger.info('CUSTOM-CONSOLIDATION-CONVERTER', 'Converting database consolidations to UI format', 'convertDbToUIFormat', {
+    count: dbConsolidations.length
+  });
 
-    // Determine custom type
-    let customType: CustomConsolidationGroup['custom_type'];
-    let poe_name: string, poe_code: string, pod_name: string, pod_code: string;
+  const uiConsolidations: CustomConsolidationGroup[] = [];
 
-    if (originRegion && destinationRegion) {
-      customType = 'region_to_region';
-      poe_name = `Region: ${originRegion.name}`;
-      poe_code = '';
-      pod_name = `Region: ${destinationRegion.name}`;
-      pod_code = '';
-    } else if (originRegion && destinationPort) {
-      customType = 'region_to_port';
-      poe_name = `Region: ${originRegion.name}`;
-      poe_code = '';
-      pod_name = destinationPort.name;
-      pod_code = destinationPort.code;
-    } else if (originPort && destinationRegion) {
-      customType = 'port_to_region';
-      poe_name = originPort.name;
-      poe_code = originPort.code;
-      pod_name = `Region: ${destinationRegion.name}`;
-      pod_code = '';
-    } else {
-      customType = 'port_to_port';
-      poe_name = originPort?.name || '';
-      poe_code = originPort?.code || '';
-      pod_name = destinationPort?.name || '';
-      pod_code = destinationPort?.code || '';
+  for (const dbRecord of dbConsolidations) {
+    debugLogger.debug('CUSTOM-CONSOLIDATION-CONVERTER', 'Processing database record', 'convertDbToUIFormat', {
+      id: dbRecord.id,
+      consolidationType: dbRecord.consolidation_type
+    });
+
+    // Fetch membership data to get shipment details and counts
+    const { data: memberships, error: membershipError } = await supabase
+      .from('custom_consolidation_memberships')
+      .select(`
+        shipment_id,
+        shipments:shipment_id (
+          id,
+          gbl_number,
+          shipper_last_name,
+          estimated_cube,
+          actual_cube,
+          remaining_cube,
+          pickup_date,
+          rdd,
+          shipment_type,
+          origin_rate_area,
+          destination_rate_area,
+          target_poe_id,
+          target_pod_id,
+          tsp_id,
+          user_id
+        )
+      `)
+      .eq('custom_consolidation_id', dbRecord.id);
+
+    if (membershipError) {
+      debugLogger.error('CUSTOM-CONSOLIDATION-CONVERTER', 'Error fetching membership data', 'convertDbToUIFormat', {
+        error: membershipError,
+        consolidationId: dbRecord.id
+      });
     }
 
-    return {
-      poe_id: originPort?.id || dbConsolidation.origin_port_id || '',
+    const shipmentDetails = memberships?.map(m => m.shipments).filter(Boolean) || [];
+    const totalCube = shipmentDetails.reduce((sum, shipment) => sum + (shipment.estimated_cube || shipment.actual_cube || 0), 0);
+    const shipmentCount = shipmentDetails.length;
+
+    debugLogger.debug('CUSTOM-CONSOLIDATION-CONVERTER', 'Calculated totals from memberships', 'convertDbToUIFormat', {
+      consolidationId: dbRecord.id,
+      shipmentCount,
+      totalCube
+    });
+
+    // Determine custom type based on whether we're using regions or ports
+    let customType: CustomConsolidationGroup['custom_type'];
+    if (dbRecord.origin_region_id && dbRecord.destination_region_id) {
+      customType = 'region_to_region';
+    } else if (dbRecord.origin_region_id) {
+      customType = 'region_to_port';
+    } else if (dbRecord.destination_region_id) {
+      customType = 'port_to_region';
+    } else {
+      customType = 'port_to_port';
+    }
+
+    // Build port/region names
+    const poe_name = dbRecord.origin_region_id 
+      ? `Region: ${dbRecord.origin_region?.name || 'Unknown Region'}`
+      : dbRecord.origin_port?.name || 'Unknown Port';
+    
+    const pod_name = dbRecord.destination_region_id
+      ? `Region: ${dbRecord.destination_region?.name || 'Unknown Region'}`
+      : dbRecord.destination_port?.name || 'Unknown Port';
+
+    const poe_code = dbRecord.origin_port?.code || '';
+    const pod_code = dbRecord.destination_port?.code || '';
+
+    // Check if any shipments belong to the current user
+    const hasUserShipments = shipmentDetails.some(shipment => shipment.user_id === dbRecord.created_by);
+
+    const uiRecord: CustomConsolidationGroup = {
+      poe_id: dbRecord.origin_port_id || dbRecord.origin_region_id || '',
       poe_name,
       poe_code,
-      pod_id: destinationPort?.id || dbConsolidation.destination_port_id || '',
+      pod_id: dbRecord.destination_port_id || dbRecord.destination_region_id || '',
       pod_name,
       pod_code,
-      shipment_count: 0, // Will be calculated from actual shipments
-      total_cube: 0, // Will be calculated from actual shipments
-      has_user_shipments: false, // Will be determined from actual shipments
+      shipment_count: shipmentCount,
+      total_cube: totalCube,
+      has_user_shipments: hasUserShipments,
       is_custom: true,
       custom_type: customType,
-      origin_region_id: dbConsolidation.origin_region_id,
-      origin_region_name: originRegion?.name,
-      destination_region_id: dbConsolidation.destination_region_id,
-      destination_region_name: destinationRegion?.name,
-      combined_from: [], // This will need to be reconstructed or stored separately
-      shipment_details: [],
-      custom_id: dbConsolidation.id,
-      db_id: dbConsolidation.id
-    } as CustomConsolidationGroup;
+      origin_region_id: dbRecord.origin_region_id,
+      origin_region_name: dbRecord.origin_region?.name,
+      destination_region_id: dbRecord.destination_region_id,
+      destination_region_name: dbRecord.destination_region?.name,
+      combined_from: [], // We'll populate this with the original consolidation groups
+      shipment_details: shipmentDetails,
+      custom_id: `custom-${dbRecord.id}`,
+      db_id: dbRecord.id
+    };
+
+    debugLogger.info('CUSTOM-CONSOLIDATION-CONVERTER', 'Converted database record to UI format', 'convertDbToUIFormat', {
+      customId: uiRecord.custom_id,
+      customType: uiRecord.custom_type,
+      shipmentCount: uiRecord.shipment_count,
+      totalCube: uiRecord.total_cube
+    });
+
+    uiConsolidations.push(uiRecord);
+  }
+
+  debugLogger.info('CUSTOM-CONSOLIDATION-CONVERTER', 'Completed conversion of all records', 'convertDbToUIFormat', {
+    totalConverted: uiConsolidations.length
   });
+
+  return uiConsolidations;
 };

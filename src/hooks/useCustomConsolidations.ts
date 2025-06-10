@@ -21,9 +21,12 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
   const queryClient = useQueryClient();
 
   // Fetch custom consolidations from database
-  const { data: dbCustomConsolidations, isLoading } = useQuery({
+  const { data: customConsolidations, isLoading } = useQuery({
     queryKey: ['custom-consolidations', type, user?.id],
-    queryFn: () => fetchCustomConsolidations(type, user?.id),
+    queryFn: async () => {
+      const dbConsolidations = await fetchCustomConsolidations(type, user?.id);
+      return convertDbToUIFormat(dbConsolidations);
+    },
     enabled: !!user?.id
   });
 
@@ -87,11 +90,8 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
     }
   });
 
-  // Convert database custom consolidations to UI format
-  const customConsolidations = dbCustomConsolidations ? convertDbToUIFormat(dbCustomConsolidations) : [];
-
   return {
-    customConsolidations,
+    customConsolidations: customConsolidations || [],
     isLoading,
     createCustomConsolidation: createCustomConsolidation.mutate,
     deleteCustomConsolidation: deleteCustomConsolidation.mutate,
