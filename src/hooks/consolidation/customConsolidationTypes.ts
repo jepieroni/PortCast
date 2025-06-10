@@ -10,6 +10,25 @@ export interface DatabaseCustomConsolidation {
   created_at: string;
   updated_at: string;
   created_by?: string;
+  // Joined data from Supabase query
+  origin_port?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  destination_port?: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  origin_region?: {
+    id: string;
+    name: string;
+  };
+  destination_region?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface CustomConsolidationGroup {

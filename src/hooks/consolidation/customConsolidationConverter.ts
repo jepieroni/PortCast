@@ -70,7 +70,7 @@ export const convertDbToUIFormat = async (dbConsolidations: DatabaseCustomConsol
       customType = 'port_to_port';
     }
 
-    // Build port/region names
+    // Build port/region names safely
     const poe_name = dbRecord.origin_region_id 
       ? `Region: ${dbRecord.origin_region?.name || 'Unknown Region'}`
       : dbRecord.origin_port?.name || 'Unknown Port';
