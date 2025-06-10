@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { ConsolidationGroup } from './consolidation/types';
 import { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
@@ -30,11 +31,6 @@ export const useDragDropConsolidation = (
   useEffect(() => {
     if (!initialConsolidations || isLoadingCustom) return;
 
-    console.log('🔄 Combining consolidations:', {
-      initial: initialConsolidations.length,
-      custom: customConsolidations.length
-    });
-
     // Filter out original consolidations that were used to create custom consolidations
     const originalConsolidationsToKeep = initialConsolidations.filter(original => {
       return !customConsolidations.some(custom => 
@@ -46,14 +42,10 @@ export const useDragDropConsolidation = (
 
     const allConsolidations = [...originalConsolidationsToKeep, ...customConsolidations];
     setConsolidations(allConsolidations);
-    
-    console.log(`📊 Combined consolidations: ${originalConsolidationsToKeep.length} original + ${customConsolidations.length} custom`);
   }, [initialConsolidations, customConsolidations, isLoadingCustom]);
 
   const handleDrop = useCallback((targetCard: ExtendedConsolidationGroup) => {
     if (!draggedCard || !canDrop(draggedCard, targetCard)) return;
-
-    console.log('🎯 Handling drop consolidation');
 
     const customCard = createCustomCard([draggedCard, targetCard]);
     
@@ -70,35 +62,54 @@ export const useDragDropConsolidation = (
   }, [draggedCard, canDrop, createCustomCard, consolidations, createCustomConsolidation]);
 
   const createMultipleConsolidation = useCallback((cards: ExtendedConsolidationGroup[]) => {
+    console.log('🎯 [DRAG-DROP-HOOK] createMultipleConsolidation called with', cards.length, 'cards');
+    
     if (cards.length < 2) {
-      console.warn('⚠️ Cannot consolidate less than 2 cards');
+      console.warn('⚠️ [DRAG-DROP-HOOK] Cannot consolidate less than 2 cards');
       return;
     }
 
-    console.log('🎯 Creating multiple consolidation from', cards.length, 'cards');
+    console.log('🎯 [DRAG-DROP-HOOK] Card details:', cards.map(c => ({
+      key: 'is_custom' in c ? c.custom_id : `${c.poe_id}-${c.pod_id}`,
+      poe: c.poe_name,
+      pod: c.pod_name,
+      shipments: c.shipment_count,
+      isCustom: 'is_custom' in c
+    })));
 
-    const customCard = createCustomCard(cards);
-    
-    // Save to database
-    console.log('💾 Saving custom consolidation to database...');
-    createCustomConsolidation(customCard);
-    
-    // Update local state immediately for better UX
-    const newConsolidations = consolidations
-      .filter(card => !cards.includes(card))
-      .concat(customCard);
-    
-    console.log('🔄 Updating local consolidations state');
-    setConsolidations(newConsolidations);
+    try {
+      console.log('🛠️ [DRAG-DROP-HOOK] Creating custom card...');
+      const customCard = createCustomCard(cards);
+      console.log('✅ [DRAG-DROP-HOOK] Custom card created:', {
+        customId: customCard.custom_id,
+        poe: customCard.poe_name,
+        pod: customCard.pod_name,
+        totalShipments: customCard.shipment_count,
+        customType: customCard.custom_type
+      });
+      
+      console.log('💾 [DRAG-DROP-HOOK] Calling createCustomConsolidation...');
+      createCustomConsolidation(customCard);
+      console.log('✅ [DRAG-DROP-HOOK] createCustomConsolidation called successfully');
+      
+      // Update local state immediately for better UX
+      const newConsolidations = consolidations
+        .filter(card => !cards.includes(card))
+        .concat(customCard);
+      
+      console.log('🔄 [DRAG-DROP-HOOK] Updating local consolidations state');
+      console.log('📊 [DRAG-DROP-HOOK] Previous count:', consolidations.length, 'New count:', newConsolidations.length);
+      setConsolidations(newConsolidations);
+    } catch (error) {
+      console.error('❌ [DRAG-DROP-HOOK] Error in createMultipleConsolidation:', error);
+      console.error('❌ [DRAG-DROP-HOOK] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    }
   }, [createCustomCard, consolidations, createCustomConsolidation]);
 
   const resetToOriginal = useCallback(() => {
-    console.log('🔄 Resetting to original consolidations');
-    
     // Delete all custom consolidations from database
     customConsolidations.forEach(custom => {
       if (custom.db_id) {
-        console.log('🗑️ Deleting custom consolidation:', custom.db_id);
         deleteCustomConsolidation(custom.db_id);
       }
     });

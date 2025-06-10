@@ -87,15 +87,43 @@ const ConsolidationDashboard = ({
     }
   }, [originalConsolidations, resetToOriginal]);
 
-  // Handle consolidate selected
+  // Handle consolidate selected with debugging
   const handleConsolidateSelected = () => {
+    console.log('🚀 [CONSOLIDATION-WORKFLOW] Starting multi-card consolidation');
+    console.log('📊 [CONSOLIDATION-WORKFLOW] Selected cards count:', selectedCards.size);
+    console.log('📊 [CONSOLIDATION-WORKFLOW] Selected card keys:', Array.from(selectedCards));
+    
     const selectedCardObjects = consolidations.filter(c => selectedCards.has(getCardKey(c)));
+    console.log('📊 [CONSOLIDATION-WORKFLOW] Selected card objects:', selectedCardObjects);
     
-    if (selectedCardObjects.length < 2) return;
+    if (selectedCardObjects.length < 2) {
+      console.warn('⚠️ [CONSOLIDATION-WORKFLOW] Insufficient cards selected:', selectedCardObjects.length);
+      return;
+    }
     
-    if (canCombineCards(selectedCardObjects)) {
-      createMultipleConsolidation(selectedCardObjects);
-      setSelectedCards(new Set());
+    console.log('🔍 [CONSOLIDATION-WORKFLOW] Checking if cards can be combined...');
+    const canCombine = canCombineCards(selectedCardObjects);
+    console.log('🔍 [CONSOLIDATION-WORKFLOW] Can combine cards:', canCombine);
+    
+    if (canCombine) {
+      console.log('✅ [CONSOLIDATION-WORKFLOW] Cards are compatible, proceeding with consolidation...');
+      console.log('📦 [CONSOLIDATION-WORKFLOW] Calling createMultipleConsolidation with cards:', selectedCardObjects.map(c => ({
+        key: getCardKey(c),
+        poe: c.poe_name,
+        pod: c.pod_name,
+        shipments: c.shipment_count
+      })));
+      
+      try {
+        createMultipleConsolidation(selectedCardObjects);
+        console.log('✅ [CONSOLIDATION-WORKFLOW] createMultipleConsolidation call completed');
+        setSelectedCards(new Set());
+        console.log('✅ [CONSOLIDATION-WORKFLOW] Selected cards cleared');
+      } catch (error) {
+        console.error('❌ [CONSOLIDATION-WORKFLOW] Error in createMultipleConsolidation:', error);
+      }
+    } else {
+      console.warn('⚠️ [CONSOLIDATION-WORKFLOW] Cards are not compatible for consolidation');
     }
   };
 

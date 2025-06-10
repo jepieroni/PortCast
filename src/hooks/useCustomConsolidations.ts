@@ -29,15 +29,50 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
   // Create custom consolidation mutation
   const createCustomConsolidation = useMutation({
     mutationFn: async (customConsolidation: CustomConsolidationGroup) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      console.log('🔄 [CUSTOM-CONSOLIDATIONS] Mutation function called');
+      console.log('👤 [CUSTOM-CONSOLIDATIONS] User state:', { 
+        userId: user?.id, 
+        userEmail: user?.email,
+        isAuthenticated: !!user 
+      });
+      
+      if (!user?.id) {
+        console.error('❌ [CUSTOM-CONSOLIDATIONS] User not authenticated');
+        throw new Error('User not authenticated');
+      }
+      
+      console.log('📦 [CUSTOM-CONSOLIDATIONS] Creating consolidation:', {
+        customId: customConsolidation.custom_id,
+        type: type,
+        customType: customConsolidation.custom_type,
+        poe: customConsolidation.poe_name,
+        pod: customConsolidation.pod_name
+      });
+      
       return createCustomConsolidationInDB(customConsolidation, type, user.id);
     },
-    onSuccess: () => {
-      console.log('🔄 Invalidating custom consolidations cache');
+    onSuccess: (data) => {
+      console.log('✅ [CUSTOM-CONSOLIDATIONS] Mutation successful, result:', data);
+      console.log('🔄 [CUSTOM-CONSOLIDATIONS] Invalidating cache...');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
     },
     onError: (error) => {
-      console.error('❌ Failed to create custom consolidation:', error);
+      console.error('❌ [CUSTOM-CONSOLIDATIONS] Mutation failed:', error);
+      console.error('❌ [CUSTOM-CONSOLIDATIONS] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
+    },
+    onMutate: (variables) => {
+      console.log('🏁 [CUSTOM-CONSOLIDATIONS] Mutation starting with variables:', variables);
+    },
+    onSettled: (data, error) => {
+      console.log('🏁 [CUSTOM-CONSOLIDATIONS] Mutation settled');
+      if (error) {
+        console.log('❌ [CUSTOM-CONSOLIDATIONS] Settled with error:', error);
+      } else {
+        console.log('✅ [CUSTOM-CONSOLIDATIONS] Settled successfully with data:', data);
+      }
     }
   });
 
@@ -45,11 +80,10 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
   const deleteCustomConsolidation = useMutation({
     mutationFn: deleteCustomConsolidationFromDB,
     onSuccess: () => {
-      console.log('🔄 Invalidating custom consolidations cache after deletion');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
     },
     onError: (error) => {
-      console.error('❌ Failed to delete custom consolidation:', error);
+      console.error('❌ [CUSTOM-CONSOLIDATIONS] Failed to delete custom consolidation:', error);
     }
   });
 

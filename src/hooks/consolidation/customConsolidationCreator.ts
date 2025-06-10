@@ -5,15 +5,30 @@ import { CustomConsolidationGroup } from '../useCustomConsolidations';
 
 export const useCustomConsolidationCreator = (getPortRegion: (portId: string) => { id: string; name: string } | null) => {
   const createCustomCard = useCallback((cards: ExtendedConsolidationGroup[]): CustomConsolidationGroup => {
+    console.log('🎯 [CARD-CREATOR] createCustomCard called with', cards.length, 'cards');
+    
     if (cards.length < 2) {
+      console.error('❌ [CARD-CREATOR] Insufficient cards provided:', cards.length);
       throw new Error('At least 2 cards required for consolidation');
     }
 
-    console.log('🎯 Creating custom card from:', cards.length, 'cards');
+    console.log('📊 [CARD-CREATOR] Input cards:', cards.map(card => ({
+      poeId: card.poe_id,
+      poeName: card.poe_name,
+      podId: card.pod_id,
+      podName: card.pod_name,
+      shipmentCount: card.shipment_count,
+      isCustom: 'is_custom' in card
+    })));
 
     const firstCard = cards[0];
     const firstOriginRegion = getPortRegion(firstCard.poe_id);
     const firstDestRegion = getPortRegion(firstCard.pod_id);
+
+    console.log('🗺️ [CARD-CREATOR] First card regions:', {
+      originRegion: firstOriginRegion,
+      destRegion: firstDestRegion
+    });
 
     // Determine consolidation type based on regions
     let customType: CustomConsolidationGroup['custom_type'];
@@ -24,12 +39,31 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
     // Check if all cards have the same origin and destination regions
     const allSameOriginRegion = cards.every(card => {
       const originRegion = getPortRegion(card.poe_id);
-      return originRegion?.id === firstOriginRegion?.id;
+      const isSame = originRegion?.id === firstOriginRegion?.id;
+      console.log('🔍 [CARD-CREATOR] Card origin region check:', {
+        cardPoeId: card.poe_id,
+        cardOriginRegion: originRegion,
+        firstOriginRegion,
+        isSame
+      });
+      return isSame;
     });
 
     const allSameDestRegion = cards.every(card => {
       const destRegion = getPortRegion(card.pod_id);
-      return destRegion?.id === firstDestRegion?.id;
+      const isSame = destRegion?.id === firstDestRegion?.id;
+      console.log('🔍 [CARD-CREATOR] Card dest region check:', {
+        cardPodId: card.pod_id,
+        cardDestRegion: destRegion,
+        firstDestRegion,
+        isSame
+      });
+      return isSame;
+    });
+
+    console.log('🔍 [CARD-CREATOR] Region compatibility:', {
+      allSameOriginRegion,
+      allSameDestRegion
     });
 
     if (allSameOriginRegion && allSameDestRegion) {
@@ -70,6 +104,8 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
       pod_code = firstCard.pod_code;
     }
 
+    console.log('🏷️ [CARD-CREATOR] Determined custom type:', customType);
+
     // Collect all shipment details from all cards
     const getShipmentDetails = (consolidation: ExtendedConsolidationGroup): any[] => {
       if ('is_custom' in consolidation) {
@@ -92,14 +128,7 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
       ('is_custom' in card) ? card.combined_from : [card]
     );
 
-    console.log('✨ Created custom card:', {
-      type: customType,
-      totalShipments,
-      totalCube,
-      combinedFromCount: allCombinedFrom.length
-    });
-
-    return {
+    const result = {
       poe_id: firstCard.poe_id,
       poe_name,
       poe_code,
@@ -118,7 +147,19 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
       combined_from: allCombinedFrom,
       shipment_details: combinedShipments,
       custom_id: customId
-    };
+    } as CustomConsolidationGroup;
+
+    console.log('✨ [CARD-CREATOR] Created custom card:', {
+      customId,
+      customType,
+      totalShipments,
+      totalCube,
+      combinedFromCount: allCombinedFrom.length,
+      originRegionId: origin_region_id,
+      destinationRegionId: destination_region_id
+    });
+
+    return result;
   }, [getPortRegion]);
 
   return { createCustomCard };

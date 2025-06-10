@@ -24,7 +24,6 @@ export const fetchCustomConsolidations = async (
     throw error;
   }
 
-  console.log(`📊 Fetched ${data?.length || 0} custom consolidations for ${type}`);
   return data || [];
 };
 
@@ -33,49 +32,82 @@ export const createCustomConsolidationInDB = async (
   type: 'inbound' | 'outbound' | 'intertheater',
   userId: string
 ) => {
-  console.log('🔄 Creating custom consolidation:', customConsolidation);
+  console.log('💾 [DB-SERVICE] createCustomConsolidationInDB called');
+  console.log('📊 [DB-SERVICE] Input parameters:', {
+    userId,
+    type,
+    customConsolidation: {
+      customId: customConsolidation.custom_id,
+      customType: customConsolidation.custom_type,
+      poeId: customConsolidation.poe_id,
+      podId: customConsolidation.pod_id,
+      originRegionId: customConsolidation.origin_region_id,
+      destinationRegionId: customConsolidation.destination_region_id
+    }
+  });
 
-  // Get user's organization
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', userId)
-    .single();
+  try {
+    // Get user's organization
+    console.log('🔍 [DB-SERVICE] Fetching user profile for organization...');
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single();
 
-  if (profileError || !profile?.organization_id) {
-    throw new Error('User organization not found');
-  }
+    if (profileError) {
+      console.error('❌ [DB-SERVICE] Profile fetch error:', profileError);
+      throw new Error(`Profile fetch failed: ${profileError.message}`);
+    }
 
-  const dbData = {
-    organization_id: profile.organization_id,
-    consolidation_type: type,
-    origin_port_id: customConsolidation.origin_region_id ? null : customConsolidation.poe_id,
-    origin_region_id: customConsolidation.origin_region_id || null,
-    destination_port_id: customConsolidation.destination_region_id ? null : customConsolidation.pod_id,
-    destination_region_id: customConsolidation.destination_region_id || null,
-    created_by: userId
-  };
+    if (!profile?.organization_id) {
+      console.error('❌ [DB-SERVICE] No organization found for user');
+      throw new Error('User organization not found');
+    }
 
-  console.log('💾 Saving custom consolidation data:', dbData);
+    console.log('✅ [DB-SERVICE] User organization found:', profile.organization_id);
 
-  const { data, error } = await supabase
-    .from('custom_consolidations')
-    .insert([dbData])
-    .select()
-    .single();
+    const dbData = {
+      organization_id: profile.organization_id,
+      consolidation_type: type,
+      origin_port_id: customConsolidation.origin_region_id ? null : customConsolidation.poe_id,
+      origin_region_id: customConsolidation.origin_region_id || null,
+      destination_port_id: customConsolidation.destination_region_id ? null : customConsolidation.pod_id,
+      destination_region_id: customConsolidation.destination_region_id || null,
+      created_by: userId
+    };
 
-  if (error) {
-    console.error('Error creating custom consolidation:', error);
+    console.log('💾 [DB-SERVICE] Prepared database data:', dbData);
+
+    console.log('🚀 [DB-SERVICE] Executing database insert...');
+    const { data, error } = await supabase
+      .from('custom_consolidations')
+      .insert([dbData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('❌ [DB-SERVICE] Database insert error:', error);
+      console.error('❌ [DB-SERVICE] Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
+
+    console.log('✅ [DB-SERVICE] Database insert successful');
+    console.log('📄 [DB-SERVICE] Created record:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ [DB-SERVICE] Unexpected error in createCustomConsolidationInDB:', error);
+    console.error('❌ [DB-SERVICE] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     throw error;
   }
-
-  console.log('✅ Created custom consolidation in database:', data.id);
-  return data;
 };
 
 export const deleteCustomConsolidationFromDB = async (consolidationId: string) => {
-  console.log('🗑️ Deleting custom consolidation:', consolidationId);
-
   const { error } = await supabase
     .from('custom_consolidations')
     .delete()
@@ -85,6 +117,4 @@ export const deleteCustomConsolidationFromDB = async (consolidationId: string) =
     console.error('Error deleting custom consolidation:', error);
     throw error;
   }
-
-  console.log('✅ Deleted custom consolidation:', consolidationId);
 };
