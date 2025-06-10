@@ -1,3 +1,4 @@
+
 import React from 'react';
 import MainDashboard from './MainDashboard';
 import ShipmentRegistration from './ShipmentRegistration';
@@ -26,6 +27,7 @@ interface ViewRouterProps {
     podId: string;
     podName: string;
     podCode: string;
+    customConsolidationData?: any;
   };
 }
 
