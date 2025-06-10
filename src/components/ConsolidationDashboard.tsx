@@ -29,8 +29,11 @@ const ConsolidationDashboard = ({
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [compatibleCards, setCompatibleCards] = useState<Set<string>>(new Set());
   
+  // Memoize outlookDays to prevent infinite re-renders
+  const memoizedOutlookDays = useMemo(() => outlookDays, [outlookDays.join(',')]);
+  
   // Memoize the consolidation data query to prevent infinite re-renders
-  const consolidationData = useConsolidationData(type, outlookDays);
+  const consolidationData = useConsolidationData(type, memoizedOutlookDays);
 
   const {
     consolidations,
