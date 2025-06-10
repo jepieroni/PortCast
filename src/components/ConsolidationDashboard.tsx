@@ -2,7 +2,7 @@
 import { useConsolidationData } from '@/hooks/useConsolidationData';
 import { useDragDropConsolidation, ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
 import { usePortRegions } from '@/hooks/usePortRegions';
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useConsolidationSort } from '@/hooks/consolidation/useConsolidationSort';
 import { useConsolidationSelection } from '@/hooks/consolidation/useConsolidationSelection';
 import ConsolidationDashboardHeader from './consolidation/ConsolidationDashboardHeader';
@@ -81,13 +81,6 @@ const ConsolidationDashboard = ({
     portRegionMemberships,
     type
   );
-
-  // Reset custom consolidations when data changes
-  useEffect(() => {
-    if (originalConsolidations) {
-      resetToOriginal();
-    }
-  }, [originalConsolidations, resetToOriginal]);
 
   // Handle consolidate selected with debugging
   const handleConsolidateSelected = () => {

@@ -29,14 +29,26 @@ export const useDragDropConsolidation = (
   const { createCustomCard } = useCustomConsolidationCreator(getPortRegion);
 
   // Combine initial consolidations with custom ones, removing originals that were combined
+  // Only update when there are actual changes to prevent losing custom consolidations
   useEffect(() => {
     debugLogger.debug('DRAG-DROP-HOOK', 'useEffect triggered', 'consolidations-effect', {
       initialConsolidationsCount: initialConsolidations?.length || 0,
       customConsolidationsCount: customConsolidations?.length || 0,
-      isLoadingCustom
+      isLoadingCustom,
+      currentConsolidationsCount: consolidations.length
     });
 
-    if (!initialConsolidations || isLoadingCustom) return;
+    // Don't update if we're still loading custom consolidations
+    if (isLoadingCustom) {
+      debugLogger.debug('DRAG-DROP-HOOK', 'Skipping update - still loading custom consolidations', 'consolidations-effect');
+      return;
+    }
+
+    // Don't update if we don't have initial consolidations yet
+    if (!initialConsolidations || initialConsolidations.length === 0) {
+      debugLogger.debug('DRAG-DROP-HOOK', 'Skipping update - no initial consolidations', 'consolidations-effect');
+      return;
+    }
 
     // Filter out original consolidations that were used to create custom consolidations
     const originalConsolidationsToKeep = initialConsolidations.filter(original => {
@@ -47,14 +59,32 @@ export const useDragDropConsolidation = (
       );
     });
 
-    const allConsolidations = [...originalConsolidationsToKeep, ...customConsolidations];
-    debugLogger.info('DRAG-DROP-HOOK', 'Updated consolidations state', 'consolidations-effect', {
-      originalKept: originalConsolidationsToKeep.length,
-      customAdded: customConsolidations.length,
-      totalConsolidations: allConsolidations.length
-    });
+    const newConsolidations = [...originalConsolidationsToKeep, ...customConsolidations];
     
-    setConsolidations(allConsolidations);
+    // Only update if the consolidations have actually changed
+    const hasChanged = newConsolidations.length !== consolidations.length ||
+      newConsolidations.some((newConsolidation, index) => {
+        const existing = consolidations[index];
+        if (!existing) return true;
+        
+        // Compare by key
+        const newKey = 'is_custom' in newConsolidation ? newConsolidation.custom_id : `${newConsolidation.poe_id}-${newConsolidation.pod_id}`;
+        const existingKey = 'is_custom' in existing ? existing.custom_id : `${existing.poe_id}-${existing.pod_id}`;
+        return newKey !== existingKey;
+      });
+
+    if (hasChanged) {
+      debugLogger.info('DRAG-DROP-HOOK', 'Updating consolidations state', 'consolidations-effect', {
+        originalKept: originalConsolidationsToKeep.length,
+        customAdded: customConsolidations.length,
+        totalConsolidations: newConsolidations.length,
+        previousCount: consolidations.length
+      });
+      
+      setConsolidations(newConsolidations);
+    } else {
+      debugLogger.debug('DRAG-DROP-HOOK', 'No changes detected, keeping current state', 'consolidations-effect');
+    }
   }, [initialConsolidations, customConsolidations, isLoadingCustom]);
 
   const handleDrop = useCallback((targetCard: ExtendedConsolidationGroup) => {
@@ -140,7 +170,7 @@ export const useDragDropConsolidation = (
   }, [createCustomCard, consolidations, createCustomConsolidation]);
 
   const resetToOriginal = useCallback(() => {
-    debugLogger.info('DRAG-DROP-HOOK', 'Resetting to original consolidations', 'resetToOriginal', {
+    debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations triggered', 'resetToOriginal', {
       customConsolidationsToDelete: customConsolidations.length
     });
     
@@ -151,9 +181,9 @@ export const useDragDropConsolidation = (
       }
     });
     
-    // Reset local state to original consolidations
+    // Reset local state to original consolidations only
     setConsolidations(initialConsolidations);
-    debugLogger.info('DRAG-DROP-HOOK', 'Reset to original consolidations completed', 'resetToOriginal');
+    debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations completed', 'resetToOriginal');
   }, [customConsolidations, deleteCustomConsolidation, initialConsolidations]);
 
   const getValidDropTargetsForCard = useCallback((source: ExtendedConsolidationGroup) => {
