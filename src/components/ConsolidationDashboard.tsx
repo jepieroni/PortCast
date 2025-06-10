@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
-import ConsolidationGrid from './ConsolidationGrid';
+import ConsolidationGrid from './consolidation/ConsolidationGrid';
 import ConsolidationDashboardHeader from './consolidation/ConsolidationDashboardHeader';
 import ConsolidationOutlookSlider from './consolidation/ConsolidationOutlookSlider';
 import ConsolidationStatusBanner from './consolidation/ConsolidationStatusBanner';
@@ -74,18 +75,30 @@ const ConsolidationDashboard = ({
     });
   };
 
+  const handleConsolidateSelected = async () => {
+    const selectedCardsList = Array.from(selectedCards)
+      .map(cardKey => consolidations.find(c => getCardKey(c) === cardKey))
+      .filter(Boolean) as ExtendedConsolidationGroup[];
+    
+    if (selectedCardsList.length >= 2) {
+      await createMultipleConsolidation(selectedCardsList);
+      setSelectedCards(new Set()); // Clear selection after consolidation
+    }
+  };
+
+  const canConsolidateSelected = selectedCards.size >= 2 && 
+    Array.from(selectedCards).every(cardKey => compatibleCards.has(cardKey));
+
   return (
     <div className="space-y-6">
       <ConsolidationDashboardHeader
         type={type}
+        selectedCardsCount={selectedCards.size}
+        canConsolidateSelected={canConsolidateSelected}
         onBack={onBack}
+        onResetToOriginal={resetToOriginal}
+        onConsolidateSelected={handleConsolidateSelected}
         onTabChange={onTabChange}
-        resetToOriginal={resetToOriginal}
-        canResetToOriginal={hasCustomConsolidations}
-        selectedCards={selectedCards}
-        createMultipleConsolidation={createMultipleConsolidation}
-        consolidations={consolidations}
-        getCardKey={getCardKey}
       />
 
       <ConsolidationOutlookSlider
@@ -94,9 +107,9 @@ const ConsolidationDashboard = ({
       />
 
       <ConsolidationStatusBanner
-        totalConsolidations={consolidations.length}
-        hasUserShipments={hasUserShipments}
-        type={type}
+        draggedCard={draggedCard}
+        selectedCardsCount={selectedCards.size}
+        canConsolidateSelected={canConsolidateSelected}
       />
 
       <ConsolidationGrid
