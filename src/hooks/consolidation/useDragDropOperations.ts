@@ -7,7 +7,6 @@ import { debugLogger } from '@/services/debugLogger';
 
 export const useDragDropOperations = (
   consolidations: ExtendedConsolidationGroup[],
-  setConsolidations: (consolidations: ExtendedConsolidationGroup[]) => void,
   canDrop: (source: ExtendedConsolidationGroup, target: ExtendedConsolidationGroup) => boolean,
   createCustomCard: (cards: ExtendedConsolidationGroup[]) => CustomConsolidationGroup,
   createCustomConsolidation: (customCard: CustomConsolidationGroup) => Promise<any>,

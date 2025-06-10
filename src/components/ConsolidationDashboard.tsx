@@ -32,21 +32,21 @@ const ConsolidationDashboard = ({
   // Stabilize outlookDays array to prevent infinite re-renders
   const stableOutlookDays = useMemo(() => outlookDays, [JSON.stringify(outlookDays)]);
   
-  // Use the stabilized outlook days for the consolidation data query
-  const consolidationData = useConsolidationData(type, stableOutlookDays);
+  // Get combined consolidation data (custom + regular)
+  const consolidationDataQuery = useConsolidationData(type, stableOutlookDays);
+  const consolidations = consolidationDataQuery?.data || [];
 
+  // Use drag/drop functionality with the combined data
   const {
-    consolidations,
     draggedCard,
     setDraggedCard,
     handleDrop,
     canDrop,
     resetToOriginal,
     getValidDropTargets,
-    isLoading: isDragDropLoading,
     createMultipleConsolidation,
     isCreatingConsolidation
-  } = useDragDropConsolidation(consolidationData?.data || [], type);
+  } = useDragDropConsolidation(consolidations, type);
 
   // Memoize validDropTargets to prevent unnecessary re-calculations
   const validDropTargets = useMemo(() => 
@@ -124,8 +124,8 @@ const ConsolidationDashboard = ({
 
       <ConsolidationGrid
         consolidations={consolidations}
-        isLoading={consolidationData?.isLoading || isDragDropLoading}
-        error={consolidationData?.error}
+        isLoading={consolidationDataQuery?.isLoading || false}
+        error={consolidationDataQuery?.error}
         type={type}
         draggedCard={draggedCard}
         validDropTargets={validDropTargets}

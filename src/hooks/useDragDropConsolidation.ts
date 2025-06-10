@@ -6,7 +6,6 @@ import { usePortRegions } from './usePortRegions';
 import { useCustomConsolidations, CustomConsolidationGroup } from './useCustomConsolidations';
 import { useConsolidationUtils } from './consolidation/consolidationUtils';
 import { useCustomConsolidationCreator } from './consolidation/customConsolidationCreator';
-import { useConsolidationState } from './consolidation/useConsolidationState';
 import { useDragDropOperations } from './consolidation/useDragDropOperations';
 import { debugLogger } from '@/services/debugLogger';
 import { useQueryClient } from '@tanstack/react-query';
@@ -15,25 +14,17 @@ import { useAuth } from './useAuth';
 export type { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
 
 export const useDragDropConsolidation = (
-  initialConsolidations: ConsolidationGroup[],
+  consolidations: ExtendedConsolidationGroup[],
   type: 'inbound' | 'outbound' | 'intertheater'
 ) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { portRegions, portRegionMemberships } = usePortRegions();
   const {
-    customConsolidations,
     createCustomConsolidation,
     deleteCustomConsolidation,
-    isLoading: isLoadingCustom,
     isCreating: isCreatingCustom
   } = useCustomConsolidations(type);
-  
-  const { consolidations, setConsolidations } = useConsolidationState(
-    initialConsolidations || [],
-    customConsolidations,
-    isLoadingCustom
-  );
 
   const { getPortRegion, canDrop, getValidDropTargets } = useConsolidationUtils(portRegions, portRegionMemberships);
   const { createCustomCard } = useCustomConsolidationCreator(getPortRegion);
@@ -71,7 +62,6 @@ export const useDragDropConsolidation = (
     isCreatingConsolidation
   } = useDragDropOperations(
     consolidations,
-    setConsolidations,
     canDrop,
     createCustomCard,
     createCustomConsolidation,
@@ -79,11 +69,11 @@ export const useDragDropConsolidation = (
   );
 
   const resetToOriginal = useCallback(() => {
-    debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations triggered', 'resetToOriginal', {
-      customConsolidationsToDelete: customConsolidations.length
-    });
+    debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations triggered', 'resetToOriginal');
     
-    // Delete all custom consolidations from database
+    // Get custom consolidations and delete them
+    const customConsolidations = consolidations.filter(c => 'is_custom' in c && c.is_custom) as CustomConsolidationGroup[];
+    
     customConsolidations.forEach(custom => {
       if (custom.db_id) {
         deleteCustomConsolidation(custom.db_id);
@@ -94,7 +84,7 @@ export const useDragDropConsolidation = (
     invalidateConsolidationData();
     
     debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations completed', 'resetToOriginal');
-  }, [customConsolidations, deleteCustomConsolidation, invalidateConsolidationData]);
+  }, [consolidations, deleteCustomConsolidation, invalidateConsolidationData]);
 
   const getValidDropTargetsForCard = useCallback((source: ExtendedConsolidationGroup) => {
     return getValidDropTargets(source, consolidations);
@@ -108,7 +98,7 @@ export const useDragDropConsolidation = (
     canDrop,
     resetToOriginal,
     getValidDropTargets: getValidDropTargetsForCard,
-    isLoading: isLoadingCustom,
+    isLoading: false, // No longer managing loading state here
     createMultipleConsolidation,
     isCreatingConsolidation: isCreatingConsolidation || isCreatingCustom
   };
