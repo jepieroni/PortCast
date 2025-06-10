@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { ConsolidationGroup } from './consolidation/types';
 import { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
@@ -7,7 +6,7 @@ import { useCustomConsolidations, CustomConsolidationGroup } from './useCustomCo
 import { useConsolidationUtils } from './consolidation/consolidationUtils';
 import { useCustomConsolidationCreator } from './consolidation/customConsolidationCreator';
 
-export { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
+export type { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
 
 export const useDragDropConsolidation = (
   initialConsolidations: ConsolidationGroup[],
