@@ -12,6 +12,8 @@ export const fetchConsolidationShipments = async (
   cutoffDate.setDate(cutoffDate.getDate() + outlookDays);
 
   try {
+    console.log('🔍 Step 1: Fetching custom consolidation memberships...');
+    
     // First get all shipment IDs that are already part of custom consolidations
     const { data: customMembershipIds, error: membershipError } = await supabase
       .from('custom_consolidation_memberships')
@@ -22,13 +24,19 @@ export const fetchConsolidationShipments = async (
       .eq('custom_consolidations.consolidation_type', type);
 
     if (membershipError) {
+      console.error('❌ Error fetching custom consolidation memberships:', membershipError);
       debugLogger.error('CONSOLIDATION-SERVICE', 'Error fetching custom consolidation memberships', 'fetchConsolidationShipments', { error: membershipError });
+      throw membershipError;
     }
+
+    console.log('✅ Step 1 complete - Custom memberships:', customMembershipIds?.length || 0);
 
     const excludeShipmentIds = customMembershipIds?.map(m => m.shipment_id) || [];
     debugLogger.debug('CONSOLIDATION-SERVICE', `Excluding ${excludeShipmentIds.length} shipments already in custom consolidations`, 'fetchConsolidationShipments');
 
-    // Build the main query
+    console.log('🔍 Step 2: Building main shipments query...');
+
+    // Build the main query with timeout protection
     let query = supabase
       .from('shipments')
       .select(`
@@ -72,17 +80,23 @@ export const fetchConsolidationShipments = async (
       query = query.not('id', 'in', `(${excludeShipmentIds.join(',')})`);
     }
 
+    console.log('🔍 Step 3: Executing main query...');
+
     const { data: shipments, error } = await query;
 
     if (error) {
+      console.error('❌ Error fetching shipments:', error);
       debugLogger.error('CONSOLIDATION-SERVICE', 'Error fetching shipments', 'fetchConsolidationShipments', { error });
       throw error;
     }
+
+    console.log('✅ Step 3 complete - Shipments fetched:', shipments?.length || 0);
 
     debugLogger.info('CONSOLIDATION-SERVICE', `Successfully fetched ${shipments?.length || 0} shipments`, 'fetchConsolidationShipments');
     return shipments || [];
 
   } catch (error) {
+    console.error('❌ Unexpected error in fetchConsolidationShipments:', error);
     debugLogger.error('CONSOLIDATION-SERVICE', 'Unexpected error in fetchConsolidationShipments', 'fetchConsolidationShipments', { error });
     throw error;
   }

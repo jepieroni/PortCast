@@ -22,18 +22,26 @@ export const useConsolidationData = (
       }
 
       try {
-        // Fetch shipments from database
-        const shipments = await fetchConsolidationShipments(type, maxOutlookDays);
-        console.log('📦 Raw shipments fetched:', shipments?.length || 0);
+        // Fetch shipments from database with timeout
+        console.log('📦 Fetching shipments...');
+        const shipments = await Promise.race([
+          fetchConsolidationShipments(type, maxOutlookDays),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Query timeout after 30 seconds')), 30000)
+          )
+        ]);
+        
+        console.log('📦 Raw shipments fetched:', Array.isArray(shipments) ? shipments.length : 0);
 
-        if (!shipments || shipments.length === 0) {
+        if (!shipments || !Array.isArray(shipments) || shipments.length === 0) {
           console.log('📭 No shipments found for consolidation');
           return [];
         }
 
         // Process shipments into consolidation groups
+        console.log('⚙️ Processing consolidations...');
         const consolidations = processStrictGrouping(shipments, user.id);
-        console.log('✅ Consolidations processed:', consolidations?.length || 0);
+        console.log('✅ Consolidations processed:', Array.isArray(consolidations) ? consolidations.length : 0);
 
         return consolidations;
       } catch (error) {
@@ -43,6 +51,10 @@ export const useConsolidationData = (
     },
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 1, // Reduced to 1 minute for faster updates
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      console.log('🔄 Query retry attempt:', failureCount, error);
+      return failureCount < 2; // Only retry twice
+    }
   });
 };
