@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import ConsolidationGrid from './consolidation/ConsolidationGrid';
 import ConsolidationDashboardHeader from './consolidation/ConsolidationDashboardHeader';
 import ConsolidationOutlookSlider from './consolidation/ConsolidationOutlookSlider';
@@ -28,6 +28,8 @@ const ConsolidationDashboard = ({
 }: ConsolidationDashboardProps) => {
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [compatibleCards, setCompatibleCards] = useState<Set<string>>(new Set());
+  
+  // Memoize the consolidation data query to prevent infinite re-renders
   const consolidationData = useConsolidationData(type, outlookDays);
 
   const {
@@ -43,7 +45,11 @@ const ConsolidationDashboard = ({
     isCreatingConsolidation
   } = useDragDropConsolidation(consolidationData?.data || [], type);
 
-  const validDropTargets = draggedCard ? getValidDropTargets(draggedCard) : [];
+  // Memoize validDropTargets to prevent unnecessary re-calculations
+  const validDropTargets = useMemo(() => 
+    draggedCard ? getValidDropTargets(draggedCard) : [], 
+    [draggedCard, getValidDropTargets]
+  );
 
   const getCardKey = useCallback((card: ExtendedConsolidationGroup) => {
     return defaultGetCardKey(card);
@@ -60,7 +66,7 @@ const ConsolidationDashboard = ({
     setCompatibleCards(newCompatibleCards);
   }, [consolidations, selectedCards, canDrop, getCardKey]);
 
-  const handleCardSelection = (card: ExtendedConsolidationGroup, checked: boolean) => {
+  const handleCardSelection = useCallback((card: ExtendedConsolidationGroup, checked: boolean) => {
     const cardKey = getCardKey(card);
     setSelectedCards(prev => {
       const newSelection = new Set(prev);
@@ -71,9 +77,9 @@ const ConsolidationDashboard = ({
       }
       return newSelection;
     });
-  };
+  }, [getCardKey]);
 
-  const handleConsolidateSelected = async () => {
+  const handleConsolidateSelected = useCallback(async () => {
     const selectedCardsList = Array.from(selectedCards)
       .map(cardKey => consolidations.find(c => getCardKey(c) === cardKey))
       .filter(Boolean) as ExtendedConsolidationGroup[];
@@ -82,10 +88,13 @@ const ConsolidationDashboard = ({
       await createMultipleConsolidation(selectedCardsList);
       setSelectedCards(new Set()); // Clear selection after consolidation
     }
-  };
+  }, [selectedCards, consolidations, getCardKey, createMultipleConsolidation]);
 
-  const canConsolidateSelected = selectedCards.size >= 2 && 
-    Array.from(selectedCards).every(cardKey => compatibleCards.has(cardKey));
+  const canConsolidateSelected = useMemo(() => 
+    selectedCards.size >= 2 && 
+    Array.from(selectedCards).every(cardKey => compatibleCards.has(cardKey)),
+    [selectedCards, compatibleCards]
+  );
 
   return (
     <div className="space-y-6">

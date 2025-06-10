@@ -3,13 +3,22 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchConsolidationShipments } from './consolidation/consolidationService';
 import { processStrictGrouping } from './consolidation/strictGrouping';
 import { useAuth } from './useAuth';
+import { useMemo } from 'react';
 
 export const useConsolidationData = (
   type: 'inbound' | 'outbound' | 'intertheater',
   outlookDays: number[]
 ) => {
   const { user } = useAuth();
-  const maxOutlookDays = Math.max(...outlookDays);
+  
+  // Memoize the max outlook days to prevent infinite re-renders
+  const maxOutlookDays = useMemo(() => Math.max(...outlookDays), [outlookDays]);
+  
+  // Memoize the query key to prevent unnecessary re-renders
+  const queryKey = useMemo(() => 
+    ['consolidation-data', type, maxOutlookDays, user?.id], 
+    [type, maxOutlookDays, user?.id]
+  );
 
   console.log('🎯 useConsolidationData called with:', { 
     type, 
@@ -19,7 +28,7 @@ export const useConsolidationData = (
   });
 
   return useQuery({
-    queryKey: ['consolidation-data', type, maxOutlookDays, user?.id],
+    queryKey,
     queryFn: async () => {
       console.log('🔍 Starting consolidation data fetch...', { type, outlookDays: maxOutlookDays });
       
