@@ -48,6 +48,22 @@ const ConsolidationCardHeader = ({
     onBreakApart?.();
   };
 
+  // Get the correct region name for custom consolidations
+  const getRegionDisplayName = () => {
+    if (isCustomCard) {
+      if (type === 'outbound') {
+        // For outbound, show destination region
+        return consolidationData.destination_region_name || podRegionName;
+      } else {
+        // For inbound and intertheater, show origin region
+        return consolidationData.origin_region_name || poeRegionName;
+      }
+    } else {
+      // For regular consolidations, use existing logic
+      return type === 'inbound' || type === 'intertheater' ? poeRegionName : podRegionName;
+    }
+  };
+
   return (
     <div className="p-4 border-b border-gray-100">
       <div className="flex items-start justify-between mb-2">
@@ -65,8 +81,7 @@ const ConsolidationCardHeader = ({
           <div className="flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="font-semibold text-lg text-gray-900">
-                {type === 'inbound' || type === 'intertheater' ? 'From' : 'To'} {' '}
-                {isCustomCard ? 'Multiple Regions' : (type === 'inbound' || type === 'intertheater' ? poeRegionName : podRegionName)}
+                {type === 'inbound' || type === 'intertheater' ? 'From' : 'To'} {getRegionDisplayName()}
               </h3>
               {isCustomCard && onBreakApart && (
                 <Button
