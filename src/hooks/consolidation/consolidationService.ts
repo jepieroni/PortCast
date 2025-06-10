@@ -12,16 +12,26 @@ export const fetchConsolidationShipments = async (
   cutoffDate.setDate(cutoffDate.getDate() + outlookDays);
 
   try {
-    console.log('🔍 Step 1: Fetching custom consolidation memberships...');
+    console.log('🔍 Step 1a: Starting custom consolidation memberships query...');
     
-    // First get all shipment IDs that are already part of custom consolidations
-    const { data: customMembershipIds, error: membershipError } = await supabase
-      .from('custom_consolidation_memberships')
-      .select(`
-        shipment_id,
-        custom_consolidations!inner(consolidation_type)
-      `)
-      .eq('custom_consolidations.consolidation_type', type);
+    // Simplified first query - remove the inner join which might be causing issues
+    const { data: customMembershipIds, error: membershipError } = await Promise.race([
+      supabase
+        .from('custom_consolidation_memberships')
+        .select(`
+          shipment_id,
+          custom_consolidations!inner(
+            id,
+            consolidation_type
+          )
+        `)
+        .eq('custom_consolidations.consolidation_type', type),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Custom memberships query timeout after 15 seconds')), 15000)
+      )
+    ]);
+
+    console.log('🔍 Step 1b: Custom memberships query completed');
 
     if (membershipError) {
       console.error('❌ Error fetching custom consolidation memberships:', membershipError);
@@ -77,12 +87,20 @@ export const fetchConsolidationShipments = async (
 
     // Exclude shipments that are already in custom consolidations
     if (excludeShipmentIds.length > 0) {
+      console.log('🔍 Step 2a: Adding exclusion filter for', excludeShipmentIds.length, 'shipments');
       query = query.not('id', 'in', `(${excludeShipmentIds.join(',')})`);
     }
 
-    console.log('🔍 Step 3: Executing main query...');
+    console.log('🔍 Step 3: Executing main query with timeout...');
 
-    const { data: shipments, error } = await query;
+    const { data: shipments, error } = await Promise.race([
+      query,
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Main shipments query timeout after 20 seconds')), 20000)
+      )
+    ]);
+
+    console.log('🔍 Step 3a: Main query completed');
 
     if (error) {
       console.error('❌ Error fetching shipments:', error);
