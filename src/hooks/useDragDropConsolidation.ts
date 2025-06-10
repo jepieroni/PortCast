@@ -9,6 +9,8 @@ import { useCustomConsolidationCreator } from './consolidation/customConsolidati
 import { useConsolidationState } from './consolidation/useConsolidationState';
 import { useDragDropOperations } from './consolidation/useDragDropOperations';
 import { debugLogger } from '@/services/debugLogger';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from './useAuth';
 
 export type { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
 
@@ -16,6 +18,8 @@ export const useDragDropConsolidation = (
   initialConsolidations: ConsolidationGroup[],
   type: 'inbound' | 'outbound' | 'intertheater'
 ) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { portRegions, portRegionMemberships } = usePortRegions();
   const {
     customConsolidations,
@@ -33,6 +37,17 @@ export const useDragDropConsolidation = (
   const { getPortRegion, canDrop, getValidDropTargets } = useConsolidationUtils(portRegions, portRegionMemberships);
   const { createCustomCard } = useCustomConsolidationCreator(getPortRegion);
 
+  // Function to invalidate consolidation data cache
+  const invalidateConsolidationData = useCallback(() => {
+    debugLogger.info('DRAG-DROP-HOOK', 'Invalidating consolidation data cache', 'invalidateConsolidationData');
+    queryClient.invalidateQueries({ 
+      queryKey: ['consolidation-data', type, user?.id] 
+    });
+    queryClient.invalidateQueries({ 
+      queryKey: ['custom-consolidations', type, user?.id] 
+    });
+  }, [queryClient, type, user?.id]);
+
   const {
     draggedCard,
     setDraggedCard,
@@ -43,7 +58,8 @@ export const useDragDropConsolidation = (
     setConsolidations,
     canDrop,
     createCustomCard,
-    createCustomConsolidation
+    createCustomConsolidation,
+    invalidateConsolidationData
   );
 
   const resetToOriginal = useCallback(() => {
@@ -60,8 +76,12 @@ export const useDragDropConsolidation = (
     
     // Reset local state to original consolidations only
     setConsolidations(initialConsolidations || []);
+    
+    // Invalidate cache to refresh from database
+    invalidateConsolidationData();
+    
     debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations completed', 'resetToOriginal');
-  }, [customConsolidations, deleteCustomConsolidation, initialConsolidations, setConsolidations]);
+  }, [customConsolidations, deleteCustomConsolidation, initialConsolidations, setConsolidations, invalidateConsolidationData]);
 
   const getValidDropTargetsForCard = useCallback((source: ExtendedConsolidationGroup) => {
     return getValidDropTargets(source, consolidations);

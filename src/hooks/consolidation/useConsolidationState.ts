@@ -31,16 +31,45 @@ export const useConsolidationState = (
     // Don't update if we don't have initial consolidations yet
     if (!initialConsolidations || initialConsolidations.length === 0) {
       debugLogger.debug('CONSOLIDATION-STATE', 'Skipping update - no initial consolidations', 'consolidations-effect');
+      // If we have custom consolidations but no initial ones, still show the custom ones
+      if (customConsolidations.length > 0) {
+        debugLogger.info('CONSOLIDATION-STATE', 'Setting only custom consolidations (no initial consolidations)', 'consolidations-effect');
+        setConsolidations(customConsolidations);
+      }
       return;
     }
 
+    // Create a Set of all POE-POD combinations that are part of custom consolidations
+    const combinedRoutes = new Set<string>();
+    
+    customConsolidations.forEach(custom => {
+      if (custom.combined_from) {
+        custom.combined_from.forEach(combined => {
+          const routeKey = `${combined.poe_id}-${combined.pod_id}`;
+          combinedRoutes.add(routeKey);
+          debugLogger.debug('CONSOLIDATION-STATE', 'Adding combined route to exclusion set', 'consolidations-effect', {
+            routeKey,
+            poe: combined.poe_name,
+            pod: combined.pod_name
+          });
+        });
+      }
+    });
+
     // Filter out original consolidations that were used to create custom consolidations
     const originalConsolidationsToKeep = initialConsolidations.filter(original => {
-      return !customConsolidations.some(custom => 
-        custom.combined_from?.some(combined => 
-          combined.poe_id === original.poe_id && combined.pod_id === original.pod_id
-        )
-      );
+      const routeKey = `${original.poe_id}-${original.pod_id}`;
+      const shouldExclude = combinedRoutes.has(routeKey);
+      
+      if (shouldExclude) {
+        debugLogger.debug('CONSOLIDATION-STATE', 'Excluding original consolidation (part of custom)', 'consolidations-effect', {
+          routeKey,
+          poe: original.poe_name,
+          pod: original.pod_name
+        });
+      }
+      
+      return !shouldExclude;
     });
 
     const newConsolidations = [...originalConsolidationsToKeep, ...customConsolidations];
@@ -61,14 +90,15 @@ export const useConsolidationState = (
         originalKept: originalConsolidationsToKeep.length,
         customAdded: customConsolidations.length,
         totalConsolidations: newConsolidations.length,
-        previousCount: consolidations.length
+        previousCount: consolidations.length,
+        combinedRoutesExcluded: combinedRoutes.size
       });
       
       setConsolidations(newConsolidations);
     } else {
       debugLogger.debug('CONSOLIDATION-STATE', 'No changes detected, keeping current state', 'consolidations-effect');
     }
-  }, [initialConsolidations, customConsolidations, isLoadingCustom, consolidations.length]);
+  }, [initialConsolidations, customConsolidations, isLoadingCustom]);
 
   return {
     consolidations,

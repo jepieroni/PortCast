@@ -10,7 +10,8 @@ export const useDragDropOperations = (
   setConsolidations: (consolidations: ExtendedConsolidationGroup[]) => void,
   canDrop: (source: ExtendedConsolidationGroup, target: ExtendedConsolidationGroup) => boolean,
   createCustomCard: (cards: ExtendedConsolidationGroup[]) => CustomConsolidationGroup,
-  createCustomConsolidation: (customCard: CustomConsolidationGroup) => void
+  createCustomConsolidation: (customCard: CustomConsolidationGroup) => void,
+  invalidateConsolidationData: () => void // Add this parameter
 ) => {
   const [draggedCard, setDraggedCard] = useState<ExtendedConsolidationGroup | null>(null);
 
@@ -52,7 +53,11 @@ export const useDragDropOperations = (
     
     setConsolidations(newConsolidations);
     setDraggedCard(null);
-  }, [draggedCard, canDrop, createCustomCard, consolidations, createCustomConsolidation, setConsolidations]);
+    
+    // Invalidate the consolidation data query to refresh from database
+    debugLogger.info('DRAG-DROP-OPERATIONS', 'Invalidating consolidation data cache', 'handleDrop');
+    invalidateConsolidationData();
+  }, [draggedCard, canDrop, createCustomCard, consolidations, createCustomConsolidation, setConsolidations, invalidateConsolidationData]);
 
   const createMultipleConsolidation = useCallback((cards: ExtendedConsolidationGroup[]) => {
     debugLogger.info('DRAG-DROP-OPERATIONS', 'createMultipleConsolidation called', 'createMultipleConsolidation', { cardsCount: cards.length });
@@ -97,13 +102,17 @@ export const useDragDropOperations = (
         newCount: newConsolidations.length
       });
       setConsolidations(newConsolidations);
+      
+      // Invalidate the consolidation data query to refresh from database
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'Invalidating consolidation data cache after multiple consolidation', 'createMultipleConsolidation');
+      invalidateConsolidationData();
     } catch (error) {
       debugLogger.error('DRAG-DROP-OPERATIONS', 'Error in createMultipleConsolidation', 'createMultipleConsolidation', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace'
       });
     }
-  }, [createCustomCard, consolidations, createCustomConsolidation, setConsolidations]);
+  }, [createCustomCard, consolidations, createCustomConsolidation, setConsolidations, invalidateConsolidationData]);
 
   return {
     draggedCard,
