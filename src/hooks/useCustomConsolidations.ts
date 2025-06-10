@@ -31,14 +31,9 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
   });
 
   // Create custom consolidation mutation
-  const createCustomConsolidation = useMutation({
+  const createMutation = useMutation({
     mutationFn: async (customConsolidation: CustomConsolidationGroup) => {
       debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Mutation function called', 'createCustomConsolidation');
-      debugLogger.debug('CUSTOM-CONSOLIDATIONS', 'User state', 'createCustomConsolidation', { 
-        userId: user?.id, 
-        userEmail: user?.email,
-        isAuthenticated: !!user 
-      });
       
       if (!user?.id) {
         debugLogger.error('CUSTOM-CONSOLIDATIONS', 'User not authenticated', 'createCustomConsolidation');
@@ -57,24 +52,15 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
     },
     onSuccess: (data) => {
       debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Mutation successful', 'createCustomConsolidation', { result: data });
-      debugLogger.debug('CUSTOM-CONSOLIDATIONS', 'Invalidating cache...', 'createCustomConsolidation');
+      // Invalidate both custom consolidations and regular consolidation data
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
+      queryClient.invalidateQueries({ queryKey: ['consolidation-data', type] });
     },
     onError: (error) => {
       debugLogger.error('CUSTOM-CONSOLIDATIONS', 'Mutation failed', 'createCustomConsolidation', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace'
       });
-    },
-    onMutate: (variables) => {
-      debugLogger.debug('CUSTOM-CONSOLIDATIONS', 'Mutation starting', 'createCustomConsolidation', { variables });
-    },
-    onSettled: (data, error) => {
-      if (error) {
-        debugLogger.warn('CUSTOM-CONSOLIDATIONS', 'Mutation settled with error', 'createCustomConsolidation', { error });
-      } else {
-        debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Mutation settled successfully', 'createCustomConsolidation', { data });
-      }
     }
   });
 
@@ -84,18 +70,24 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
     onSuccess: () => {
       debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Delete mutation successful', 'deleteCustomConsolidation');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
+      queryClient.invalidateQueries({ queryKey: ['consolidation-data', type] });
     },
     onError: (error) => {
       debugLogger.error('CUSTOM-CONSOLIDATIONS', 'Failed to delete custom consolidation', 'deleteCustomConsolidation', { error });
     }
   });
 
+  // Return a promise-based create function
+  const createCustomConsolidation = useCallback(async (customConsolidation: CustomConsolidationGroup) => {
+    return createMutation.mutateAsync(customConsolidation);
+  }, [createMutation]);
+
   return {
     customConsolidations: customConsolidations || [],
     isLoading,
-    createCustomConsolidation: createCustomConsolidation.mutate,
+    createCustomConsolidation,
     deleteCustomConsolidation: deleteCustomConsolidation.mutate,
-    isCreating: createCustomConsolidation.isPending,
+    isCreating: createMutation.isPending,
     isDeleting: deleteCustomConsolidation.isPending
   };
 };

@@ -2,6 +2,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import ConsolidationCard from '@/components/ConsolidationCard';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
+import { Loader2 } from 'lucide-react';
 
 interface ConsolidationGridProps {
   consolidations: ExtendedConsolidationGroup[];
@@ -12,6 +13,7 @@ interface ConsolidationGridProps {
   validDropTargets: ExtendedConsolidationGroup[];
   selectedCards: Set<string>;
   compatibleCards: Set<string>;
+  isCreatingConsolidation?: boolean;
   onCardClick?: (cardData: any) => void;
   onCardSelection: (card: ExtendedConsolidationGroup, checked: boolean) => void;
   onDragStart: (card: ExtendedConsolidationGroup) => void;
@@ -29,6 +31,7 @@ const ConsolidationGrid = ({
   validDropTargets,
   selectedCards,
   compatibleCards,
+  isCreatingConsolidation = false,
   onCardClick,
   onCardSelection,
   onDragStart,
@@ -70,39 +73,49 @@ const ConsolidationGrid = ({
   }
 
   return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {consolidations.map((consolidation, index) => {
-        const cardKey = getCardKey(consolidation);
-        const isValidTarget = validDropTargets.includes(consolidation);
-        const isDragging = draggedCard === consolidation;
-        const isSelected = selectedCards.has(cardKey);
-        const isCompatible = compatibleCards.has(cardKey);
-        
-        return (
-          <ConsolidationCard
-            key={`${consolidation.poe_id}-${consolidation.pod_id}-${index}`}
-            poe_name={consolidation.poe_name}
-            poe_code={consolidation.poe_code}
-            pod_name={consolidation.pod_name}
-            pod_code={consolidation.pod_code}
-            totalCube={consolidation.total_cube}
-            availableShipments={consolidation.shipment_count}
-            hasUserShipments={consolidation.has_user_shipments}
-            type={type}
-            consolidationData={consolidation}
-            onClick={() => onCardClick?.(consolidation)}
-            isDragging={isDragging}
-            isValidDropTarget={isValidTarget}
-            onDragStart={onDragStart}
-            onDragEnd={onDragEnd}
-            onDrop={onDrop}
-            isSelected={isSelected}
-            isCompatibleForSelection={isCompatible}
-            onSelectionChange={(checked) => onCardSelection(consolidation, checked)}
-            showCheckbox={true}
-          />
-        );
-      })}
+    <div className="space-y-6">
+      {/* Show loading indicator when creating consolidation */}
+      {isCreatingConsolidation && (
+        <div className="flex items-center justify-center p-4 bg-blue-50 rounded-lg border">
+          <Loader2 className="animate-spin w-5 h-5 mr-2 text-blue-600" />
+          <span className="text-blue-600 font-medium">Creating consolidation...</span>
+        </div>
+      )}
+      
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {consolidations.map((consolidation, index) => {
+          const cardKey = getCardKey(consolidation);
+          const isValidTarget = validDropTargets.includes(consolidation);
+          const isDragging = draggedCard === consolidation;
+          const isSelected = selectedCards.has(cardKey);
+          const isCompatible = compatibleCards.has(cardKey);
+          
+          return (
+            <ConsolidationCard
+              key={`${consolidation.poe_id}-${consolidation.pod_id}-${index}`}
+              poe_name={consolidation.poe_name}
+              poe_code={consolidation.poe_code}
+              pod_name={consolidation.pod_name}
+              pod_code={consolidation.pod_code}
+              totalCube={consolidation.total_cube}
+              availableShipments={consolidation.shipment_count}
+              hasUserShipments={consolidation.has_user_shipments}
+              type={type}
+              consolidationData={consolidation}
+              onClick={() => onCardClick?.(consolidation)}
+              isDragging={isDragging}
+              isValidDropTarget={isValidTarget}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onDrop={onDrop}
+              isSelected={isSelected}
+              isCompatibleForSelection={isCompatible}
+              onSelectionChange={(checked) => onCardSelection(consolidation, checked)}
+              showCheckbox={true}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 };

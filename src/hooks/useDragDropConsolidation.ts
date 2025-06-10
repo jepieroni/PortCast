@@ -25,7 +25,8 @@ export const useDragDropConsolidation = (
     customConsolidations,
     createCustomConsolidation,
     deleteCustomConsolidation,
-    isLoading: isLoadingCustom
+    isLoading: isLoadingCustom,
+    isCreating: isCreatingCustom
   } = useCustomConsolidations(type);
   
   const { consolidations, setConsolidations } = useConsolidationState(
@@ -52,7 +53,8 @@ export const useDragDropConsolidation = (
     draggedCard,
     setDraggedCard,
     handleDrop,
-    createMultipleConsolidation
+    createMultipleConsolidation,
+    isCreatingConsolidation
   } = useDragDropOperations(
     consolidations,
     setConsolidations,
@@ -74,14 +76,11 @@ export const useDragDropConsolidation = (
       }
     });
     
-    // Reset local state to original consolidations only
-    setConsolidations(initialConsolidations || []);
-    
     // Invalidate cache to refresh from database
     invalidateConsolidationData();
     
     debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations completed', 'resetToOriginal');
-  }, [customConsolidations, deleteCustomConsolidation, initialConsolidations, setConsolidations, invalidateConsolidationData]);
+  }, [customConsolidations, deleteCustomConsolidation, invalidateConsolidationData]);
 
   const getValidDropTargetsForCard = useCallback((source: ExtendedConsolidationGroup) => {
     return getValidDropTargets(source, consolidations);
@@ -96,6 +95,7 @@ export const useDragDropConsolidation = (
     resetToOriginal,
     getValidDropTargets: getValidDropTargetsForCard,
     isLoading: isLoadingCustom,
-    createMultipleConsolidation
+    createMultipleConsolidation,
+    isCreatingConsolidation: isCreatingConsolidation || isCreatingCustom
   };
 };

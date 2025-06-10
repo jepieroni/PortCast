@@ -13,13 +13,12 @@ export const useConsolidationState = (
 ) => {
   const [consolidations, setConsolidations] = useState<ExtendedConsolidationGroup[]>([]);
 
-  // Combine initial consolidations with custom ones, removing originals that were combined
+  // Database-driven state management - only update when database data changes
   useEffect(() => {
-    debugLogger.debug('CONSOLIDATION-STATE', 'useEffect triggered', 'consolidations-effect', {
+    debugLogger.debug('CONSOLIDATION-STATE', 'Database-driven update triggered', 'consolidations-effect', {
       initialConsolidationsCount: initialConsolidations?.length || 0,
       customConsolidationsCount: customConsolidations?.length || 0,
-      isLoadingCustom,
-      currentConsolidationsCount: consolidations.length
+      isLoadingCustom
     });
 
     // Don't update if we're still loading custom consolidations
@@ -35,6 +34,8 @@ export const useConsolidationState = (
       if (customConsolidations.length > 0) {
         debugLogger.info('CONSOLIDATION-STATE', 'Setting only custom consolidations (no initial consolidations)', 'consolidations-effect');
         setConsolidations(customConsolidations);
+      } else {
+        setConsolidations([]);
       }
       return;
     }
@@ -74,30 +75,14 @@ export const useConsolidationState = (
 
     const newConsolidations = [...originalConsolidationsToKeep, ...customConsolidations];
     
-    // Only update if the consolidations have actually changed
-    const hasChanged = newConsolidations.length !== consolidations.length ||
-      newConsolidations.some((newConsolidation, index) => {
-        const existing = consolidations[index];
-        if (!existing) return true;
-        
-        const newKey = getCardKey(newConsolidation);
-        const existingKey = getCardKey(existing);
-        return newKey !== existingKey;
-      });
-
-    if (hasChanged) {
-      debugLogger.info('CONSOLIDATION-STATE', 'Updating consolidations state', 'consolidations-effect', {
-        originalKept: originalConsolidationsToKeep.length,
-        customAdded: customConsolidations.length,
-        totalConsolidations: newConsolidations.length,
-        previousCount: consolidations.length,
-        combinedRoutesExcluded: combinedRoutes.size
-      });
-      
-      setConsolidations(newConsolidations);
-    } else {
-      debugLogger.debug('CONSOLIDATION-STATE', 'No changes detected, keeping current state', 'consolidations-effect');
-    }
+    debugLogger.info('CONSOLIDATION-STATE', 'Updating consolidations from database', 'consolidations-effect', {
+      originalKept: originalConsolidationsToKeep.length,
+      customAdded: customConsolidations.length,
+      totalConsolidations: newConsolidations.length,
+      combinedRoutesExcluded: combinedRoutes.size
+    });
+    
+    setConsolidations(newConsolidations);
   }, [initialConsolidations, customConsolidations, isLoadingCustom]);
 
   return {

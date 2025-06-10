@@ -10,12 +10,13 @@ export const useDragDropOperations = (
   setConsolidations: (consolidations: ExtendedConsolidationGroup[]) => void,
   canDrop: (source: ExtendedConsolidationGroup, target: ExtendedConsolidationGroup) => boolean,
   createCustomCard: (cards: ExtendedConsolidationGroup[]) => CustomConsolidationGroup,
-  createCustomConsolidation: (customCard: CustomConsolidationGroup) => void,
-  invalidateConsolidationData: () => void // Add this parameter
+  createCustomConsolidation: (customCard: CustomConsolidationGroup) => Promise<any>,
+  invalidateConsolidationData: () => void
 ) => {
   const [draggedCard, setDraggedCard] = useState<ExtendedConsolidationGroup | null>(null);
+  const [isCreatingConsolidation, setIsCreatingConsolidation] = useState(false);
 
-  const handleDrop = useCallback((targetCard: ExtendedConsolidationGroup) => {
+  const handleDrop = useCallback(async (targetCard: ExtendedConsolidationGroup) => {
     const getDraggedCardKey = () => {
       if (!draggedCard) return null;
       return getCardKey(draggedCard);
@@ -35,31 +36,30 @@ export const useDragDropOperations = (
       return;
     }
 
-    const customCard = createCustomCard([draggedCard, targetCard]);
-    debugLogger.debug('DRAG-DROP-OPERATIONS', 'Custom card created for drop operation', 'handleDrop', { customCard: customCard.custom_id });
-    
-    // Save to database
-    createCustomConsolidation(customCard);
-    
-    // Update local state immediately for better UX
-    const newConsolidations = consolidations
-      .filter(card => card !== draggedCard && card !== targetCard)
-      .concat(customCard);
-    
-    debugLogger.info('DRAG-DROP-OPERATIONS', 'Local state updated after drop', 'handleDrop', {
-      previousCount: consolidations.length,
-      newCount: newConsolidations.length
-    });
-    
-    setConsolidations(newConsolidations);
-    setDraggedCard(null);
-    
-    // Invalidate the consolidation data query to refresh from database
-    debugLogger.info('DRAG-DROP-OPERATIONS', 'Invalidating consolidation data cache', 'handleDrop');
-    invalidateConsolidationData();
-  }, [draggedCard, canDrop, createCustomCard, consolidations, createCustomConsolidation, setConsolidations, invalidateConsolidationData]);
+    setIsCreatingConsolidation(true);
 
-  const createMultipleConsolidation = useCallback((cards: ExtendedConsolidationGroup[]) => {
+    try {
+      const customCard = createCustomCard([draggedCard, targetCard]);
+      debugLogger.debug('DRAG-DROP-OPERATIONS', 'Custom card created for drop operation', 'handleDrop', { customCard: customCard.custom_id });
+      
+      // Save to database and wait for completion
+      await createCustomConsolidation(customCard);
+      
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'Drop operation completed successfully', 'handleDrop');
+      
+      // Invalidate cache to refresh from database
+      invalidateConsolidationData();
+    } catch (error) {
+      debugLogger.error('DRAG-DROP-OPERATIONS', 'Error in drop operation', 'handleDrop', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    } finally {
+      setDraggedCard(null);
+      setIsCreatingConsolidation(false);
+    }
+  }, [draggedCard, canDrop, createCustomCard, createCustomConsolidation, invalidateConsolidationData]);
+
+  const createMultipleConsolidation = useCallback(async (cards: ExtendedConsolidationGroup[]) => {
     debugLogger.info('DRAG-DROP-OPERATIONS', 'createMultipleConsolidation called', 'createMultipleConsolidation', { cardsCount: cards.length });
     
     if (cards.length < 2) {
@@ -67,18 +67,9 @@ export const useDragDropOperations = (
       return;
     }
 
-    debugLogger.debug('DRAG-DROP-OPERATIONS', 'Card details for multiple consolidation', 'createMultipleConsolidation', {
-      cards: cards.map(c => ({
-        key: getCardKey(c),
-        poe: c.poe_name,
-        pod: c.pod_name,
-        shipments: c.shipment_count,
-        isCustom: 'is_custom' in c && c.is_custom
-      }))
-    });
+    setIsCreatingConsolidation(true);
 
     try {
-      debugLogger.debug('DRAG-DROP-OPERATIONS', 'Creating custom card...', 'createMultipleConsolidation');
       const customCard = createCustomCard(cards);
       debugLogger.info('DRAG-DROP-OPERATIONS', 'Custom card created successfully', 'createMultipleConsolidation', {
         customId: customCard.custom_id,
@@ -88,36 +79,28 @@ export const useDragDropOperations = (
         customType: customCard.custom_type
       });
       
-      debugLogger.debug('DRAG-DROP-OPERATIONS', 'Calling createCustomConsolidation...', 'createMultipleConsolidation');
-      createCustomConsolidation(customCard);
-      debugLogger.info('DRAG-DROP-OPERATIONS', 'createCustomConsolidation called successfully', 'createMultipleConsolidation');
+      // Save to database and wait for completion
+      await createCustomConsolidation(customCard);
       
-      // Update local state immediately for better UX
-      const newConsolidations = consolidations
-        .filter(card => !cards.includes(card))
-        .concat(customCard);
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'Multiple consolidation completed successfully', 'createMultipleConsolidation');
       
-      debugLogger.info('DRAG-DROP-OPERATIONS', 'Updating local consolidations state', 'createMultipleConsolidation', {
-        previousCount: consolidations.length,
-        newCount: newConsolidations.length
-      });
-      setConsolidations(newConsolidations);
-      
-      // Invalidate the consolidation data query to refresh from database
-      debugLogger.info('DRAG-DROP-OPERATIONS', 'Invalidating consolidation data cache after multiple consolidation', 'createMultipleConsolidation');
+      // Invalidate cache to refresh from database
       invalidateConsolidationData();
     } catch (error) {
       debugLogger.error('DRAG-DROP-OPERATIONS', 'Error in createMultipleConsolidation', 'createMultipleConsolidation', {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace'
       });
+    } finally {
+      setIsCreatingConsolidation(false);
     }
-  }, [createCustomCard, consolidations, createCustomConsolidation, setConsolidations, invalidateConsolidationData]);
+  }, [createCustomCard, createCustomConsolidation, invalidateConsolidationData]);
 
   return {
     draggedCard,
     setDraggedCard,
     handleDrop,
-    createMultipleConsolidation
+    createMultipleConsolidation,
+    isCreatingConsolidation
   };
 };
