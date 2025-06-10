@@ -1,3 +1,4 @@
+
 import { Card } from '@/components/ui/card';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
@@ -52,15 +53,6 @@ const ConsolidationCard = ({
   
   // Check if this is a custom card - must have is_custom property set to true
   const isCustomCard = 'is_custom' in consolidationData && consolidationData.is_custom === true;
-  
-  console.log('🎯 ConsolidationCard rendering:', {
-    poe_name,
-    pod_name,
-    hasIsCustomProperty: 'is_custom' in consolidationData,
-    isCustomValue: 'is_custom' in consolidationData ? consolidationData.is_custom : 'not present',
-    isCustomCard,
-    isCompatibleForSelection
-  });
 
   // Get port region names for POE and POD
   const getPoeRegionName = () => {
