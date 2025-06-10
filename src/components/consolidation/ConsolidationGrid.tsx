@@ -21,6 +21,7 @@ interface ConsolidationGridProps {
   onDragStart: (card: ExtendedConsolidationGroup) => void;
   onDragEnd: () => void;
   onDrop: (card: ExtendedConsolidationGroup) => void;
+  onBreakApart?: (consolidationId: string) => void;
   getCardKey: (card: ExtendedConsolidationGroup) => string;
 }
 
@@ -39,6 +40,7 @@ const ConsolidationGrid = ({
   onDragStart,
   onDragEnd,
   onDrop,
+  onBreakApart,
   getCardKey
 }: ConsolidationGridProps) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
@@ -123,6 +125,7 @@ const ConsolidationGrid = ({
               isSelected={isSelected}
               isCompatibleForSelection={isCompatible}
               onSelectionChange={(checked) => onCardSelection(consolidation, checked)}
+              onBreakApart={onBreakApart}
               showCheckbox={true}
             />
           );

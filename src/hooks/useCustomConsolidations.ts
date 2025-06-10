@@ -55,6 +55,7 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
       // Invalidate both custom consolidations and regular consolidation data
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
       queryClient.invalidateQueries({ queryKey: ['consolidation-data', type] });
+      queryClient.invalidateQueries({ queryKey: ['regular-consolidation-data', type] });
     },
     onError: (error) => {
       debugLogger.error('CUSTOM-CONSOLIDATIONS', 'Mutation failed', 'createCustomConsolidation', {
@@ -65,12 +66,13 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
   });
 
   // Delete custom consolidation mutation
-  const deleteCustomConsolidation = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: deleteCustomConsolidationFromDB,
     onSuccess: () => {
       debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Delete mutation successful', 'deleteCustomConsolidation');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
       queryClient.invalidateQueries({ queryKey: ['consolidation-data', type] });
+      queryClient.invalidateQueries({ queryKey: ['regular-consolidation-data', type] });
     },
     onError: (error) => {
       debugLogger.error('CUSTOM-CONSOLIDATIONS', 'Failed to delete custom consolidation', 'deleteCustomConsolidation', { error });
@@ -82,12 +84,17 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
     return createMutation.mutateAsync(customConsolidation);
   }, [createMutation]);
 
+  // Return a promise-based delete function
+  const deleteCustomConsolidation = useCallback(async (consolidationId: string) => {
+    return deleteMutation.mutateAsync(consolidationId);
+  }, [deleteMutation]);
+
   return {
     customConsolidations: customConsolidations || [],
     isLoading,
     createCustomConsolidation,
-    deleteCustomConsolidation: deleteCustomConsolidation.mutate,
+    deleteCustomConsolidation,
     isCreating: createMutation.isPending,
-    isDeleting: deleteCustomConsolidation.isPending
+    isDeleting: deleteMutation.isPending
   };
 };

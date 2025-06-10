@@ -25,6 +25,7 @@ interface ConsolidationCardProps {
   isSelected?: boolean;
   isCompatibleForSelection?: boolean;
   onSelectionChange?: (checked: boolean) => void;
+  onBreakApart?: (consolidationId: string) => void;
 }
 
 const ConsolidationCard = ({ 
@@ -46,7 +47,8 @@ const ConsolidationCard = ({
   showCheckbox = false,
   isSelected = false,
   isCompatibleForSelection = true,
-  onSelectionChange
+  onSelectionChange,
+  onBreakApart
 }: ConsolidationCardProps) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
@@ -80,12 +82,19 @@ const ConsolidationCard = ({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't trigger onClick if clicking on checkbox
-    if ((e.target as HTMLElement).closest('[data-checkbox]')) {
+    // Don't trigger onClick if clicking on checkbox or break apart button
+    if ((e.target as HTMLElement).closest('[data-checkbox]') || 
+        (e.target as HTMLElement).closest('button')) {
       return;
     }
     e.preventDefault();
     onClick?.();
+  };
+
+  const handleBreakApart = () => {
+    if (isCustomCard && 'custom_id' in consolidationData && consolidationData.custom_id) {
+      onBreakApart?.(consolidationData.custom_id);
+    }
   };
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -160,6 +169,7 @@ const ConsolidationCard = ({
         isSelected={isSelected}
         isCompatibleForSelection={isCompatibleForSelection}
         onSelectionChange={onSelectionChange}
+        onBreakApart={isCustomCard ? handleBreakApart : undefined}
       />
       
       <ConsolidationCardContent

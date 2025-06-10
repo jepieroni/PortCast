@@ -6,8 +6,10 @@ import ConsolidationOutlookSlider from './consolidation/ConsolidationOutlookSlid
 import ConsolidationStatusBanner from './consolidation/ConsolidationStatusBanner';
 import { useConsolidationData } from '@/hooks/useConsolidationData';
 import { useDragDropConsolidation } from '@/hooks/useDragDropConsolidation';
+import { useCustomConsolidations } from '@/hooks/useCustomConsolidations';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
 import { getCardKey as defaultGetCardKey } from '@/hooks/consolidation/cardKeyUtils';
+import { toast } from '@/hooks/use-toast';
 
 interface ConsolidationDashboardProps {
   type: 'inbound' | 'outbound' | 'intertheater';
@@ -36,6 +38,9 @@ const ConsolidationDashboard = ({
   });
 
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  
+  // Get custom consolidations hook for break apart functionality
+  const { deleteCustomConsolidation, isDeleting } = useCustomConsolidations(type);
   
   // Stabilize outlookDays array to prevent infinite re-renders
   const stableOutlookDays = useMemo(() => {
@@ -135,6 +140,25 @@ const ConsolidationDashboard = ({
     }
   }, [selectedCards, consolidations, getCardKey, createMultipleConsolidation]);
 
+  const handleBreakApart = useCallback(async (consolidationId: string) => {
+    console.log('🔄 handleBreakApart called', { consolidationId });
+    
+    try {
+      await deleteCustomConsolidation(consolidationId);
+      toast({
+        title: "Consolidation broken apart",
+        description: "The custom consolidation has been removed and shipments are now available for regular consolidations.",
+      });
+    } catch (error) {
+      console.error('Error breaking apart consolidation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to break apart the consolidation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [deleteCustomConsolidation]);
+
   const canConsolidateSelected = useMemo(() => {
     console.log('🔄 canConsolidateSelected memo recalculating');
     return selectedCards.size >= 2 && 
@@ -168,7 +192,7 @@ const ConsolidationDashboard = ({
 
       <ConsolidationGrid
         consolidations={consolidations}
-        isLoading={consolidationDataQuery?.isLoading || false}
+        isLoading={consolidationDataQuery?.isLoading || isDeleting}
         error={consolidationDataQuery?.error}
         type={type}
         draggedCard={draggedCard}
@@ -181,6 +205,7 @@ const ConsolidationDashboard = ({
         onDragStart={setDraggedCard}
         onDragEnd={() => setDraggedCard(null)}
         onDrop={handleDrop}
+        onBreakApart={handleBreakApart}
         getCardKey={getCardKey}
       />
     </div>
