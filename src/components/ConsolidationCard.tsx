@@ -1,4 +1,3 @@
-
 import { Card } from '@/components/ui/card';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
@@ -92,8 +91,13 @@ const ConsolidationCard = ({
   };
 
   const handleBreakApart = () => {
-    if (isCustomCard && 'custom_id' in consolidationData && consolidationData.custom_id) {
-      onBreakApart?.(consolidationData.custom_id);
+    if (isCustomCard && 'id' in consolidationData && consolidationData.id) {
+      // For custom consolidations, use the actual database ID (without custom- prefix)
+      let dbId = consolidationData.id;
+      if (typeof dbId === 'string' && dbId.startsWith('custom-')) {
+        dbId = dbId.substring(7); // Remove 'custom-' prefix
+      }
+      onBreakApart?.(dbId);
     }
   };
 
