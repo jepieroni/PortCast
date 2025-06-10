@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, RotateCcw } from 'lucide-react';
@@ -45,17 +46,13 @@ const ConsolidationDashboard = ({
   const { portRegions, portRegionMemberships } = usePortRegions();
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
 
-  // Reset custom consolidations when data changes
-  useEffect(() => {
-    if (originalConsolidations) {
-      resetToOriginal();
+  // Generate unique key for each card
+  const getCardKey = useCallback((card: ExtendedConsolidationGroup): string => {
+    if ('is_custom' in card) {
+      return card.custom_id;
     }
-  }, [originalConsolidations, resetToOriginal]);
-
-  // Reset selected cards when consolidations change
-  useEffect(() => {
-    setSelectedCards(new Set());
-  }, [consolidations]);
+    return `${card.poe_id}-${card.pod_id}`;
+  }, []);
 
   // Get port region for compatibility checking
   const getPortRegion = useCallback((portId: string) => {
@@ -102,17 +99,21 @@ const ConsolidationDashboard = ({
     });
     
     return compatibleCards;
-  }, [selectedCards, consolidations, canCombineCards]);
+  }, [selectedCards, consolidations, canCombineCards, getCardKey]);
 
   const compatibleCards = getCompatibleCards();
 
-  // Generate unique key for each card
-  const getCardKey = (card: ExtendedConsolidationGroup): string => {
-    if ('is_custom' in card) {
-      return card.custom_id;
+  // Reset custom consolidations when data changes
+  useEffect(() => {
+    if (originalConsolidations) {
+      resetToOriginal();
     }
-    return `${card.poe_id}-${card.pod_id}`;
-  };
+  }, [originalConsolidations, resetToOriginal]);
+
+  // Reset selected cards when consolidations change
+  useEffect(() => {
+    setSelectedCards(new Set());
+  }, [consolidations]);
 
   // Handle checkbox change
   const handleCardSelection = (card: ExtendedConsolidationGroup, checked: boolean) => {
