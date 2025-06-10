@@ -110,7 +110,7 @@ const ConsolidationCard = ({
     
     // Base styling for custom vs regular cards
     if (isCustomCard) {
-      classes += "border-2 border-dashed border-purple-300 bg-gradient-to-br from-purple-50 to-purple-100 ";
+      classes += "border-2 border-solid border-amber-300 bg-gradient-to-br from-amber-50 to-orange-100 ";
     } else {
       classes += "border border-solid border-gray-200 bg-white ";
     }
