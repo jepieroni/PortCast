@@ -95,6 +95,20 @@ export const useRegularConsolidationData = (
         const { data: shipments, error: shipmentsError } = await shipmentsQuery;
 
         console.log('🔍 Step 4: Shipments query completed');
+        console.log('🔍 DETAILED SHIPMENT DATA:', {
+          totalShipments: shipments?.length || 0,
+          firstFewShipments: shipments?.slice(0, 3).map(s => ({
+            id: s.id,
+            gbl: s.gbl_number,
+            shipment_type: s.shipment_type,
+            pickup_date: s.pickup_date,
+            poe_id: s.target_poe_id,
+            pod_id: s.target_pod_id,
+            poe_name: s.poe?.name,
+            pod_name: s.pod?.name,
+            cube: s.actual_cube || s.estimated_cube
+          })) || []
+        });
 
         if (shipmentsError) {
           console.error('❌ Error fetching shipments:', shipmentsError);
@@ -168,11 +182,28 @@ export const useRegularConsolidationData = (
         }));
 
         console.log('✅ Enriched shipments with port regions');
+        console.log('🔍 SAMPLE ENRICHED SHIPMENT:', enrichedShipments[0] ? {
+          id: enrichedShipments[0].id,
+          gbl: enrichedShipments[0].gbl_number,
+          poe_regions: enrichedShipments[0].poe?.port_region_memberships,
+          pod_regions: enrichedShipments[0].pod?.port_region_memberships
+        } : 'none');
         
         // Process shipments into consolidation groups using strict grouping
         console.log('⚙️ Processing regular consolidations...');
         const consolidations = processStrictGrouping(enrichedShipments, user.id);
         console.log('✅ Regular consolidations processed:', Array.isArray(consolidations) ? consolidations.length : 0);
+        
+        // Log the first few consolidations in detail
+        console.log('🔍 SAMPLE CONSOLIDATIONS:', consolidations.slice(0, 2).map(c => ({
+          poe_id: c.poe_id,
+          pod_id: c.pod_id,
+          poe_name: c.poe_name,
+          pod_name: c.pod_name,
+          shipment_count: c.shipment_count,
+          total_cube: c.total_cube,
+          has_user_shipments: c.has_user_shipments
+        })));
 
         debugLogger.info('REGULAR-CONSOLIDATION-DATA', `Successfully processed ${consolidations.length} regular consolidations`, 'useRegularConsolidationData');
         return consolidations;
