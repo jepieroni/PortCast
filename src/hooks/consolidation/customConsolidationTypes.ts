@@ -48,6 +48,7 @@ export interface CustomConsolidationGroup {
   destination_region_id?: string;
   destination_region_name?: string;
   combined_from: any[];
+  combined_cards_count?: number; // Add this property to track how many cards were combined
   shipment_details: any[];
   custom_id: string;
   db_id?: string;

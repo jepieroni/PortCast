@@ -85,6 +85,19 @@ export const convertDbToUIFormat = async (dbConsolidations: DatabaseCustomConsol
     // Check if any shipments belong to the current user
     const hasUserShipments = shipmentDetails.some(shipment => shipment.user_id === dbRecord.created_by);
 
+    // Calculate how many unique route combinations were combined
+    const uniqueRoutes = new Set();
+    shipmentDetails.forEach(shipment => {
+      uniqueRoutes.add(`${shipment.target_poe_id}-${shipment.target_pod_id}`);
+    });
+    const combinedCardsCount = uniqueRoutes.size;
+
+    debugLogger.debug('CUSTOM-CONSOLIDATION-CONVERTER', 'Calculated combined cards count', 'convertDbToUIFormat', {
+      consolidationId: dbRecord.id,
+      uniqueRoutesCount: combinedCardsCount,
+      totalShipments: shipmentCount
+    });
+
     const uiRecord: CustomConsolidationGroup = {
       poe_id: dbRecord.origin_port_id || dbRecord.origin_region_id || '',
       poe_name,
@@ -101,7 +114,8 @@ export const convertDbToUIFormat = async (dbConsolidations: DatabaseCustomConsol
       origin_region_name: dbRecord.origin_region?.name,
       destination_region_id: dbRecord.destination_region_id,
       destination_region_name: dbRecord.destination_region?.name,
-      combined_from: [], // We'll populate this with the original consolidation groups
+      combined_from: [], // This will be populated with the original consolidation groups that were combined
+      combined_cards_count: combinedCardsCount, // Add this to track how many cards were combined
       shipment_details: shipmentDetails,
       custom_id: `custom-${dbRecord.id}`,
       db_id: dbRecord.id
@@ -111,7 +125,8 @@ export const convertDbToUIFormat = async (dbConsolidations: DatabaseCustomConsol
       customId: uiRecord.custom_id,
       customType: uiRecord.custom_type,
       shipmentCount: uiRecord.shipment_count,
-      totalCube: uiRecord.total_cube
+      totalCube: uiRecord.total_cube,
+      combinedCardsCount: uiRecord.combined_cards_count
     });
 
     uiConsolidations.push(uiRecord);
