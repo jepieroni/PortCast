@@ -11,12 +11,10 @@ export const useConsolidationData = (
   const { user } = useAuth();
   const maxOutlookDays = Math.max(...outlookDays);
 
-  console.log('📊 Query Parameters:', { type, outlookDays: maxOutlookDays });
-
   return useQuery({
     queryKey: ['consolidation-data', type, maxOutlookDays, user?.id],
     queryFn: async () => {
-      console.log('🔍 Starting consolidation data fetch...');
+      console.log('🔍 Starting consolidation data fetch...', { type, outlookDays: maxOutlookDays });
       
       if (!user?.id) {
         console.warn('⚠️ No user ID available for consolidation data query');
