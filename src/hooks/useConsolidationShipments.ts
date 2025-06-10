@@ -61,8 +61,11 @@ export const useConsolidationShipments = (
             throw error;
           }
 
-          if (shipments) {
+          if (shipments && shipments.length > 0) {
+            console.log(`📦 Found ${shipments.length} shipments for ${originalConsolidation.poe_code} → ${originalConsolidation.pod_code}`);
             allShipments.push(...shipments);
+          } else {
+            console.log(`📦 No shipments found for ${originalConsolidation.poe_code} → ${originalConsolidation.pod_code}`);
           }
         }
 
