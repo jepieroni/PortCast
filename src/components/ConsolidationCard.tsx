@@ -1,10 +1,9 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Package, TrendingUp, Ship } from 'lucide-react';
-import { ConsolidationGroup } from '@/hooks/consolidation/types';
+
+import { Card } from '@/components/ui/card';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
+import ConsolidationCardHeader from './consolidation/ConsolidationCardHeader';
+import ConsolidationCardContent from './consolidation/ConsolidationCardContent';
 
 interface ConsolidationCardProps {
   poe_name: string;
@@ -86,10 +85,6 @@ const ConsolidationCard = ({
     onClick?.();
   };
 
-  const handleCheckboxChange = (checked: boolean) => {
-    onSelectionChange?.(checked);
-  };
-
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.effectAllowed = 'move';
     onDragStart?.(consolidationData);
@@ -131,8 +126,6 @@ const ConsolidationCard = ({
     
     return classes;
   };
-
-  const isCustomCard = 'is_custom' in consolidationData;
   
   return (
     <Card 
@@ -144,79 +137,27 @@ const ConsolidationCard = ({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2 mb-2">
-          {showCheckbox && (
-            <div data-checkbox className="flex-shrink-0">
-              <Checkbox
-                checked={isSelected}
-                onCheckedChange={handleCheckboxChange}
-                disabled={!isCompatibleForSelection}
-              />
-            </div>
-          )}
-          <Ship size={18} className="text-blue-600" />
-          <CardTitle className="text-lg font-semibold">
-            {isCustomCard ? 'Custom Consolidation' : 
-             type === 'intertheater' ? 'Intertheater Route' : 
-             `${type.charAt(0).toUpperCase() + type.slice(1)} Route`}
-          </CardTitle>
-        </div>
-        <div className="space-y-1 text-sm">
-          <div className="font-medium">
-            From: {poe_code || poe_name} (Region: {getPoeRegionName()})
-          </div>
-          <div className="font-medium">
-            To: {pod_code || pod_name} (Region: {getPodRegionName()})
-          </div>
-        </div>
-      </CardHeader>
+      <ConsolidationCardHeader
+        type={type}
+        consolidationData={consolidationData}
+        poe_name={poe_name}
+        poe_code={poe_code}
+        pod_name={pod_name}
+        pod_code={pod_code}
+        poeRegionName={getPoeRegionName()}
+        podRegionName={getPodRegionName()}
+        showCheckbox={showCheckbox}
+        isSelected={isSelected}
+        isCompatibleForSelection={isCompatibleForSelection}
+        onSelectionChange={onSelectionChange}
+      />
       
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Package size={16} className="text-gray-500" />
-            <span className="text-sm text-gray-600">Available Cube</span>
-          </div>
-          <span className="font-semibold">{totalCube.toLocaleString()} ft³</span>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span>Container Fill</span>
-            <span>{fillPercentage.toFixed(1)}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className={`h-2 rounded-full transition-all duration-300 ${
-                fillPercentage >= 90 ? 'bg-green-500' : 
-                fillPercentage >= 70 ? 'bg-yellow-500' : 'bg-red-500'
-              }`}
-              style={{ width: `${fillPercentage}%` }}
-            />
-          </div>
-        </div>
-        
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600">Shipments</span>
-          <div className="flex items-center gap-1">
-            <TrendingUp size={14} className="text-green-500" />
-            <span className="font-medium">{availableShipments}</span>
-          </div>
-        </div>
-        
-        {fillPercentage >= 90 && (
-          <Badge variant="default" className="w-full justify-center bg-green-600">
-            Ready for Consolidation
-          </Badge>
-        )}
-
-        {isCustomCard && (
-          <Badge variant="outline" className="w-full justify-center">
-            Combined ({(consolidationData as any).combined_from?.length || 0} cards)
-          </Badge>
-        )}
-      </CardContent>
+      <ConsolidationCardContent
+        totalCube={totalCube}
+        availableShipments={availableShipments}
+        consolidationData={consolidationData}
+        fillPercentage={fillPercentage}
+      />
     </Card>
   );
 };
