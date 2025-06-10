@@ -44,8 +44,6 @@ const ConsolidationDashboard = ({
   } = useDragDropConsolidation(consolidationData?.data || [], type);
 
   const validDropTargets = draggedCard ? getValidDropTargets(draggedCard) : [];
-  const hasCustomConsolidations = consolidations?.some(c => 'is_custom' in c) || false;
-  const hasUserShipments = consolidations?.some(c => c.has_user_shipments) || false;
 
   const getCardKey = useCallback((card: ExtendedConsolidationGroup) => {
     return defaultGetCardKey(card);
