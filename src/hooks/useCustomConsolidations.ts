@@ -70,6 +70,8 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
     mutationFn: async (customConsolidation: CustomConsolidationGroup) => {
       if (!user?.id) throw new Error('User not authenticated');
 
+      console.log('🔄 Creating custom consolidation:', customConsolidation);
+
       // Get user's organization
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -91,6 +93,8 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
         created_by: user.id
       };
 
+      console.log('💾 Saving custom consolidation data:', dbData);
+
       const { data, error } = await supabase
         .from('custom_consolidations')
         .insert([dbData])
@@ -103,16 +107,27 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
       }
 
       console.log('✅ Created custom consolidation in database:', data.id);
+
+      // TODO: In a future iteration, we should also save the membership relationships
+      // between the custom consolidation and the original consolidations that were combined
+      // This would involve creating records in custom_consolidation_memberships table
+
       return data;
     },
     onSuccess: () => {
+      console.log('🔄 Invalidating custom consolidations cache');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
+    },
+    onError: (error) => {
+      console.error('❌ Failed to create custom consolidation:', error);
     }
   });
 
   // Delete custom consolidation mutation
   const deleteCustomConsolidation = useMutation({
     mutationFn: async (consolidationId: string) => {
+      console.log('🗑️ Deleting custom consolidation:', consolidationId);
+
       const { error } = await supabase
         .from('custom_consolidations')
         .delete()
@@ -126,7 +141,11 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
       console.log('✅ Deleted custom consolidation:', consolidationId);
     },
     onSuccess: () => {
+      console.log('🔄 Invalidating custom consolidations cache after deletion');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
+    },
+    onError: (error) => {
+      console.error('❌ Failed to delete custom consolidation:', error);
     }
   });
 

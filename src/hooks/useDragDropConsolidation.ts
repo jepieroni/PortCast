@@ -25,6 +25,11 @@ export const useDragDropConsolidation = (
   useEffect(() => {
     if (!initialConsolidations || isLoadingCustom) return;
 
+    console.log('🔄 Combining consolidations:', {
+      initial: initialConsolidations.length,
+      custom: customConsolidations.length
+    });
+
     // Filter out original consolidations that were used to create custom consolidations
     const originalConsolidationsToKeep = initialConsolidations.filter(original => {
       return !customConsolidations.some(custom => 
@@ -67,6 +72,8 @@ export const useDragDropConsolidation = (
     if (cards.length < 2) {
       throw new Error('At least 2 cards required for consolidation');
     }
+
+    console.log('🎯 Creating custom card from:', cards.length, 'cards');
 
     const firstCard = cards[0];
     const firstOriginRegion = getPortRegion(firstCard.poe_id);
@@ -149,6 +156,13 @@ export const useDragDropConsolidation = (
       ('is_custom' in card) ? card.combined_from : [card]
     );
 
+    console.log('✨ Created custom card:', {
+      type: customType,
+      totalShipments,
+      totalCube,
+      combinedFromCount: allCombinedFrom.length
+    });
+
     return {
       poe_id: firstCard.poe_id,
       poe_name,
@@ -174,6 +188,8 @@ export const useDragDropConsolidation = (
   const handleDrop = useCallback((targetCard: ExtendedConsolidationGroup) => {
     if (!draggedCard || !canDrop(draggedCard, targetCard)) return;
 
+    console.log('🎯 Handling drop consolidation');
+
     const customCard = createCustomCard([draggedCard, targetCard]);
     
     // Save to database
@@ -189,11 +205,17 @@ export const useDragDropConsolidation = (
   }, [draggedCard, canDrop, createCustomCard, consolidations, createCustomConsolidation]);
 
   const createMultipleConsolidation = useCallback((cards: ExtendedConsolidationGroup[]) => {
-    if (cards.length < 2) return;
+    if (cards.length < 2) {
+      console.warn('⚠️ Cannot consolidate less than 2 cards');
+      return;
+    }
+
+    console.log('🎯 Creating multiple consolidation from', cards.length, 'cards');
 
     const customCard = createCustomCard(cards);
     
     // Save to database
+    console.log('💾 Saving custom consolidation to database...');
     createCustomConsolidation(customCard);
     
     // Update local state immediately for better UX
@@ -201,13 +223,17 @@ export const useDragDropConsolidation = (
       .filter(card => !cards.includes(card))
       .concat(customCard);
     
+    console.log('🔄 Updating local consolidations state');
     setConsolidations(newConsolidations);
   }, [createCustomCard, consolidations, createCustomConsolidation]);
 
   const resetToOriginal = useCallback(() => {
+    console.log('🔄 Resetting to original consolidations');
+    
     // Delete all custom consolidations from database
     customConsolidations.forEach(custom => {
       if (custom.db_id) {
+        console.log('🗑️ Deleting custom consolidation:', custom.db_id);
         deleteCustomConsolidation(custom.db_id);
       }
     });
