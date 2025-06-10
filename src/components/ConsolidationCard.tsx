@@ -1,6 +1,6 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Package, TrendingUp, Ship } from 'lucide-react';
 import { ConsolidationGroup } from '@/hooks/useConsolidationData';
 import { usePortRegions } from '@/hooks/usePortRegions';
@@ -22,6 +22,10 @@ interface ConsolidationCardProps {
   onDragStart?: (card: ExtendedConsolidationGroup) => void;
   onDragEnd?: () => void;
   onDrop?: (card: ExtendedConsolidationGroup) => void;
+  showCheckbox?: boolean;
+  isSelected?: boolean;
+  isCompatibleForSelection?: boolean;
+  onSelectionChange?: (checked: boolean) => void;
 }
 
 const ConsolidationCard = ({ 
@@ -39,7 +43,11 @@ const ConsolidationCard = ({
   isValidDropTarget = false,
   onDragStart,
   onDragEnd,
-  onDrop
+  onDrop,
+  showCheckbox = false,
+  isSelected = false,
+  isCompatibleForSelection = true,
+  onSelectionChange
 }: ConsolidationCardProps) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
@@ -70,8 +78,16 @@ const ConsolidationCard = ({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
+    // Don't trigger onClick if clicking on checkbox
+    if ((e.target as HTMLElement).closest('[data-checkbox]')) {
+      return;
+    }
     e.preventDefault();
     onClick?.();
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    onSelectionChange?.(checked);
   };
 
   const handleDragStart = (e: React.DragEvent) => {
@@ -100,10 +116,17 @@ const ConsolidationCard = ({
       classes += "opacity-50 transform rotate-2 ";
     } else if (isValidDropTarget) {
       classes += "ring-2 ring-green-500 bg-green-50 scale-105 ";
+    } else if (isSelected) {
+      classes += "ring-2 ring-purple-500 bg-purple-50 ";
     } else if (hasUserShipments) {
       classes += "ring-2 ring-blue-500 bg-blue-50 ";
     } else {
       classes += "hover:scale-105 ";
+    }
+
+    // Add grey-out effect if not compatible for selection
+    if (showCheckbox && !isCompatibleForSelection) {
+      classes += "opacity-50 ";
     }
     
     return classes;
@@ -123,6 +146,15 @@ const ConsolidationCard = ({
     >
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2 mb-2">
+          {showCheckbox && (
+            <div data-checkbox className="flex-shrink-0">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={handleCheckboxChange}
+                disabled={!isCompatibleForSelection}
+              />
+            </div>
+          )}
           <Ship size={18} className="text-blue-600" />
           <CardTitle className="text-lg font-semibold">
             {isCustomCard ? 'Custom Consolidation' : 

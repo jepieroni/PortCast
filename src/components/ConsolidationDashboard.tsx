@@ -6,7 +6,7 @@ import { useConsolidationData } from '@/hooks/useConsolidationData';
 import { useDragDropConsolidation, ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 
 interface ConsolidationDashboardProps {
   type: 'inbound' | 'outbound' | 'intertheater';
@@ -38,10 +38,12 @@ const ConsolidationDashboard = ({
     canDrop,
     resetToOriginal,
     getValidDropTargets,
-    isLoading: isLoadingCustom
+    isLoading: isLoadingCustom,
+    createMultipleConsolidation
   } = useDragDropConsolidation(originalConsolidations || [], type);
 
   const { portRegions, portRegionMemberships } = usePortRegions();
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
 
   // Reset custom consolidations when data changes
   useEffect(() => {
@@ -49,6 +51,94 @@ const ConsolidationDashboard = ({
       resetToOriginal();
     }
   }, [originalConsolidations, resetToOriginal]);
+
+  // Reset selected cards when consolidations change
+  useEffect(() => {
+    setSelectedCards(new Set());
+  }, [consolidations]);
+
+  // Get port region for compatibility checking
+  const getPortRegion = useCallback((portId: string) => {
+    const membership = portRegionMemberships.find(m => m.port_id === portId);
+    if (membership) {
+      const region = portRegions.find(r => r.id === membership.region_id);
+      return { id: membership.region_id, name: region?.name || 'Unknown Region' };
+    }
+    return null;
+  }, [portRegions, portRegionMemberships]);
+
+  // Check if cards can be combined
+  const canCombineCards = useCallback((cards: ExtendedConsolidationGroup[]): boolean => {
+    if (cards.length < 2) return false;
+    
+    const firstCard = cards[0];
+    const firstOriginRegion = getPortRegion(firstCard.poe_id);
+    const firstDestRegion = getPortRegion(firstCard.pod_id);
+    
+    return cards.every(card => {
+      const originRegion = getPortRegion(card.poe_id);
+      const destRegion = getPortRegion(card.pod_id);
+      return originRegion?.id === firstOriginRegion?.id && 
+             destRegion?.id === firstDestRegion?.id;
+    });
+  }, [getPortRegion]);
+
+  // Get cards that can be combined with currently selected cards
+  const getCompatibleCards = useCallback((): Set<string> => {
+    if (selectedCards.size === 0) {
+      return new Set(consolidations.map(c => getCardKey(c)));
+    }
+    
+    const selectedCardObjects = consolidations.filter(c => selectedCards.has(getCardKey(c)));
+    if (selectedCardObjects.length === 0) return new Set();
+    
+    const compatibleCards = new Set<string>();
+    
+    consolidations.forEach(card => {
+      const testCards = [...selectedCardObjects, card];
+      if (canCombineCards(testCards)) {
+        compatibleCards.add(getCardKey(card));
+      }
+    });
+    
+    return compatibleCards;
+  }, [selectedCards, consolidations, canCombineCards]);
+
+  const compatibleCards = getCompatibleCards();
+
+  // Generate unique key for each card
+  const getCardKey = (card: ExtendedConsolidationGroup): string => {
+    if ('is_custom' in card) {
+      return card.custom_id;
+    }
+    return `${card.poe_id}-${card.pod_id}`;
+  };
+
+  // Handle checkbox change
+  const handleCardSelection = (card: ExtendedConsolidationGroup, checked: boolean) => {
+    const cardKey = getCardKey(card);
+    const newSelected = new Set(selectedCards);
+    
+    if (checked) {
+      newSelected.add(cardKey);
+    } else {
+      newSelected.delete(cardKey);
+    }
+    
+    setSelectedCards(newSelected);
+  };
+
+  // Handle consolidate selected
+  const handleConsolidateSelected = () => {
+    const selectedCardObjects = consolidations.filter(c => selectedCards.has(getCardKey(c)));
+    
+    if (selectedCardObjects.length < 2) return;
+    
+    if (canCombineCards(selectedCardObjects)) {
+      createMultipleConsolidation(selectedCardObjects);
+      setSelectedCards(new Set());
+    }
+  };
 
   // Sort consolidations by appropriate region
   const sortedConsolidations = useMemo(() => {
@@ -89,8 +179,8 @@ const ConsolidationDashboard = ({
   }, [consolidations, portRegions, portRegionMemberships, type]);
 
   const validDropTargets = draggedCard ? getValidDropTargets(draggedCard) : [];
-
   const isLoadingAny = isLoading || isLoadingCustom;
+  const canConsolidateSelected = selectedCards.size >= 2;
 
   return (
     <div className="space-y-6">
@@ -108,6 +198,14 @@ const ConsolidationDashboard = ({
             <RotateCcw size={16} />
             Reset Custom Consolidations
           </Button>
+          {canConsolidateSelected && (
+            <Button 
+              onClick={handleConsolidateSelected}
+              className="flex items-center gap-2"
+            >
+              Consolidate Selected ({selectedCards.size})
+            </Button>
+          )}
           {['inbound', 'outbound', 'intertheater'].map((tab) => (
             <Button
               key={tab}
@@ -149,6 +247,15 @@ const ConsolidationDashboard = ({
         </div>
       )}
 
+      {selectedCards.size > 0 && (
+        <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <p className="text-sm text-purple-700">
+            <strong>Selection Mode:</strong> {selectedCards.size} card(s) selected. 
+            {canConsolidateSelected ? ' Compatible cards can be consolidated together.' : ' Select compatible cards from the same regions.'}
+          </p>
+        </div>
+      )}
+
       {isLoadingAny ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -173,8 +280,11 @@ const ConsolidationDashboard = ({
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedConsolidations.map((consolidation, index) => {
+            const cardKey = getCardKey(consolidation);
             const isValidTarget = validDropTargets.includes(consolidation);
             const isDragging = draggedCard === consolidation;
+            const isSelected = selectedCards.has(cardKey);
+            const isCompatible = compatibleCards.has(cardKey);
             
             return (
               <ConsolidationCard
@@ -194,6 +304,10 @@ const ConsolidationDashboard = ({
                 onDragStart={setDraggedCard}
                 onDragEnd={() => setDraggedCard(null)}
                 onDrop={handleDrop}
+                isSelected={isSelected}
+                isCompatibleForSelection={isCompatible}
+                onSelectionChange={(checked) => handleCardSelection(consolidation, checked)}
+                showCheckbox={true}
               />
             );
           })}
