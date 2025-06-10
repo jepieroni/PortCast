@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Package, TrendingUp, Ship } from 'lucide-react';
-import { ConsolidationGroup } from '@/hooks/useConsolidationData';
+import { ConsolidationGroup } from '@/hooks/consolidation/types';
 import { usePortRegions } from '@/hooks/usePortRegions';
 import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
 
