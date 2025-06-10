@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { processStrictGrouping } from './consolidation/strictGrouping';
 import { useAuth } from './useAuth';
-import { useMemo } from 'react';
 import { debugLogger } from '@/services/debugLogger';
 
 export const useRegularConsolidationData = (
@@ -12,14 +11,8 @@ export const useRegularConsolidationData = (
 ) => {
   const { user } = useAuth();
   
-  // Memoize the max outlook days to prevent infinite re-renders
-  const maxOutlookDays = useMemo(() => Math.max(...outlookDays), [outlookDays]);
-  
-  // Memoize the query key to prevent unnecessary re-renders
-  const queryKey = useMemo(() => 
-    ['regular-consolidation-data', type, maxOutlookDays, user?.id], 
-    [type, maxOutlookDays, user?.id]
-  );
+  // Calculate max outlook days directly without memoization
+  const maxOutlookDays = Math.max(...outlookDays);
 
   console.log('🎯 useRegularConsolidationData called with:', { 
     type, 
@@ -29,7 +22,7 @@ export const useRegularConsolidationData = (
   });
 
   return useQuery({
-    queryKey,
+    queryKey: ['regular-consolidation-data', type, maxOutlookDays, user?.id],
     queryFn: async () => {
       console.log('🔍 Starting regular consolidation data fetch...', { type, outlookDays: maxOutlookDays });
       
