@@ -6,6 +6,7 @@ import { usePortRegions } from './usePortRegions';
 import { useCustomConsolidations, CustomConsolidationGroup } from './useCustomConsolidations';
 import { useConsolidationUtils } from './consolidation/consolidationUtils';
 import { useCustomConsolidationCreator } from './consolidation/customConsolidationCreator';
+import { debugLogger } from '@/services/debugLogger';
 
 export type { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
 
@@ -29,6 +30,12 @@ export const useDragDropConsolidation = (
 
   // Combine initial consolidations with custom ones, removing originals that were combined
   useEffect(() => {
+    debugLogger.debug('DRAG-DROP-HOOK', 'useEffect triggered', 'consolidations-effect', {
+      initialConsolidationsCount: initialConsolidations?.length || 0,
+      customConsolidationsCount: customConsolidations?.length || 0,
+      isLoadingCustom
+    });
+
     if (!initialConsolidations || isLoadingCustom) return;
 
     // Filter out original consolidations that were used to create custom consolidations
@@ -41,13 +48,28 @@ export const useDragDropConsolidation = (
     });
 
     const allConsolidations = [...originalConsolidationsToKeep, ...customConsolidations];
+    debugLogger.info('DRAG-DROP-HOOK', 'Updated consolidations state', 'consolidations-effect', {
+      originalKept: originalConsolidationsToKeep.length,
+      customAdded: customConsolidations.length,
+      totalConsolidations: allConsolidations.length
+    });
+    
     setConsolidations(allConsolidations);
   }, [initialConsolidations, customConsolidations, isLoadingCustom]);
 
   const handleDrop = useCallback((targetCard: ExtendedConsolidationGroup) => {
-    if (!draggedCard || !canDrop(draggedCard, targetCard)) return;
+    debugLogger.info('DRAG-DROP-HOOK', 'Drop operation initiated', 'handleDrop', {
+      draggedCard: draggedCard ? 'is_custom' in draggedCard ? draggedCard.custom_id : `${draggedCard.poe_id}-${draggedCard.pod_id}` : null,
+      targetCard: 'is_custom' in targetCard ? targetCard.custom_id : `${targetCard.poe_id}-${targetCard.pod_id}`
+    });
+
+    if (!draggedCard || !canDrop(draggedCard, targetCard)) {
+      debugLogger.warn('DRAG-DROP-HOOK', 'Drop operation cancelled - invalid conditions', 'handleDrop');
+      return;
+    }
 
     const customCard = createCustomCard([draggedCard, targetCard]);
+    debugLogger.debug('DRAG-DROP-HOOK', 'Custom card created for drop operation', 'handleDrop', { customCard: customCard.custom_id });
     
     // Save to database
     createCustomConsolidation(customCard);
@@ -57,30 +79,37 @@ export const useDragDropConsolidation = (
       .filter(card => card !== draggedCard && card !== targetCard)
       .concat(customCard);
     
+    debugLogger.info('DRAG-DROP-HOOK', 'Local state updated after drop', 'handleDrop', {
+      previousCount: consolidations.length,
+      newCount: newConsolidations.length
+    });
+    
     setConsolidations(newConsolidations);
     setDraggedCard(null);
   }, [draggedCard, canDrop, createCustomCard, consolidations, createCustomConsolidation]);
 
   const createMultipleConsolidation = useCallback((cards: ExtendedConsolidationGroup[]) => {
-    console.log('🎯 [DRAG-DROP-HOOK] createMultipleConsolidation called with', cards.length, 'cards');
+    debugLogger.info('DRAG-DROP-HOOK', 'createMultipleConsolidation called', 'createMultipleConsolidation', { cardsCount: cards.length });
     
     if (cards.length < 2) {
-      console.warn('⚠️ [DRAG-DROP-HOOK] Cannot consolidate less than 2 cards');
+      debugLogger.warn('DRAG-DROP-HOOK', 'Cannot consolidate less than 2 cards', 'createMultipleConsolidation');
       return;
     }
 
-    console.log('🎯 [DRAG-DROP-HOOK] Card details:', cards.map(c => ({
-      key: 'is_custom' in c ? c.custom_id : `${c.poe_id}-${c.pod_id}`,
-      poe: c.poe_name,
-      pod: c.pod_name,
-      shipments: c.shipment_count,
-      isCustom: 'is_custom' in c
-    })));
+    debugLogger.debug('DRAG-DROP-HOOK', 'Card details for multiple consolidation', 'createMultipleConsolidation', {
+      cards: cards.map(c => ({
+        key: 'is_custom' in c ? c.custom_id : `${c.poe_id}-${c.pod_id}`,
+        poe: c.poe_name,
+        pod: c.pod_name,
+        shipments: c.shipment_count,
+        isCustom: 'is_custom' in c
+      }))
+    });
 
     try {
-      console.log('🛠️ [DRAG-DROP-HOOK] Creating custom card...');
+      debugLogger.debug('DRAG-DROP-HOOK', 'Creating custom card...', 'createMultipleConsolidation');
       const customCard = createCustomCard(cards);
-      console.log('✅ [DRAG-DROP-HOOK] Custom card created:', {
+      debugLogger.info('DRAG-DROP-HOOK', 'Custom card created successfully', 'createMultipleConsolidation', {
         customId: customCard.custom_id,
         poe: customCard.poe_name,
         pod: customCard.pod_name,
@@ -88,25 +117,33 @@ export const useDragDropConsolidation = (
         customType: customCard.custom_type
       });
       
-      console.log('💾 [DRAG-DROP-HOOK] Calling createCustomConsolidation...');
+      debugLogger.debug('DRAG-DROP-HOOK', 'Calling createCustomConsolidation...', 'createMultipleConsolidation');
       createCustomConsolidation(customCard);
-      console.log('✅ [DRAG-DROP-HOOK] createCustomConsolidation called successfully');
+      debugLogger.info('DRAG-DROP-HOOK', 'createCustomConsolidation called successfully', 'createMultipleConsolidation');
       
       // Update local state immediately for better UX
       const newConsolidations = consolidations
         .filter(card => !cards.includes(card))
         .concat(customCard);
       
-      console.log('🔄 [DRAG-DROP-HOOK] Updating local consolidations state');
-      console.log('📊 [DRAG-DROP-HOOK] Previous count:', consolidations.length, 'New count:', newConsolidations.length);
+      debugLogger.info('DRAG-DROP-HOOK', 'Updating local consolidations state', 'createMultipleConsolidation', {
+        previousCount: consolidations.length,
+        newCount: newConsolidations.length
+      });
       setConsolidations(newConsolidations);
     } catch (error) {
-      console.error('❌ [DRAG-DROP-HOOK] Error in createMultipleConsolidation:', error);
-      console.error('❌ [DRAG-DROP-HOOK] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      debugLogger.error('DRAG-DROP-HOOK', 'Error in createMultipleConsolidation', 'createMultipleConsolidation', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      });
     }
   }, [createCustomCard, consolidations, createCustomConsolidation]);
 
   const resetToOriginal = useCallback(() => {
+    debugLogger.info('DRAG-DROP-HOOK', 'Resetting to original consolidations', 'resetToOriginal', {
+      customConsolidationsToDelete: customConsolidations.length
+    });
+    
     // Delete all custom consolidations from database
     customConsolidations.forEach(custom => {
       if (custom.db_id) {
@@ -116,6 +153,7 @@ export const useDragDropConsolidation = (
     
     // Reset local state to original consolidations
     setConsolidations(initialConsolidations);
+    debugLogger.info('DRAG-DROP-HOOK', 'Reset to original consolidations completed', 'resetToOriginal');
   }, [customConsolidations, deleteCustomConsolidation, initialConsolidations]);
 
   const getValidDropTargetsForCard = useCallback((source: ExtendedConsolidationGroup) => {

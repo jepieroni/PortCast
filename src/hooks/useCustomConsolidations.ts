@@ -12,6 +12,7 @@ import {
   deleteCustomConsolidationFromDB
 } from './consolidation/customConsolidationService';
 import { convertDbToUIFormat } from './consolidation/customConsolidationConverter';
+import { debugLogger } from '@/services/debugLogger';
 
 export type { DatabaseCustomConsolidation, CustomConsolidationGroup } from './consolidation/customConsolidationTypes';
 
@@ -29,19 +30,19 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
   // Create custom consolidation mutation
   const createCustomConsolidation = useMutation({
     mutationFn: async (customConsolidation: CustomConsolidationGroup) => {
-      console.log('🔄 [CUSTOM-CONSOLIDATIONS] Mutation function called');
-      console.log('👤 [CUSTOM-CONSOLIDATIONS] User state:', { 
+      debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Mutation function called', 'createCustomConsolidation');
+      debugLogger.debug('CUSTOM-CONSOLIDATIONS', 'User state', 'createCustomConsolidation', { 
         userId: user?.id, 
         userEmail: user?.email,
         isAuthenticated: !!user 
       });
       
       if (!user?.id) {
-        console.error('❌ [CUSTOM-CONSOLIDATIONS] User not authenticated');
+        debugLogger.error('CUSTOM-CONSOLIDATIONS', 'User not authenticated', 'createCustomConsolidation');
         throw new Error('User not authenticated');
       }
       
-      console.log('📦 [CUSTOM-CONSOLIDATIONS] Creating consolidation:', {
+      debugLogger.debug('CUSTOM-CONSOLIDATIONS', 'Creating consolidation', 'createCustomConsolidation', {
         customId: customConsolidation.custom_id,
         type: type,
         customType: customConsolidation.custom_type,
@@ -52,26 +53,24 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
       return createCustomConsolidationInDB(customConsolidation, type, user.id);
     },
     onSuccess: (data) => {
-      console.log('✅ [CUSTOM-CONSOLIDATIONS] Mutation successful, result:', data);
-      console.log('🔄 [CUSTOM-CONSOLIDATIONS] Invalidating cache...');
+      debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Mutation successful', 'createCustomConsolidation', { result: data });
+      debugLogger.debug('CUSTOM-CONSOLIDATIONS', 'Invalidating cache...', 'createCustomConsolidation');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
     },
     onError: (error) => {
-      console.error('❌ [CUSTOM-CONSOLIDATIONS] Mutation failed:', error);
-      console.error('❌ [CUSTOM-CONSOLIDATIONS] Error details:', {
+      debugLogger.error('CUSTOM-CONSOLIDATIONS', 'Mutation failed', 'createCustomConsolidation', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : 'No stack trace'
       });
     },
     onMutate: (variables) => {
-      console.log('🏁 [CUSTOM-CONSOLIDATIONS] Mutation starting with variables:', variables);
+      debugLogger.debug('CUSTOM-CONSOLIDATIONS', 'Mutation starting', 'createCustomConsolidation', { variables });
     },
     onSettled: (data, error) => {
-      console.log('🏁 [CUSTOM-CONSOLIDATIONS] Mutation settled');
       if (error) {
-        console.log('❌ [CUSTOM-CONSOLIDATIONS] Settled with error:', error);
+        debugLogger.warn('CUSTOM-CONSOLIDATIONS', 'Mutation settled with error', 'createCustomConsolidation', { error });
       } else {
-        console.log('✅ [CUSTOM-CONSOLIDATIONS] Settled successfully with data:', data);
+        debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Mutation settled successfully', 'createCustomConsolidation', { data });
       }
     }
   });
@@ -80,10 +79,11 @@ export const useCustomConsolidations = (type: 'inbound' | 'outbound' | 'interthe
   const deleteCustomConsolidation = useMutation({
     mutationFn: deleteCustomConsolidationFromDB,
     onSuccess: () => {
+      debugLogger.info('CUSTOM-CONSOLIDATIONS', 'Delete mutation successful', 'deleteCustomConsolidation');
       queryClient.invalidateQueries({ queryKey: ['custom-consolidations', type] });
     },
     onError: (error) => {
-      console.error('❌ [CUSTOM-CONSOLIDATIONS] Failed to delete custom consolidation:', error);
+      debugLogger.error('CUSTOM-CONSOLIDATIONS', 'Failed to delete custom consolidation', 'deleteCustomConsolidation', { error });
     }
   });
 

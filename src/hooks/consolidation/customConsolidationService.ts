@@ -1,12 +1,18 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseCustomConsolidation, CustomConsolidationGroup } from './customConsolidationTypes';
+import { debugLogger } from '@/services/debugLogger';
 
 export const fetchCustomConsolidations = async (
   type: 'inbound' | 'outbound' | 'intertheater',
   userId?: string
 ): Promise<any[]> => {
-  if (!userId) return [];
+  debugLogger.debug('CUSTOM-CONSOLIDATION-SERVICE', `Starting fetch for type: ${type}`, 'fetchCustomConsolidations', { type, userId });
+  
+  if (!userId) {
+    debugLogger.warn('CUSTOM-CONSOLIDATION-SERVICE', 'No user ID provided, returning empty array', 'fetchCustomConsolidations');
+    return [];
+  }
 
   const { data, error } = await supabase
     .from('custom_consolidations')
@@ -20,10 +26,11 @@ export const fetchCustomConsolidations = async (
     .eq('consolidation_type', type);
 
   if (error) {
-    console.error('Error fetching custom consolidations:', error);
+    debugLogger.error('CUSTOM-CONSOLIDATION-SERVICE', 'Error fetching custom consolidations', 'fetchCustomConsolidations', { error, type });
     throw error;
   }
 
+  debugLogger.info('CUSTOM-CONSOLIDATION-SERVICE', `Successfully fetched ${data?.length || 0} custom consolidations`, 'fetchCustomConsolidations', { count: data?.length });
   return data || [];
 };
 
@@ -32,8 +39,8 @@ export const createCustomConsolidationInDB = async (
   type: 'inbound' | 'outbound' | 'intertheater',
   userId: string
 ) => {
-  console.log('💾 [DB-SERVICE] createCustomConsolidationInDB called');
-  console.log('📊 [DB-SERVICE] Input parameters:', {
+  debugLogger.info('DB-SERVICE', 'createCustomConsolidationInDB called', 'createCustomConsolidationInDB');
+  debugLogger.debug('DB-SERVICE', 'Input parameters', 'createCustomConsolidationInDB', {
     userId,
     type,
     customConsolidation: {
@@ -48,7 +55,7 @@ export const createCustomConsolidationInDB = async (
 
   try {
     // Get user's organization
-    console.log('🔍 [DB-SERVICE] Fetching user profile for organization...');
+    debugLogger.debug('DB-SERVICE', 'Fetching user profile for organization...', 'createCustomConsolidationInDB');
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('organization_id')
@@ -56,16 +63,16 @@ export const createCustomConsolidationInDB = async (
       .single();
 
     if (profileError) {
-      console.error('❌ [DB-SERVICE] Profile fetch error:', profileError);
+      debugLogger.error('DB-SERVICE', 'Profile fetch error', 'createCustomConsolidationInDB', { error: profileError });
       throw new Error(`Profile fetch failed: ${profileError.message}`);
     }
 
     if (!profile?.organization_id) {
-      console.error('❌ [DB-SERVICE] No organization found for user');
+      debugLogger.error('DB-SERVICE', 'No organization found for user', 'createCustomConsolidationInDB');
       throw new Error('User organization not found');
     }
 
-    console.log('✅ [DB-SERVICE] User organization found:', profile.organization_id);
+    debugLogger.info('DB-SERVICE', 'User organization found', 'createCustomConsolidationInDB', { organizationId: profile.organization_id });
 
     const dbData = {
       organization_id: profile.organization_id,
@@ -77,9 +84,9 @@ export const createCustomConsolidationInDB = async (
       created_by: userId
     };
 
-    console.log('💾 [DB-SERVICE] Prepared database data:', dbData);
+    debugLogger.debug('DB-SERVICE', 'Prepared database data', 'createCustomConsolidationInDB', { dbData });
 
-    console.log('🚀 [DB-SERVICE] Executing database insert...');
+    debugLogger.info('DB-SERVICE', 'Executing database insert...', 'createCustomConsolidationInDB');
     const { data, error } = await supabase
       .from('custom_consolidations')
       .insert([dbData])
@@ -87,34 +94,40 @@ export const createCustomConsolidationInDB = async (
       .single();
 
     if (error) {
-      console.error('❌ [DB-SERVICE] Database insert error:', error);
-      console.error('❌ [DB-SERVICE] Error details:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
+      debugLogger.error('DB-SERVICE', 'Database insert error', 'createCustomConsolidationInDB', {
+        error: {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        }
       });
       throw error;
     }
 
-    console.log('✅ [DB-SERVICE] Database insert successful');
-    console.log('📄 [DB-SERVICE] Created record:', data);
+    debugLogger.info('DB-SERVICE', 'Database insert successful', 'createCustomConsolidationInDB', { createdRecord: data });
     return data;
   } catch (error) {
-    console.error('❌ [DB-SERVICE] Unexpected error in createCustomConsolidationInDB:', error);
-    console.error('❌ [DB-SERVICE] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    debugLogger.error('DB-SERVICE', 'Unexpected error in createCustomConsolidationInDB', 'createCustomConsolidationInDB', { 
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    });
     throw error;
   }
 };
 
 export const deleteCustomConsolidationFromDB = async (consolidationId: string) => {
+  debugLogger.info('DB-SERVICE', 'Deleting custom consolidation', 'deleteCustomConsolidationFromDB', { consolidationId });
+  
   const { error } = await supabase
     .from('custom_consolidations')
     .delete()
     .eq('id', consolidationId);
 
   if (error) {
-    console.error('Error deleting custom consolidation:', error);
+    debugLogger.error('DB-SERVICE', 'Error deleting custom consolidation', 'deleteCustomConsolidationFromDB', { error, consolidationId });
     throw error;
   }
+  
+  debugLogger.info('DB-SERVICE', 'Successfully deleted custom consolidation', 'deleteCustomConsolidationFromDB', { consolidationId });
 };

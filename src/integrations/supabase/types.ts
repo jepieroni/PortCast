@@ -191,6 +191,45 @@ export type Database = {
           },
         ]
       }
+      debug_logs: {
+        Row: {
+          component: string
+          created_at: string
+          function_name: string | null
+          id: string
+          level: string
+          message: string
+          metadata: Json | null
+          session_id: string
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          component: string
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          level?: string
+          message: string
+          metadata?: Json | null
+          session_id: string
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          component?: string
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          level?: string
+          message?: string
+          metadata?: Json | null
+          session_id?: string
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       organization_requests: {
         Row: {
           approval_token: string

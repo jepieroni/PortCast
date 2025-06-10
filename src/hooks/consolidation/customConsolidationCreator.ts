@@ -2,30 +2,33 @@
 import { useCallback } from 'react';
 import { ExtendedConsolidationGroup } from './dragDropTypes';
 import { CustomConsolidationGroup } from '../useCustomConsolidations';
+import { debugLogger } from '@/services/debugLogger';
 
 export const useCustomConsolidationCreator = (getPortRegion: (portId: string) => { id: string; name: string } | null) => {
   const createCustomCard = useCallback((cards: ExtendedConsolidationGroup[]): CustomConsolidationGroup => {
-    console.log('🎯 [CARD-CREATOR] createCustomCard called with', cards.length, 'cards');
+    debugLogger.info('CARD-CREATOR', 'createCustomCard called', 'createCustomCard', { cardsCount: cards.length });
     
     if (cards.length < 2) {
-      console.error('❌ [CARD-CREATOR] Insufficient cards provided:', cards.length);
+      debugLogger.error('CARD-CREATOR', 'Insufficient cards provided', 'createCustomCard', { cardsCount: cards.length });
       throw new Error('At least 2 cards required for consolidation');
     }
 
-    console.log('📊 [CARD-CREATOR] Input cards:', cards.map(card => ({
-      poeId: card.poe_id,
-      poeName: card.poe_name,
-      podId: card.pod_id,
-      podName: card.pod_name,
-      shipmentCount: card.shipment_count,
-      isCustom: 'is_custom' in card
-    })));
+    debugLogger.debug('CARD-CREATOR', 'Input cards analysis', 'createCustomCard', {
+      cards: cards.map(card => ({
+        poeId: card.poe_id,
+        poeName: card.poe_name,
+        podId: card.pod_id,
+        podName: card.pod_name,
+        shipmentCount: card.shipment_count,
+        isCustom: 'is_custom' in card
+      }))
+    });
 
     const firstCard = cards[0];
     const firstOriginRegion = getPortRegion(firstCard.poe_id);
     const firstDestRegion = getPortRegion(firstCard.pod_id);
 
-    console.log('🗺️ [CARD-CREATOR] First card regions:', {
+    debugLogger.debug('CARD-CREATOR', 'First card regions', 'createCustomCard', {
       originRegion: firstOriginRegion,
       destRegion: firstDestRegion
     });
@@ -40,7 +43,7 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
     const allSameOriginRegion = cards.every(card => {
       const originRegion = getPortRegion(card.poe_id);
       const isSame = originRegion?.id === firstOriginRegion?.id;
-      console.log('🔍 [CARD-CREATOR] Card origin region check:', {
+      debugLogger.debug('CARD-CREATOR', 'Card origin region check', 'createCustomCard', {
         cardPoeId: card.poe_id,
         cardOriginRegion: originRegion,
         firstOriginRegion,
@@ -52,7 +55,7 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
     const allSameDestRegion = cards.every(card => {
       const destRegion = getPortRegion(card.pod_id);
       const isSame = destRegion?.id === firstDestRegion?.id;
-      console.log('🔍 [CARD-CREATOR] Card dest region check:', {
+      debugLogger.debug('CARD-CREATOR', 'Card dest region check', 'createCustomCard', {
         cardPodId: card.pod_id,
         cardDestRegion: destRegion,
         firstDestRegion,
@@ -61,7 +64,7 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
       return isSame;
     });
 
-    console.log('🔍 [CARD-CREATOR] Region compatibility:', {
+    debugLogger.info('CARD-CREATOR', 'Region compatibility analysis', 'createCustomCard', {
       allSameOriginRegion,
       allSameDestRegion
     });
@@ -104,7 +107,7 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
       pod_code = firstCard.pod_code;
     }
 
-    console.log('🏷️ [CARD-CREATOR] Determined custom type:', customType);
+    debugLogger.info('CARD-CREATOR', 'Determined custom type', 'createCustomCard', { customType });
 
     // Collect all shipment details from all cards
     const getShipmentDetails = (consolidation: ExtendedConsolidationGroup): any[] => {
@@ -149,7 +152,7 @@ export const useCustomConsolidationCreator = (getPortRegion: (portId: string) =>
       custom_id: customId
     } as CustomConsolidationGroup;
 
-    console.log('✨ [CARD-CREATOR] Created custom card:', {
+    debugLogger.info('CARD-CREATOR', 'Created custom card successfully', 'createCustomCard', {
       customId,
       customType,
       totalShipments,

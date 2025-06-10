@@ -1,4 +1,3 @@
-
 import { useConsolidationData } from '@/hooks/useConsolidationData';
 import { useDragDropConsolidation, ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
 import { usePortRegions } from '@/hooks/usePortRegions';
@@ -9,6 +8,8 @@ import ConsolidationDashboardHeader from './consolidation/ConsolidationDashboard
 import ConsolidationOutlookSlider from './consolidation/ConsolidationOutlookSlider';
 import ConsolidationStatusBanner from './consolidation/ConsolidationStatusBanner';
 import ConsolidationGrid from './consolidation/ConsolidationGrid';
+import DebugViewer from './DebugViewer';
+import { debugLogger } from '@/services/debugLogger';
 
 interface ConsolidationDashboardProps {
   type: 'inbound' | 'outbound' | 'intertheater';
@@ -89,41 +90,48 @@ const ConsolidationDashboard = ({
 
   // Handle consolidate selected with debugging
   const handleConsolidateSelected = () => {
-    console.log('🚀 [CONSOLIDATION-WORKFLOW] Starting multi-card consolidation');
-    console.log('📊 [CONSOLIDATION-WORKFLOW] Selected cards count:', selectedCards.size);
-    console.log('📊 [CONSOLIDATION-WORKFLOW] Selected card keys:', Array.from(selectedCards));
+    debugLogger.info('CONSOLIDATION-WORKFLOW', 'Starting multi-card consolidation', 'handleConsolidateSelected');
+    debugLogger.debug('CONSOLIDATION-WORKFLOW', 'Selected cards analysis', 'handleConsolidateSelected', {
+      selectedCardsCount: selectedCards.size,
+      selectedCardKeys: Array.from(selectedCards)
+    });
     
     const selectedCardObjects = consolidations.filter(c => selectedCards.has(getCardKey(c)));
-    console.log('📊 [CONSOLIDATION-WORKFLOW] Selected card objects:', selectedCardObjects);
-    
-    if (selectedCardObjects.length < 2) {
-      console.warn('⚠️ [CONSOLIDATION-WORKFLOW] Insufficient cards selected:', selectedCardObjects.length);
-      return;
-    }
-    
-    console.log('🔍 [CONSOLIDATION-WORKFLOW] Checking if cards can be combined...');
-    const canCombine = canCombineCards(selectedCardObjects);
-    console.log('🔍 [CONSOLIDATION-WORKFLOW] Can combine cards:', canCombine);
-    
-    if (canCombine) {
-      console.log('✅ [CONSOLIDATION-WORKFLOW] Cards are compatible, proceeding with consolidation...');
-      console.log('📦 [CONSOLIDATION-WORKFLOW] Calling createMultipleConsolidation with cards:', selectedCardObjects.map(c => ({
+    debugLogger.debug('CONSOLIDATION-WORKFLOW', 'Selected card objects retrieved', 'handleConsolidateSelected', {
+      selectedCardObjects: selectedCardObjects.map(c => ({
         key: getCardKey(c),
         poe: c.poe_name,
         pod: c.pod_name,
         shipments: c.shipment_count
-      })));
+      }))
+    });
+    
+    if (selectedCardObjects.length < 2) {
+      debugLogger.warn('CONSOLIDATION-WORKFLOW', 'Insufficient cards selected', 'handleConsolidateSelected', {
+        selectedCount: selectedCardObjects.length
+      });
+      return;
+    }
+    
+    debugLogger.debug('CONSOLIDATION-WORKFLOW', 'Checking if cards can be combined...', 'handleConsolidateSelected');
+    const canCombine = canCombineCards(selectedCardObjects);
+    debugLogger.info('CONSOLIDATION-WORKFLOW', 'Card compatibility check result', 'handleConsolidateSelected', { canCombine });
+    
+    if (canCombine) {
+      debugLogger.info('CONSOLIDATION-WORKFLOW', 'Cards are compatible, proceeding with consolidation...', 'handleConsolidateSelected');
       
       try {
         createMultipleConsolidation(selectedCardObjects);
-        console.log('✅ [CONSOLIDATION-WORKFLOW] createMultipleConsolidation call completed');
+        debugLogger.info('CONSOLIDATION-WORKFLOW', 'createMultipleConsolidation call completed', 'handleConsolidateSelected');
         setSelectedCards(new Set());
-        console.log('✅ [CONSOLIDATION-WORKFLOW] Selected cards cleared');
+        debugLogger.info('CONSOLIDATION-WORKFLOW', 'Selected cards cleared', 'handleConsolidateSelected');
       } catch (error) {
-        console.error('❌ [CONSOLIDATION-WORKFLOW] Error in createMultipleConsolidation:', error);
+        debugLogger.error('CONSOLIDATION-WORKFLOW', 'Error in createMultipleConsolidation', 'handleConsolidateSelected', {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
       }
     } else {
-      console.warn('⚠️ [CONSOLIDATION-WORKFLOW] Cards are not compatible for consolidation');
+      debugLogger.warn('CONSOLIDATION-WORKFLOW', 'Cards are not compatible for consolidation', 'handleConsolidateSelected');
     }
   };
 
@@ -169,6 +177,8 @@ const ConsolidationDashboard = ({
         onDrop={handleDrop}
         getCardKey={getCardKey}
       />
+
+      <DebugViewer />
     </div>
   );
 };
