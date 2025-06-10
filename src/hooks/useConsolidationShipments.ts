@@ -2,68 +2,108 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface ConsolidationShipment {
-  id: string;
-  gbl_number: string;
-  shipper_last_name: string;
-  pickup_date: string;
-  estimated_cube: number;
-  actual_cube: number;
-  tsp: {
-    scac_code: string;
-    name: string;
-  };
-}
-
 export const useConsolidationShipments = (
   type: 'inbound' | 'outbound' | 'intertheater',
   poeId: string,
   podId: string,
-  outlookDays: number[]
+  outlookDays: number[],
+  customConsolidationData?: any // For custom consolidations
 ) => {
   return useQuery({
-    queryKey: ['consolidation-shipments', type, poeId, podId, outlookDays[0]],
+    queryKey: ['consolidation-shipments', type, poeId, podId, outlookDays[0], customConsolidationData?.custom_id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
-
-      // Calculate date range - include past 30 days and future outlook days
-      const today = new Date();
-      const startDate = new Date(today);
-      startDate.setDate(today.getDate() - 30);
-      const endDate = new Date(today);
-      endDate.setDate(today.getDate() + outlookDays[0]);
-
-      console.log('Consolidation shipments query:', {
+      console.log('📊 Fetching consolidation shipments:', {
         type,
         poeId,
         podId,
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
+        outlookDays: outlookDays[0],
+        isCustom: !!customConsolidationData?.is_custom
       });
 
-      const { data: shipments, error } = await supabase
+      // If this is a custom consolidation, we need to handle it differently
+      if (customConsolidationData?.is_custom) {
+        console.log('🔧 Processing custom consolidation:', customConsolidationData);
+        
+        // For custom consolidations, we need to fetch shipments for all combined original consolidations
+        const allShipments = [];
+        
+        for (const originalConsolidation of customConsolidationData.combined_from) {
+          console.log('📦 Fetching shipments for original consolidation:', originalConsolidation);
+          
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setDate(startDate.getDate() + outlookDays[0]);
+
+          let query = supabase
+            .from('shipments')
+            .select(`
+              *,
+              tsp:tsps(*),
+              target_poe:ports!shipments_target_poe_id_fkey(*),
+              target_pod:ports!shipments_target_pod_id_fkey(*)
+            `)
+            .eq('target_poe_id', originalConsolidation.poe_id)
+            .eq('target_pod_id', originalConsolidation.pod_id)
+            .gte('pickup_date', startDate.toISOString().split('T')[0])
+            .lte('pickup_date', endDate.toISOString().split('T')[0]);
+
+          // Apply shipment type filter
+          if (type !== 'intertheater') {
+            query = query.eq('shipment_type', type);
+          } else {
+            query = query.eq('shipment_type', 'intertheater');
+          }
+
+          const { data: shipments, error } = await query;
+
+          if (error) {
+            console.error('Error fetching shipments for original consolidation:', error);
+            throw error;
+          }
+
+          if (shipments) {
+            allShipments.push(...shipments);
+          }
+        }
+
+        console.log(`✅ Retrieved ${allShipments.length} total shipments for custom consolidation`);
+        return allShipments;
+      }
+
+      // Regular consolidation logic
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + outlookDays[0]);
+
+      let query = supabase
         .from('shipments')
         .select(`
-          id,
-          gbl_number,
-          shipper_last_name,
-          pickup_date,
-          estimated_cube,
-          actual_cube,
-          tsp:tsp_id(scac_code, name)
+          *,
+          tsp:tsps(*),
+          target_poe:ports!shipments_target_poe_id_fkey(*),
+          target_pod:ports!shipments_target_pod_id_fkey(*)
         `)
-        .eq('shipment_type', type)
         .eq('target_poe_id', poeId)
         .eq('target_pod_id', podId)
         .gte('pickup_date', startDate.toISOString().split('T')[0])
-        .lte('pickup_date', endDate.toISOString().split('T')[0])
-        .order('pickup_date', { ascending: true });
+        .lte('pickup_date', endDate.toISOString().split('T')[0]);
 
-      if (error) throw error;
+      // Apply shipment type filter
+      if (type !== 'intertheater') {
+        query = query.eq('shipment_type', type);
+      } else {
+        query = query.eq('shipment_type', 'intertheater');
+      }
 
-      console.log('Consolidation shipments found:', shipments?.length || 0);
-      return shipments as ConsolidationShipment[];
+      const { data: shipments, error } = await query;
+
+      if (error) {
+        console.error('Error fetching consolidation shipments:', error);
+        throw error;
+      }
+
+      console.log(`✅ Retrieved ${shipments?.length || 0} shipments`);
+      return shipments || [];
     }
   });
 };

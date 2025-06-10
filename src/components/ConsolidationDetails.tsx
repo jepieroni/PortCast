@@ -5,6 +5,7 @@ import { ArrowLeft, Package, Ship } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { useConsolidationShipments } from '@/hooks/useConsolidationShipments';
 
 interface ConsolidationDetailsProps {
@@ -18,6 +19,7 @@ interface ConsolidationDetailsProps {
   outlookDays: number[];
   onOutlookDaysChange: (days: number[]) => void;
   onBack: () => void;
+  customConsolidationData?: any; // For custom consolidations
 }
 
 const ConsolidationDetails = ({
@@ -30,16 +32,23 @@ const ConsolidationDetails = ({
   podCode,
   outlookDays,
   onOutlookDaysChange,
-  onBack
+  onBack,
+  customConsolidationData
 }: ConsolidationDetailsProps) => {
   const { data: shipments, isLoading, error } = useConsolidationShipments(
     type,
     poeId,
     podId,
-    outlookDays
+    outlookDays,
+    customConsolidationData
   );
 
+  const isCustomConsolidation = customConsolidationData?.is_custom;
+
   const getTitle = () => {
+    if (isCustomConsolidation) {
+      return `Custom Consolidation`;
+    }
     if (type === 'intertheater') {
       return `${poeCode || poeName} → ${podCode || podName}`;
     }
@@ -47,6 +56,9 @@ const ConsolidationDetails = ({
   };
 
   const getSubtitle = () => {
+    if (isCustomConsolidation) {
+      return `Combined from ${customConsolidationData.combined_from?.length || 0} original consolidations`;
+    }
     if (type === 'intertheater') {
       return `${poeName} to ${podName}`;
     }
@@ -68,10 +80,49 @@ const ConsolidationDetails = ({
           <h2 className="text-2xl font-bold flex items-center gap-2">
             <Ship size={24} className="text-blue-600" />
             {getTitle()}
+            {isCustomConsolidation && (
+              <Badge variant="secondary" className="ml-2">
+                Custom
+              </Badge>
+            )}
           </h2>
           <p className="text-gray-600">{getSubtitle()}</p>
+          {isCustomConsolidation && (
+            <div className="mt-2">
+              <p className="text-sm text-gray-500">
+                Route: {poeName} → {podName}
+              </p>
+              <p className="text-sm text-gray-500">
+                Type: {customConsolidationData.custom_type?.replace(/_/g, ' ')}
+              </p>
+            </div>
+          )}
         </div>
       </div>
+
+      {isCustomConsolidation && customConsolidationData.combined_from && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Original Consolidations Combined</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {customConsolidationData.combined_from.map((original: any, index: number) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <span className="font-medium">
+                      {original.poe_code || original.poe_name} → {original.pod_code || original.pod_name}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {original.shipment_count} shipments, {original.total_cube.toLocaleString()} ft³
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <Card>
@@ -167,6 +218,7 @@ const ConsolidationDetails = ({
                   <TableHead>Shipper Name</TableHead>
                   <TableHead>Cube (ft³)</TableHead>
                   <TableHead>Pickup Date</TableHead>
+                  <TableHead>Route</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -183,6 +235,9 @@ const ConsolidationDetails = ({
                     </TableCell>
                     <TableCell>
                       {new Date(shipment.pickup_date).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600">
+                      {shipment.target_poe?.code} → {shipment.target_pod?.code}
                     </TableCell>
                   </TableRow>
                 ))}

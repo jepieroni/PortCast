@@ -1,4 +1,3 @@
-
 import React from 'react';
 import MainDashboard from './MainDashboard';
 import ShipmentRegistration from './ShipmentRegistration';
@@ -55,7 +54,8 @@ const ViewRouter = ({
       poeCode: cardData.poe_code,
       podId: cardData.pod_id,
       podName: cardData.pod_name,
-      podCode: cardData.pod_code
+      podCode: cardData.pod_code,
+      customConsolidationData: cardData.is_custom ? cardData : undefined
     });
   };
 
@@ -122,6 +122,7 @@ const ViewRouter = ({
           outlookDays={outlookDays}
           onOutlookDaysChange={onOutlookDaysChange}
           onBack={() => onNavigate(consolidationParams.type)}
+          customConsolidationData={consolidationParams.customConsolidationData}
         />
       );
     case 'registration':
