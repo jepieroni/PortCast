@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { ArrowLeft, Package, Ship } from 'lucide-react';
@@ -45,24 +44,54 @@ const ConsolidationDetails = ({
 
   const isCustomConsolidation = customConsolidationData?.is_custom;
 
+  // For custom consolidations, get display names from the passed data
+  // For regular consolidations, use the props
+  const getDisplayPoeName = () => {
+    if (isCustomConsolidation) {
+      return customConsolidationData.poe_name || poeName;
+    }
+    return poeName;
+  };
+
+  const getDisplayPodName = () => {
+    if (isCustomConsolidation) {
+      return customConsolidationData.pod_name || podName;
+    }
+    return podName;
+  };
+
+  const getDisplayPoeCode = () => {
+    if (isCustomConsolidation) {
+      return customConsolidationData.poe_code || poeCode;
+    }
+    return poeCode;
+  };
+
+  const getDisplayPodCode = () => {
+    if (isCustomConsolidation) {
+      return customConsolidationData.pod_code || podCode;
+    }
+    return podCode;
+  };
+
   const getTitle = () => {
     if (isCustomConsolidation) {
       return `Custom Consolidation`;
     }
     if (type === 'intertheater') {
-      return `${poeCode || poeName} → ${podCode || podName}`;
+      return `${getDisplayPoeCode() || getDisplayPoeName()} → ${getDisplayPodCode() || getDisplayPodName()}`;
     }
-    return `${podCode || podName} Consolidation`;
+    return `${getDisplayPodCode() || getDisplayPodName()} Consolidation`;
   };
 
   const getSubtitle = () => {
     if (isCustomConsolidation) {
-      return `Combined from ${customConsolidationData.combined_from?.length || 0} original consolidations`;
+      return `Database ID: ${customConsolidationData.db_id}`;
     }
     if (type === 'intertheater') {
-      return `${poeName} to ${podName}`;
+      return `${getDisplayPoeName()} to ${getDisplayPodName()}`;
     }
-    return `From ${poeCode || poeName}`;
+    return `From ${getDisplayPoeCode() || getDisplayPoeName()}`;
   };
 
   const totalCube = shipments?.reduce((sum, shipment) => 
@@ -90,7 +119,7 @@ const ConsolidationDetails = ({
           {isCustomConsolidation && (
             <div className="mt-2">
               <p className="text-sm text-gray-500">
-                Route: {poeName} → {podName}
+                Route: {getDisplayPoeName()} → {getDisplayPodName()}
               </p>
               <p className="text-sm text-gray-500">
                 Type: {customConsolidationData.custom_type?.replace(/_/g, ' ')}
@@ -100,29 +129,7 @@ const ConsolidationDetails = ({
         </div>
       </div>
 
-      {isCustomConsolidation && customConsolidationData.combined_from && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Original Consolidations Combined</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {customConsolidationData.combined_from.map((original: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <span className="font-medium">
-                      {original.poe_code || original.poe_name} → {original.pod_code || original.pod_name}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {original.shipment_count} shipments, {original.total_cube.toLocaleString()} ft³
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* Remove the custom consolidation combined_from section since we're using direct database lookup */}
 
       <div className="grid md:grid-cols-3 gap-4 mb-6">
         <Card>
@@ -154,24 +161,27 @@ const ConsolidationDetails = ({
         </Card>
       </div>
 
-      <div className="p-4 bg-gray-50 rounded-lg">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">Outlook Range:</span>
-          <span className="text-sm text-gray-600">{outlookDays[0]} days</span>
+      {/* Only show outlook slider for regular consolidations */}
+      {!isCustomConsolidation && (
+        <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Outlook Range:</span>
+            <span className="text-sm text-gray-600">{outlookDays[0]} days</span>
+          </div>
+          <Slider
+            value={outlookDays}
+            onValueChange={onOutlookDaysChange}
+            max={28}
+            min={0}
+            step={1}
+            className="w-full"
+          />
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>Current</span>
+            <span>4 weeks</span>
+          </div>
         </div>
-        <Slider
-          value={outlookDays}
-          onValueChange={onOutlookDaysChange}
-          max={28}
-          min={0}
-          step={1}
-          className="w-full"
-        />
-        <div className="flex justify-between text-xs text-gray-500 mt-1">
-          <span>Current</span>
-          <span>4 weeks</span>
-        </div>
-      </div>
+      )}
 
       {isLoading ? (
         <Card>
@@ -200,7 +210,9 @@ const ConsolidationDetails = ({
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-gray-500 text-lg mb-2">No shipments found for this consolidation</p>
-            <p className="text-gray-400">Try adjusting the outlook range</p>
+            {!isCustomConsolidation && (
+              <p className="text-gray-400">Try adjusting the outlook range</p>
+            )}
           </CardContent>
         </Card>
       ) : (
