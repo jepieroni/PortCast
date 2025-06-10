@@ -28,27 +28,29 @@ export const useConsolidationShipments = (
   const regularQuery = useQuery({
     queryKey: ['consolidation-shipments', type, poeId, podId, outlookDays[0]],
     queryFn: async () => {
+      const maxOutlookDays = Math.max(...outlookDays);
+      
       console.log('🔍 Starting regular shipment fetch with params:', {
         type,
         poeId,
         podId,
-        outlookDays: outlookDays[0]
+        maxOutlookDays
       });
 
       debugLogger.info('CONSOLIDATION-SHIPMENTS', 'Fetching regular consolidation shipments', 'useConsolidationShipments', {
         type,
         poeId,
         podId,
-        outlookDays: outlookDays[0]
+        maxOutlookDays
       });
 
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setDate(startDate.getDate() + outlookDays[0]);
+      // Use the same date logic as useRegularConsolidationData
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() + maxOutlookDays);
 
-      console.log('🔍 Date range for query:', {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
+      console.log('🔍 Date range for query (matching consolidation data logic):', {
+        cutoffDate: cutoffDate.toISOString().split('T')[0],
+        maxOutlookDays
       });
 
       let query = supabase
@@ -61,8 +63,7 @@ export const useConsolidationShipments = (
         `)
         .eq('target_poe_id', poeId)
         .eq('target_pod_id', podId)
-        .gte('pickup_date', startDate.toISOString().split('T')[0])
-        .lte('pickup_date', endDate.toISOString().split('T')[0]);
+        .lte('pickup_date', cutoffDate.toISOString().split('T')[0]); // Match consolidation data logic
 
       // Apply shipment type filter
       if (type !== 'intertheater') {
