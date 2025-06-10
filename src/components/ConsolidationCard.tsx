@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Package, TrendingUp, Ship } from 'lucide-react';
 import { ConsolidationGroup } from '@/hooks/useConsolidationData';
 import { usePortRegions } from '@/hooks/usePortRegions';
+import { ExtendedConsolidationGroup } from '@/hooks/useDragDropConsolidation';
 
 interface ConsolidationCardProps {
   poe_name: string;
@@ -14,8 +15,13 @@ interface ConsolidationCardProps {
   availableShipments: number;
   hasUserShipments: boolean;
   type: 'inbound' | 'outbound' | 'intertheater';
-  consolidationData: ConsolidationGroup;
+  consolidationData: ExtendedConsolidationGroup;
   onClick?: () => void;
+  isDragging?: boolean;
+  isValidDropTarget?: boolean;
+  onDragStart?: (card: ExtendedConsolidationGroup) => void;
+  onDragEnd?: () => void;
+  onDrop?: (card: ExtendedConsolidationGroup) => void;
 }
 
 const ConsolidationCard = ({ 
@@ -28,13 +34,21 @@ const ConsolidationCard = ({
   hasUserShipments,
   type,
   consolidationData,
-  onClick
+  onClick,
+  isDragging = false,
+  isValidDropTarget = false,
+  onDragStart,
+  onDragEnd,
+  onDrop
 }: ConsolidationCardProps) => {
   const { portRegions, portRegionMemberships } = usePortRegions();
   const fillPercentage = Math.min((totalCube / 2000) * 100, 100); // 2000 cubic feet = full container
 
   // Get port region names for POE and POD
   const getPoeRegionName = () => {
+    if ('is_custom' in consolidationData && consolidationData.origin_region_name) {
+      return consolidationData.origin_region_name;
+    }
     const membership = portRegionMemberships.find(m => m.port_id === consolidationData.poe_id);
     if (membership) {
       const region = portRegions.find(r => r.id === membership.region_id);
@@ -44,6 +58,9 @@ const ConsolidationCard = ({
   };
 
   const getPodRegionName = () => {
+    if ('is_custom' in consolidationData && consolidationData.destination_region_name) {
+      return consolidationData.destination_region_name;
+    }
     const membership = portRegionMemberships.find(m => m.port_id === consolidationData.pod_id);
     if (membership) {
       const region = portRegions.find(r => r.id === membership.region_id);
@@ -53,21 +70,64 @@ const ConsolidationCard = ({
   };
 
   const handleCardClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     onClick?.();
   };
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.effectAllowed = 'move';
+    onDragStart?.(consolidationData);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (isValidDropTarget) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (isValidDropTarget) {
+      onDrop?.(consolidationData);
+    }
+  };
+
+  const getCardClasses = () => {
+    let classes = "cursor-pointer transition-all duration-200 hover:shadow-lg ";
+    
+    if (isDragging) {
+      classes += "opacity-50 transform rotate-2 ";
+    } else if (isValidDropTarget) {
+      classes += "ring-2 ring-green-500 bg-green-50 scale-105 ";
+    } else if (hasUserShipments) {
+      classes += "ring-2 ring-blue-500 bg-blue-50 ";
+    } else {
+      classes += "hover:scale-105 ";
+    }
+    
+    return classes;
+  };
+
+  const isCustomCard = 'is_custom' in consolidationData;
   
   return (
     <Card 
-      className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-        hasUserShipments ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:scale-105'
-      }`}
+      className={getCardClasses()}
       onClick={handleCardClick}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2 mb-2">
           <Ship size={18} className="text-blue-600" />
           <CardTitle className="text-lg font-semibold">
-            {type === 'intertheater' ? 'Intertheater Route' : `${type.charAt(0).toUpperCase() + type.slice(1)} Route`}
+            {isCustomCard ? 'Custom Consolidation' : 
+             type === 'intertheater' ? 'Intertheater Route' : 
+             `${type.charAt(0).toUpperCase() + type.slice(1)} Route`}
           </CardTitle>
         </div>
         <div className="space-y-1 text-sm">
@@ -116,6 +176,12 @@ const ConsolidationCard = ({
         {fillPercentage >= 90 && (
           <Badge variant="default" className="w-full justify-center bg-green-600">
             Ready for Consolidation
+          </Badge>
+        )}
+
+        {isCustomCard && (
+          <Badge variant="outline" className="w-full justify-center">
+            Combined ({(consolidationData as any).combined_from?.length || 0} cards)
           </Badge>
         )}
       </CardContent>

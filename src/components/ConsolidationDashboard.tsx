@@ -1,10 +1,12 @@
 
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import ConsolidationCard from '@/components/ConsolidationCard';
 import { useConsolidationData } from '@/hooks/useConsolidationData';
+import { useDragDropConsolidation } from '@/hooks/useDragDropConsolidation';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useEffect } from 'react';
 
 interface ConsolidationDashboardProps {
   type: 'inbound' | 'outbound' | 'intertheater';
@@ -23,10 +25,29 @@ const ConsolidationDashboard = ({
   onTabChange,
   onCardClick
 }: ConsolidationDashboardProps) => {
-  const { data: consolidations, isLoading, error } = useConsolidationData(
+  const { data: originalConsolidations, isLoading, error } = useConsolidationData(
     type, 
     outlookDays
   );
+
+  const {
+    consolidations,
+    draggedCard,
+    setDraggedCard,
+    handleDrop,
+    canDrop,
+    resetToOriginal,
+    getValidDropTargets
+  } = useDragDropConsolidation(originalConsolidations || []);
+
+  // Reset custom consolidations when data changes
+  useEffect(() => {
+    if (originalConsolidations) {
+      resetToOriginal();
+    }
+  }, [originalConsolidations, resetToOriginal]);
+
+  const validDropTargets = draggedCard ? getValidDropTargets(draggedCard) : [];
 
   return (
     <div className="space-y-6">
@@ -40,6 +61,10 @@ const ConsolidationDashboard = ({
         </div>
         
         <div className="flex gap-2 ml-auto">
+          <Button variant="outline" onClick={resetToOriginal} className="flex items-center gap-2">
+            <RotateCcw size={16} />
+            Reset Custom Consolidations
+          </Button>
           {['inbound', 'outbound', 'intertheater'].map((tab) => (
             <Button
               key={tab}
@@ -72,6 +97,15 @@ const ConsolidationDashboard = ({
         </div>
       </div>
 
+      {draggedCard && (
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <p className="text-sm text-blue-700">
+            <strong>Drag and Drop:</strong> Drop onto cards with matching port regions to create custom consolidations.
+            Valid targets are highlighted in green.
+          </p>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -95,21 +129,31 @@ const ConsolidationDashboard = ({
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {consolidations.map((consolidation, index) => (
-            <ConsolidationCard
-              key={`${consolidation.poe_id}-${consolidation.pod_id}`}
-              poe_name={consolidation.poe_name}
-              poe_code={consolidation.poe_code}
-              pod_name={consolidation.pod_name}
-              pod_code={consolidation.pod_code}
-              totalCube={consolidation.total_cube}
-              availableShipments={consolidation.shipment_count}
-              hasUserShipments={consolidation.has_user_shipments}
-              type={type}
-              consolidationData={consolidation}
-              onClick={() => onCardClick?.(consolidation)}
-            />
-          ))}
+          {consolidations.map((consolidation, index) => {
+            const isValidTarget = validDropTargets.includes(consolidation);
+            const isDragging = draggedCard === consolidation;
+            
+            return (
+              <ConsolidationCard
+                key={`${consolidation.poe_id}-${consolidation.pod_id}-${index}`}
+                poe_name={consolidation.poe_name}
+                poe_code={consolidation.poe_code}
+                pod_name={consolidation.pod_name}
+                pod_code={consolidation.pod_code}
+                totalCube={consolidation.total_cube}
+                availableShipments={consolidation.shipment_count}
+                hasUserShipments={consolidation.has_user_shipments}
+                type={type}
+                consolidationData={consolidation}
+                onClick={() => onCardClick?.(consolidation)}
+                isDragging={isDragging}
+                isValidDropTarget={isValidTarget}
+                onDragStart={setDraggedCard}
+                onDragEnd={() => setDraggedCard(null)}
+                onDrop={handleDrop}
+              />
+            );
+          })}
         </div>
       )}
     </div>
