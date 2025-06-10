@@ -13,10 +13,22 @@ import { useAuth } from './useAuth';
 
 export type { ExtendedConsolidationGroup } from './consolidation/dragDropTypes';
 
+let renderCount = 0;
+
 export const useDragDropConsolidation = (
   consolidations: ExtendedConsolidationGroup[],
   type: 'inbound' | 'outbound' | 'intertheater'
 ) => {
+  renderCount++;
+  console.log(`🔄 useDragDropConsolidation render #${renderCount}`, {
+    type,
+    consolidationsCount: consolidations.length,
+    consolidationsHash: JSON.stringify(consolidations.map(c => ({ 
+      id: 'is_custom' in c ? c.custom_id || c.poe_id + c.pod_id : c.poe_id + c.pod_id,
+      isCustom: 'is_custom' in c ? c.is_custom : false 
+    }))).substring(0, 100)
+  });
+
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { portRegions, portRegionMemberships } = usePortRegions();
@@ -31,6 +43,7 @@ export const useDragDropConsolidation = (
 
   // Function to invalidate consolidation data cache for both custom and regular consolidations
   const invalidateConsolidationData = useCallback(() => {
+    console.log('🔄 invalidateConsolidationData called');
     debugLogger.info('DRAG-DROP-HOOK', 'Invalidating all consolidation data caches', 'invalidateConsolidationData');
     
     // Invalidate the main combined data
@@ -69,6 +82,7 @@ export const useDragDropConsolidation = (
   );
 
   const resetToOriginal = useCallback(() => {
+    console.log('🔄 resetToOriginal called');
     debugLogger.info('DRAG-DROP-HOOK', 'Manual reset to original consolidations triggered', 'resetToOriginal');
     
     // Get custom consolidations and delete them
@@ -87,8 +101,11 @@ export const useDragDropConsolidation = (
   }, [consolidations, deleteCustomConsolidation, invalidateConsolidationData]);
 
   const getValidDropTargetsForCard = useCallback((source: ExtendedConsolidationGroup) => {
+    console.log('🔄 getValidDropTargetsForCard called for:', 'is_custom' in source ? source.custom_id : source.poe_id + source.pod_id);
     return getValidDropTargets(source, consolidations);
   }, [consolidations, getValidDropTargets]);
+
+  console.log(`🔄 useDragDropConsolidation returning from render #${renderCount}`);
 
   return {
     consolidations,
@@ -98,7 +115,7 @@ export const useDragDropConsolidation = (
     canDrop,
     resetToOriginal,
     getValidDropTargets: getValidDropTargetsForCard,
-    isLoading: false, // No longer managing loading state here
+    isLoading: false,
     createMultipleConsolidation,
     isCreatingConsolidation: isCreatingConsolidation || isCreatingCustom
   };

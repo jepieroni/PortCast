@@ -18,6 +18,8 @@ interface ConsolidationDashboardProps {
   onCardClick?: (cardData: any) => void;
 }
 
+let dashboardRenderCount = 0;
+
 const ConsolidationDashboard = ({ 
   type, 
   outlookDays, 
@@ -26,15 +28,27 @@ const ConsolidationDashboard = ({
   onTabChange, 
   onCardClick 
 }: ConsolidationDashboardProps) => {
+  dashboardRenderCount++;
+  console.log(`🎯 ConsolidationDashboard render #${dashboardRenderCount}`, {
+    type,
+    outlookDays,
+    outlookDaysString: JSON.stringify(outlookDays)
+  });
+
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [compatibleCards, setCompatibleCards] = useState<Set<string>>(new Set());
   
   // Stabilize outlookDays array to prevent infinite re-renders
-  const stableOutlookDays = useMemo(() => outlookDays, [JSON.stringify(outlookDays)]);
+  const stableOutlookDays = useMemo(() => {
+    console.log('🔄 stableOutlookDays memo recalculating', outlookDays);
+    return outlookDays;
+  }, [JSON.stringify(outlookDays)]);
   
   // Get combined consolidation data (custom + regular)
   const consolidationDataQuery = useConsolidationData(type, stableOutlookDays);
   const consolidations = consolidationDataQuery?.data || [];
+
+  console.log('🎯 ConsolidationDashboard got consolidations:', consolidations.length);
 
   // Use drag/drop functionality with the combined data
   const {
@@ -49,16 +63,20 @@ const ConsolidationDashboard = ({
   } = useDragDropConsolidation(consolidations, type);
 
   // Memoize validDropTargets to prevent unnecessary re-calculations
-  const validDropTargets = useMemo(() => 
-    draggedCard ? getValidDropTargets(draggedCard) : [], 
-    [draggedCard, getValidDropTargets]
-  );
+  const validDropTargets = useMemo(() => {
+    console.log('🔄 validDropTargets memo recalculating', draggedCard ? 'has draggedCard' : 'no draggedCard');
+    return draggedCard ? getValidDropTargets(draggedCard) : [];
+  }, [draggedCard, getValidDropTargets]);
 
   const getCardKey = useCallback((card: ExtendedConsolidationGroup) => {
     return defaultGetCardKey(card);
   }, []);
 
   useEffect(() => {
+    console.log('🔄 ConsolidationDashboard useEffect for compatible cards', {
+      selectedCardsSize: selectedCards.size,
+      consolidationsLength: consolidations.length
+    });
     // Update compatible cards whenever consolidations change
     const newCompatibleCards = new Set(
       Array.from(selectedCards).filter(cardKey => {
@@ -70,6 +88,7 @@ const ConsolidationDashboard = ({
   }, [consolidations, selectedCards, canDrop, getCardKey]);
 
   const handleCardSelection = useCallback((card: ExtendedConsolidationGroup, checked: boolean) => {
+    console.log('🔄 handleCardSelection called', { checked, cardKey: getCardKey(card) });
     const cardKey = getCardKey(card);
     setSelectedCards(prev => {
       const newSelection = new Set(prev);
@@ -83,6 +102,7 @@ const ConsolidationDashboard = ({
   }, [getCardKey]);
 
   const handleConsolidateSelected = useCallback(async () => {
+    console.log('🔄 handleConsolidateSelected called');
     const selectedCardsList = Array.from(selectedCards)
       .map(cardKey => consolidations.find(c => getCardKey(c) === cardKey))
       .filter(Boolean) as ExtendedConsolidationGroup[];
@@ -93,11 +113,13 @@ const ConsolidationDashboard = ({
     }
   }, [selectedCards, consolidations, getCardKey, createMultipleConsolidation]);
 
-  const canConsolidateSelected = useMemo(() => 
-    selectedCards.size >= 2 && 
-    Array.from(selectedCards).every(cardKey => compatibleCards.has(cardKey)),
-    [selectedCards, compatibleCards]
-  );
+  const canConsolidateSelected = useMemo(() => {
+    console.log('🔄 canConsolidateSelected memo recalculating');
+    return selectedCards.size >= 2 && 
+      Array.from(selectedCards).every(cardKey => compatibleCards.has(cardKey));
+  }, [selectedCards, compatibleCards]);
+
+  console.log(`🎯 ConsolidationDashboard render #${dashboardRenderCount} complete`);
 
   return (
     <div className="space-y-6">

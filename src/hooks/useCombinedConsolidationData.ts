@@ -4,18 +4,31 @@ import { useCustomConsolidationData } from './useCustomConsolidationData';
 import { useRegularConsolidationData } from './useRegularConsolidationData';
 import { ExtendedConsolidationGroup } from './useDragDropConsolidation';
 
+let combineRenderCount = 0;
+
 export const useCombinedConsolidationData = (
   type: 'inbound' | 'outbound' | 'intertheater',
   outlookDays: number[]
 ) => {
+  combineRenderCount++;
+  console.log(`🔄 useCombinedConsolidationData render #${combineRenderCount}`, { type, outlookDays });
+
   // Fetch custom consolidations
   const customConsolidationQuery = useCustomConsolidationData(type);
   
   // Fetch regular consolidations (excluding those in custom consolidations)
   const regularConsolidationQuery = useRegularConsolidationData(type, outlookDays);
 
+  console.log(`🔄 useCombinedConsolidationData queries state:`, {
+    customLoading: customConsolidationQuery.isLoading,
+    regularLoading: regularConsolidationQuery.isLoading,
+    customDataLength: customConsolidationQuery.data?.length || 0,
+    regularDataLength: regularConsolidationQuery.data?.length || 0
+  });
+
   // Combine the data
   const combinedData = useMemo(() => {
+    console.log(`🔄 useCombinedConsolidationData combinedData memo recalculating #${combineRenderCount}`);
     const customConsolidations = customConsolidationQuery.data || [];
     const regularConsolidations = regularConsolidationQuery.data || [];
     
@@ -42,6 +55,12 @@ export const useCombinedConsolidationData = (
 
   const isLoading = customConsolidationQuery.isLoading || regularConsolidationQuery.isLoading;
   const error = customConsolidationQuery.error || regularConsolidationQuery.error;
+
+  console.log(`🔄 useCombinedConsolidationData render #${combineRenderCount} returning:`, {
+    dataLength: combinedData.length,
+    isLoading,
+    hasError: !!error
+  });
 
   return {
     data: combinedData,
