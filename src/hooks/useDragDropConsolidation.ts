@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { ConsolidationGroup } from './consolidation/types';
 import { usePortRegions } from './usePortRegions';
@@ -41,7 +40,8 @@ export const useDragDropConsolidation = (initialConsolidations: ConsolidationGro
     const originRegionsMatch = sourceOriginRegion?.id === targetOriginRegion?.id;
     const destRegionsMatch = sourceDestRegion?.id === targetDestRegion?.id;
 
-    return originRegionsMatch || destRegionsMatch;
+    // Both origin AND destination regions must match for valid consolidation
+    return originRegionsMatch && destRegionsMatch;
   }, [getPortRegion]);
 
   const createCustomCard = useCallback((source: ExtendedConsolidationGroup, target: ExtendedConsolidationGroup): CustomConsolidationGroup => {
