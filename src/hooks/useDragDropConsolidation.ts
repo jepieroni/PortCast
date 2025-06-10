@@ -38,15 +38,29 @@ export const useDragDropConsolidation = (
   const { getPortRegion, canDrop, getValidDropTargets } = useConsolidationUtils(portRegions, portRegionMemberships);
   const { createCustomCard } = useCustomConsolidationCreator(getPortRegion);
 
-  // Function to invalidate consolidation data cache
+  // Function to invalidate consolidation data cache for both custom and regular consolidations
   const invalidateConsolidationData = useCallback(() => {
-    debugLogger.info('DRAG-DROP-HOOK', 'Invalidating consolidation data cache', 'invalidateConsolidationData');
+    debugLogger.info('DRAG-DROP-HOOK', 'Invalidating all consolidation data caches', 'invalidateConsolidationData');
+    
+    // Invalidate the main combined data
     queryClient.invalidateQueries({ 
-      queryKey: ['consolidation-data', type, user?.id] 
+      queryKey: ['consolidation-data', type] 
     });
+    
+    // Invalidate custom consolidations specifically
     queryClient.invalidateQueries({ 
       queryKey: ['custom-consolidations', type, user?.id] 
     });
+    queryClient.invalidateQueries({ 
+      queryKey: ['custom-consolidation-data', type, user?.id] 
+    });
+    
+    // Invalidate regular consolidations specifically
+    queryClient.invalidateQueries({ 
+      queryKey: ['regular-consolidation-data', type] 
+    });
+    
+    debugLogger.info('DRAG-DROP-HOOK', 'All consolidation data caches invalidated', 'invalidateConsolidationData');
   }, [queryClient, type, user?.id]);
 
   const {

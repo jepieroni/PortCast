@@ -42,13 +42,16 @@ export const useDragDropOperations = (
       const customCard = createCustomCard([draggedCard, targetCard]);
       debugLogger.debug('DRAG-DROP-OPERATIONS', 'Custom card created for drop operation', 'handleDrop', { customCard: customCard.custom_id });
       
-      // Save to database and wait for completion
+      // CRITICAL: Wait for complete DB transaction before invalidating cache
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'Starting DB transaction for custom consolidation', 'handleDrop');
       await createCustomConsolidation(customCard);
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'DB transaction completed successfully', 'handleDrop');
+      
+      // ONLY THEN invalidate cache to trigger refetch with fresh data
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'Invalidating cache to refresh data', 'handleDrop');
+      invalidateConsolidationData();
       
       debugLogger.info('DRAG-DROP-OPERATIONS', 'Drop operation completed successfully', 'handleDrop');
-      
-      // Invalidate cache to refresh from database
-      invalidateConsolidationData();
     } catch (error) {
       debugLogger.error('DRAG-DROP-OPERATIONS', 'Error in drop operation', 'handleDrop', {
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -79,13 +82,16 @@ export const useDragDropOperations = (
         customType: customCard.custom_type
       });
       
-      // Save to database and wait for completion
+      // CRITICAL: Wait for complete DB transaction before invalidating cache
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'Starting DB transaction for multiple consolidation', 'createMultipleConsolidation');
       await createCustomConsolidation(customCard);
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'DB transaction completed successfully', 'createMultipleConsolidation');
+      
+      // ONLY THEN invalidate cache to trigger refetch with fresh data
+      debugLogger.info('DRAG-DROP-OPERATIONS', 'Invalidating cache to refresh data', 'createMultipleConsolidation');
+      invalidateConsolidationData();
       
       debugLogger.info('DRAG-DROP-OPERATIONS', 'Multiple consolidation completed successfully', 'createMultipleConsolidation');
-      
-      // Invalidate cache to refresh from database
-      invalidateConsolidationData();
     } catch (error) {
       debugLogger.error('DRAG-DROP-OPERATIONS', 'Error in createMultipleConsolidation', 'createMultipleConsolidation', {
         error: error instanceof Error ? error.message : 'Unknown error',
