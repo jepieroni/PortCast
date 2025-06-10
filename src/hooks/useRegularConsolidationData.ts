@@ -51,9 +51,9 @@ export const useRegularConsolidationData = (
         const excludedShipmentIds = customMembershipIds?.map(m => m.shipment_id) || [];
         console.log('🔍 Step 2: Found shipment IDs in custom consolidations:', excludedShipmentIds.length);
 
-        console.log('🔍 Step 3: Fetching available shipments...');
+        console.log('🔍 Step 3: Fetching available shipments (ALL ORGANIZATIONS for consolidation opportunities)...');
         
-        // Build the query for shipments
+        // Build the query for shipments - REMOVED organization filtering for consolidation dashboard
         let shipmentsQuery = supabase
           .from('shipments')
           .select(`
